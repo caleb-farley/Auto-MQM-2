@@ -65,6 +65,97 @@ app.post('/api/detect-language', async (req, res) => {
   }
 });
 
+// Source/Target Alignment Check Endpoint
+app.post('/api/check-alignment', async (req, res) => {
+  try {
+    const { sourceText, targetText, sourceLang, targetLang } = req.body;
+
+    if (!sourceText || !targetText) {
+      return res.status(400).json({ error: 'Both sourceText and targetText are required' });
+    }
+
+    const claudeApiKey = process.env.CLAUDE_API_KEY;
+
+    if (!claudeApiKey) {
+      return res.status(500).json({ error: 'Claude API key not configured' });
+    }
+
+    const alignmentPrompt = `
+You are a bilingual language expert. Determine if the following source text and target text are accurate translations of each other.
+
+Source language: ${sourceLang || 'undetermined'}
+Target language: ${targetLang || 'undetermined'}
+
+Source text:
+"""
+${sourceText}
+"""
+
+Target text:
+"""
+${targetText}
+"""
+
+Please respond in **valid JSON** format like this:
+{
+  "match": true,
+  "confidence": 87,
+  "reason": "The texts align closely with only minor stylistic differences."
+}
+`;
+
+    const response = await axios.post(
+      'https://api.anthropic.com/v1/messages',
+      {
+        model: "claude-3-sonnet-20240229",
+        max_tokens: 500,
+        messages: [
+          {
+            role: "user",
+            content: alignmentPrompt
+          }
+        ]
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': claudeApiKey,
+          'anthropic-version': '2023-06-01'
+        }
+      }
+    );
+
+    const alignmentText = response.data?.content?.[0]?.text;
+    const jsonMatch = alignmentText.match(/\{[\s\S]*?\}/);
+
+    if (!jsonMatch) {
+      return res.status(500).json({ error: 'Could not parse alignment result' });
+    }
+
+    const alignmentResult = JSON.parse(jsonMatch[0]);
+
+    if (!alignmentResult.match || alignmentResult.confidence < 60) {
+      return res.status(400).json({
+        error: 'Assessment cannot be conducted because the source and target do not appear to match.',
+        matchConfidence: alignmentResult.confidence,
+        reason: alignmentResult.reason
+      });
+    }
+
+    return res.json({
+      match: true,
+      confidence: alignmentResult.confidence,
+      reason: alignmentResult.reason
+    });
+  } catch (error) {
+    console.error('Alignment check error:', error);
+    return res.status(500).json({
+      error: 'Alignment check failed',
+      message: error.message
+    });
+  }
+});
+
 // MQM analysis endpoint using Claude API
 app.post('/api/mqm-analysis', async (req, res) => {
   try {

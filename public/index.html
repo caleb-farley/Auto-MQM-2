@@ -701,30 +701,29 @@
     };
 
     // Update word count
-    sourceText.addEventListener('input', () => {
-      if (sourceText.value) {
-        const words = sourceText.value.trim().split(/\s+/);
-        const count = words.length > 0 && words[0] !== '' ? words.length : 0;
-        isOverLimit = count > WORD_COUNT_LIMIT;
-        
-        wordCount.textContent = `${count} / ${WORD_COUNT_LIMIT} words ${isOverLimit ? '(limit exceeded)' : ''}`;
-        
-        if (isOverLimit) {
-          wordCount.classList.add('word-count-exceeded');
-          sourceText.style.borderColor = '#ff6b6b';
-        } else {
-          wordCount.classList.remove('word-count-exceeded');
-          sourceText.style.borderColor = 'rgb(60, 60, 60)';
-        }
-      } else {
-        wordCount.textContent = `0 / ${WORD_COUNT_LIMIT} words`;
+    function updateWordCountDisplay() {
+    const text = sourceText.value.trim();
+    const words = text.length > 0 ? text.split(/\s+/) : [];
+    const count = words.length;
+
+    isOverLimit = count > WORD_COUNT_LIMIT;
+
+    wordCount.textContent = `${count} / ${WORD_COUNT_LIMIT} words${isOverLimit ? ' (limit exceeded)' : ''}`;
+
+    if (isOverLimit) {
+        wordCount.classList.add('word-count-exceeded');
+        sourceText.style.borderColor = '#ff6b6b';
+    } else {
         wordCount.classList.remove('word-count-exceeded');
         sourceText.style.borderColor = 'rgb(60, 60, 60)';
-        isOverLimit = false;
-      }
-      
-      updateAnalyzeButton();
-    });
+  }
+
+  updateAnalyzeButton();
+}
+
+sourceText.addEventListener('input', () => {
+  setTimeout(updateWordCountDisplay, 10); // Helps with paste event catching
+});
 
     // Language detection API function
     async function detectLanguage(text) {
@@ -778,35 +777,52 @@
     }
 
     // Update source language detection
-    sourceText.addEventListener('input', async () => {
-      if (sourceText.value.length >= 10 && !sourceLang.value) {
-        sourceLangDetected.textContent = 'Detecting...';
-        const detectedLang = await detectLanguage(sourceText.value);
-        if (detectedLang) {
-          sourceLang.value = detectedLang;
-          const flag = getLanguageFlag(detectedLang);
-          const name = getLanguageName(detectedLang);
-          sourceLangDetected.textContent = `Detected: ${flag} ${name}`;
-          updateAnalyzeButton();
-        }
+    function handleSourceLanguageDetection() {
+  if (sourceText.value.length >= 10 && !sourceLang.value) {
+    sourceLangDetected.textContent = 'Detecting...';
+    detectLanguage(sourceText.value).then(detectedLang => {
+      if (detectedLang) {
+        sourceLang.value = detectedLang;
+        const flag = getLanguageFlag(detectedLang);
+        const name = getLanguageName(detectedLang);
+        sourceLangDetected.textContent = `Detected: ${flag} ${name}`;
+        updateAnalyzeButton();
       }
     });
+  }
+  updateAnalyzeButton();
+}
+
+sourceText.addEventListener('input', () => {
+  setTimeout(handleSourceLanguageDetection, 10);
+});
+sourceText.addEventListener('paste', () => {
+  setTimeout(handleSourceLanguageDetection, 10);
+});
 
     // Update target language detection
-    targetText.addEventListener('input', async () => {
-      if (targetText.value.length >= 10 && !targetLang.value) {
-        targetLangDetected.textContent = 'Detecting...';
-        const detectedLang = await detectLanguage(targetText.value);
-        if (detectedLang) {
-          targetLang.value = detectedLang;
-          const flag = getLanguageFlag(detectedLang);
-          const name = getLanguageName(detectedLang);
-          targetLangDetected.textContent = `Detected: ${flag} ${name}`;
-          updateAnalyzeButton();
-        }
+    function handleTargetLanguageDetection() {
+  if (targetText.value.length >= 10 && !targetLang.value) {
+    targetLangDetected.textContent = 'Detecting...';
+    detectLanguage(targetText.value).then(detectedLang => {
+      if (detectedLang) {
+        targetLang.value = detectedLang;
+        const flag = getLanguageFlag(detectedLang);
+        const name = getLanguageName(detectedLang);
+        targetLangDetected.textContent = `Detected: ${flag} ${name}`;
+        updateAnalyzeButton();
       }
-      updateAnalyzeButton();
     });
+  }
+  updateAnalyzeButton();
+}
+
+targetText.addEventListener('input', () => {
+  setTimeout(handleTargetLanguageDetection, 10);
+});
+targetText.addEventListener('paste', () => {
+  setTimeout(handleTargetLanguageDetection, 10);
+});
 
     // Update language display when selected manually
     sourceLang.addEventListener('change', () => {
@@ -855,190 +871,184 @@
       updateAnalyzeButton();
     });
 
-    // Run MQM analysis
-    analyzeBtn.addEventListener('click', async () => {
-      if (!sourceText.value || !targetText.value || !sourceLang.value || !targetLang.value) {
-        showError('Please enter both source and target text and select languages');
-        return;
-      }
-      
-      if (isOverLimit) {
-        showError(`Source text exceeds the ${WORD_COUNT_LIMIT} word limit`);
-        return;
-      }
-      
-      // Show loading state
-      analyzeBtn.disabled = true;
-      analyzeBtn.innerHTML = '<span class="spinner">⟳</span> Analyzing...';
-      errorMessage.style.display = 'none';
-      
-      try {
-        // For development/testing without backend
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-          // Simulate API call with a delay
-          setTimeout(() => {
-            const words = sourceText.value.trim().split(/\s+/);
-            const wordCount = words.length > 0 && words[0] !== '' ? words.length : 0;
-            const mockResults = generateMockResults(wordCount);
-            displayResults(mockResults);
-            
-            // Reset button state
-            analyzeBtn.disabled = false;
-            analyzeBtn.textContent = 'Run MQM Analysis';
-          }, 1500);
-          return;
-        }
+ // Run MQM analysis
+analyzeBtn.addEventListener('click', async () => {
+  if (!sourceText.value || !targetText.value || !sourceLang.value || !targetLang.value) {
+    showError('Please enter both source and target text and select languages');
+    return;
+  }
+  
+  if (isOverLimit) {
+    showError(`Source text exceeds the ${WORD_COUNT_LIMIT} word limit`);
+    return;
+  }
+  
+  // Show loading state
+  analyzeBtn.disabled = true;
+  analyzeBtn.innerHTML = '<span class="spinner">⟳</span> Analyzing...';
+  errorMessage.style.display = 'none';
+  
+  try {
+    // For development/testing without backend
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      // Simulate API call with a delay
+      setTimeout(() => {
+        const words = sourceText.value.trim().split(/\s+/);
+        const wordCount = words.length > 0 && words[0] !== '' ? words.length : 0;
+        const mockResults = generateMockResults(wordCount);
+        displayResults(mockResults);
         
+        // Reset button state
+        analyzeBtn.disabled = false;
+        analyzeBtn.textContent = 'Run MQM Analysis';
+      }, 1500);
+      return;
+    }
+    
     // Step 1: Call /api/check-alignment before /api/mqm-analysis
     const alignmentResponse = await fetch('/api/check-alignment', {
-        method: 'POST',
-        headers: {
+      method: 'POST',
+      headers: {
         'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
+      },
+      body: JSON.stringify({
         sourceText: sourceText.value,
         targetText: targetText.value,
         sourceLang: sourceLang.value,
         targetLang: targetLang.value
-        })
+      })
     });
 
-if (!alignmentResponse.ok) {
-  const errorData = await alignmentResponse.json();
-  throw new Error(errorData.error || 'Source/target alignment check failed');
-}
+    if (!alignmentResponse.ok) {
+      const errorData = await alignmentResponse.json();
+      throw new Error(errorData.error || 'Source/target alignment check failed');
+    }
 
-// Step 2: If alignment passes, proceed with MQM analysis
-const mqmResponse = await fetch('/api/mqm-analysis', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    sourceText: sourceText.value,
-    targetText: targetText.value,
-    sourceLang: sourceLang.value,
-    targetLang: targetLang.value
-  })
+    // Step 2: If alignment passes, proceed with MQM analysis
+    const mqmResponse = await fetch('/api/mqm-analysis', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        sourceText: sourceText.value,
+        targetText: targetText.value,
+        sourceLang: sourceLang.value,
+        targetLang: targetLang.value
+      })
+    });
+
+    if (!mqmResponse.ok) {
+      const errorData = await mqmResponse.json();
+      throw new Error(errorData.error || 'Analysis failed');
+    }
+
+    const results = await mqmResponse.json();
+    displayResults(results);
+    
+  } catch (error) {
+    console.error('Error during analysis:', error);
+    showError(error.message || 'An error occurred during analysis');
+  } finally {
+    // Reset button state
+    analyzeBtn.disabled = false;
+    analyzeBtn.textContent = 'Run MQM Analysis';
+  }
 });
 
-if (!mqmResponse.ok) {
-  const errorData = await mqmResponse.json();
-  throw new Error(errorData.error || 'Analysis failed');
+// Show error message
+function showError(message) {
+  errorMessage.textContent = message;
+  errorMessage.style.display = 'block';
 }
 
-const results = await mqmResponse.json();
-displayResults(results);
-        
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Analysis failed');
-        }
-        
-        const results = await response.json();
-        displayResults(results);
-      } catch (error) {
-        showError(`Error: ${error.message}`);
-      } finally {
-        // Reset button state
-        analyzeBtn.disabled = false;
-        analyzeBtn.textContent = 'Run MQM Analysis';
-      }
-    });
-
-    // Show error message
-    function showError(message) {
-      errorMessage.textContent = message;
-      errorMessage.style.display = 'block';
-    }
-
-    // Get language flag
-    function getLanguageFlag(code) {
-      // Extract main language code for regional variants
-      const mainCode = code.split('-')[0];
-      
-      // Define flags for all language codes
-      const flags = {
-        en: '🇬🇧', // Default English flag
-        'en-US': '🇺🇸',
-        'en-GB': '🇬🇧',
-        'en-CA': '🇨🇦',
-        'en-AU': '🇦🇺',
-        
-        es: '🇪🇸',
-        'es-ES': '🇪🇸',
-        'es-MX': '🇲🇽',
-        'es-CO': '🇨🇴',
-        'es-AR': '🇦🇷',
-        
-        fr: '🇫🇷',
-        'fr-FR': '🇫🇷',
-        'fr-CA': '🇨🇦',
-        'fr-BE': '🇧🇪',
-        'fr-CH': '🇨🇭',
-        
-        pt: '🇵🇹',
-        'pt-PT': '🇵🇹',
-        'pt-BR': '🇧🇷',
-        
-        zh: '🇨🇳',
-        'zh-CN': '🇨🇳',
-        'zh-TW': '🇹🇼',
-        'zh-HK': '🇭🇰',
-        'zh-SG': '🇸🇬',
-        
-        ar: '🇸🇦',
-        'ar-SA': '🇸🇦',
-        'ar-EG': '🇪🇬',
-        'ar-AE': '🇦🇪',
-        'ar-MA': '🇲🇦',
-        
-        de: '🇩🇪',
-        'de-DE': '🇩🇪',
-        'de-AT': '🇦🇹',
-        'de-CH': '🇨🇭',
-        
-        it: '🇮🇹',
-        ja: '🇯🇵',
-        ko: '🇰🇷',
-        ru: '🇷🇺',
-        hi: '🇮🇳',
-        bn: '🇧🇩',
-        tr: '🇹🇷',
-        vi: '🇻🇳',
-        pl: '🇵🇱',
-        uk: '🇺🇦',
-        fa: '🇮🇷',
-        nl: '🇳🇱',
-        ta: '🇮🇳',
-        ur: '🇵🇰',
-        th: '🇹🇭',
-        ms: '🇲🇾',
-        sw: '🇰🇪',
-        tl: '🇵🇭',
-        he: '🇮🇱',
-        ro: '🇷🇴',
-        hu: '🇭🇺',
-        el: '🇬🇷',
-        cs: '🇨🇿',
-        sv: '🇸🇪',
-        da: '🇩🇰',
-        fi: '🇫🇮',
-        no: '🇳🇴',
-        id: '🇮🇩',
-        sr: '🇷🇸',
-        sk: '🇸🇰',
-        bg: '🇧🇬',
-        hr: '🇭🇷',
-        sl: '🇸🇮',
-        et: '🇪🇪',
-        lv: '🇱🇻',
-        lt: '🇱🇹'
-      };
-      
-      // Return the specific flag if available, or the main language flag if available, or a default
-      return flags[code] || flags[mainCode] || '🏳️';
-    }
+// Get language flag
+function getLanguageFlag(code) {
+  // Extract main language code for regional variants
+  const mainCode = code.split('-')[0];
+  
+  // Define flags for all language codes
+  const flags = {
+    en: '🇬🇧', // Default English flag
+    'en-US': '🇺🇸',
+    'en-GB': '🇬🇧',
+    'en-CA': '🇨🇦',
+    'en-AU': '🇦🇺',
+    
+    es: '🇪🇸',
+    'es-ES': '🇪🇸',
+    'es-MX': '🇲🇽',
+    'es-CO': '🇨🇴',
+    'es-AR': '🇦🇷',
+    
+    fr: '🇫🇷',
+    'fr-FR': '🇫🇷',
+    'fr-CA': '🇨🇦',
+    'fr-BE': '🇧🇪',
+    'fr-CH': '🇨🇭',
+    
+    pt: '🇵🇹',
+    'pt-PT': '🇵🇹',
+    'pt-BR': '🇧🇷',
+    
+    zh: '🇨🇳',
+    'zh-CN': '🇨🇳',
+    'zh-TW': '🇹🇼',
+    'zh-HK': '🇭🇰',
+    'zh-SG': '🇸🇬',
+    
+    ar: '🇸🇦',
+    'ar-SA': '🇸🇦',
+    'ar-EG': '🇪🇬',
+    'ar-AE': '🇦🇪',
+    'ar-MA': '🇲🇦',
+    
+    de: '🇩🇪',
+    'de-DE': '🇩🇪',
+    'de-AT': '🇦🇹',
+    'de-CH': '🇨🇭',
+    
+    it: '🇮🇹',
+    ja: '🇯🇵',
+    ko: '🇰🇷',
+    ru: '🇷🇺',
+    hi: '🇮🇳',
+    bn: '🇧🇩',
+    tr: '🇹🇷',
+    vi: '🇻🇳',
+    pl: '🇵🇱',
+    uk: '🇺🇦',
+    fa: '🇮🇷',
+    nl: '🇳🇱',
+    ta: '🇮🇳',
+    ur: '🇵🇰',
+    th: '🇹🇭',
+    ms: '🇲🇾',
+    sw: '🇰🇪',
+    tl: '🇵🇭',
+    he: '🇮🇱',
+    ro: '🇷🇴',
+    hu: '🇭🇺',
+    el: '🇬🇷',
+    cs: '🇨🇿',
+    sv: '🇸🇪',
+    da: '🇩🇰',
+    fi: '🇫🇮',
+    no: '🇳🇴',
+    id: '🇮🇩',
+    sr: '🇷🇸',
+    sk: '🇸🇰',
+    bg: '🇧🇬',
+    hr: '🇭🇷',
+    sl: '🇸🇮',
+    et: '🇪🇪',
+    lv: '🇱🇻',
+    lt: '🇱🇹'
+  };
+  
+  // Return the specific flag if available, or the main language flag if available, or a default
+  return flags[code] || flags[mainCode] || '🏳️';
+}
 
     // Get language name
     function getLanguageName(code) {
@@ -1308,33 +1318,42 @@ displayResults(results);
           </div>
         `;
       } else {
-        // Display issues
-        results.mqmIssues.forEach(issue => {
-          const severityClass = severityLevels[issue.severity].class;
-          const issueEl = document.createElement('div');
-          issueEl.className = 'issue';
-          issueEl.innerHTML = `
-            <div class="issue-container">
-              <div class="issue-indicator ${severityClass}">
-                ${issue.severity === 'MINOR' ? 'i' : issue.severity === 'MAJOR' ? '!' : '✕'}
-              </div>
-              <div class="issue-content">
-                <div class="issue-header">
-                  <h3 class="issue-title">${issue.category}: ${issue.subcategory}</h3>
-                  <span class="issue-severity ${severityClass}">
-                    ${severityLevels[issue.severity].label} (${severityLevels[issue.severity].value} pts)
-                  </span>
-                </div>
-                <p class="issue-explanation">${issue.explanation}</p>
-                ${issue.location ? `<p class="issue-location"><strong>Location:</strong> ${issue.location}</p>` : ''}
-                ${issue.suggestion ? `<div class="issue-suggestion"><strong>Suggestion:</strong> ${issue.suggestion}</div>` : ''}
-              </div>
-            </div>
-          `;
-          issuesContainer.appendChild(issueEl);
-        });
-      }
-    }
-  </script>
+// Display issues
+results.mqmIssues.forEach(issue => {
+  // Debug log for unexpected severity values
+  if (!severityLevels[issue.severity]) {
+    console.warn(`⚠️ Unknown severity level: "${issue.severity}"`, issue);
+  }
+
+  // Fallback to MINOR if severity is undefined or unrecognized
+  const severityInfo = severityLevels[issue.severity] || { class: 'minor', label: 'Minor', value: 1 };
+  const severityClass = severityInfo.class;
+
+  const issueEl = document.createElement('div');
+  issueEl.className = 'issue';
+  issueEl.innerHTML = `
+    <div class="issue-container">
+      <div class="issue-indicator ${severityClass}">
+        ${issue.severity === 'MINOR' ? 'i' : issue.severity === 'MAJOR' ? '!' : '✕'}
+      </div>
+      <div class="issue-content">
+        <div class="issue-header">
+          <h3 class="issue-title">${issue.category}: ${issue.subcategory}</h3>
+          <span class="issue-severity ${severityClass}">
+            ${severityInfo.label} (${severityInfo.value} pts)
+          </span>
+        </div>
+        <p class="issue-explanation">${issue.explanation}</p>
+        ${issue.location ? `<p class="issue-location"><strong>Location:</strong> ${issue.location}</p>` : ''}
+        ${issue.suggestion ? `<div class="issue-suggestion"><strong>Suggestion:</strong> ${issue.suggestion}</div>` : ''}
+      </div>
+    </div>
+  `;
+
+  issuesContainer.appendChild(issueEl);
+});
+  }
+}
+</script>
 </body>
 </html>
