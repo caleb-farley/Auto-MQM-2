@@ -227,7 +227,8 @@ For each issue found, provide:
 - Category and subcategory
 - Severity (Minor=1, Major=5, Critical=10)
 - Explanation
-- Location (if possible)
+- Location (if possible, provide specific information like character positions or word indices)
+- Specific text segment that has the issue
 - Suggested fix
 
 Also provide an MQM score calculated as:
@@ -246,6 +247,7 @@ Return ONLY valid JSON without any other text. Use this exact structure:
       "severity": "MAJOR",
       "explanation": "...",
       "location": "...",
+      "segment": "...",
       "suggestion": "..."
     },
     ...
@@ -261,6 +263,13 @@ Return ONLY valid JSON without any other text. Use this exact structure:
   "overallScore": 95,
   "summary": "..."
 }
+
+For the location field, try to be as specific as possible. Preferred format is:
+- For specific words: "Word 5-7 in sentence 2" or "Characters 120-135"
+- For sentences: "Sentence 3 in paragraph 2"
+- For paragraphs: "Paragraph 4"
+
+For the segment field, include the exact problematic text from the target translation.
 `;
 
     // Call Claude API

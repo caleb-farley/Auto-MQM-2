@@ -430,6 +430,118 @@
       margin-bottom: 20px;
       border: 1px solid rgba(255, 107, 107, 0.3);
     }
+
+    /* New styles for highlighted text and issue correction */
+    #target-display {
+      white-space: pre-wrap;
+      background-color: rgb(35, 35, 35);
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid rgb(60, 60, 60);
+      min-height: 200px;
+      font-family: 'Inter', system-ui, sans-serif;
+      line-height: 1.5;
+      margin-bottom: 10px;
+    }
+
+    .highlight {
+      background-color: rgba(255, 107, 107, 0.3);
+      position: relative;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+
+    .highlight.accepted {
+      background-color: rgba(40, 167, 69, 0.3);
+    }
+
+    .issue-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .action-btn {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .accept-btn {
+      background-color: rgba(40, 167, 69, 0.8);
+      color: white;
+    }
+
+    .accept-btn:hover {
+      background-color: rgba(40, 167, 69, 1);
+    }
+
+    .reject-btn {
+      background-color: rgba(255, 107, 107, 0.8);
+      color: white;
+    }
+
+    .reject-btn:hover {
+      background-color: rgba(255, 107, 107, 1);
+    }
+
+    /* Container for corrected text output */
+    .corrected-text-container {
+      margin-top: 20px;
+      display: none;
+    }
+
+    .corrected-text-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .corrected-text-label {
+      font-weight: 500;
+      color: #ffffff;
+    }
+
+    #corrected-text {
+      width: 100%;
+      height: 150px;
+      padding: 12px;
+      border: 1px solid rgb(60, 60, 60);
+      border-radius: 8px;
+      resize: vertical;
+      font-family: inherit;
+      background-color: rgb(35, 35, 35);
+      color: #e0e0e0;
+    }
+
+    .copy-btn {
+      margin-left: auto;
+      background-color: rgb(50, 50, 50);
+      color: #e0e0e0;
+    }
+
+    .copy-btn:hover {
+      background-color: rgb(60, 60, 60);
+    }
+
+    .tooltip {
+      position: absolute;
+      background: rgb(50, 50, 50);
+      color: white;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 14px;
+      z-index: 100;
+      max-width: 300px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
   </style>
 </head>
 <body>
@@ -444,16 +556,15 @@
             Powered by Orca LS
           </a>
         </div>
-      </div> <!-- ✅ closing header -->
+      </div>
       
-      <!-- ✅ move this OUTSIDE the header -->
       <div class="info-box">
         <p>
           Use this tool to assess the quality of your localization content based on the
           <a href="https://themqm.org/" target="_blank" rel="noopener noreferrer" style="color: #00B3D6; text-decoration: underline;">
             Multidimensional Quality Metrics (MQM) framework
           </a>.
-          It checks for issues in accuracy, fluency, and terminology. Language detection is automatic when possible.
+          It checks for issues in accuracy, fluency, and terminology, and helps you fix them interactively.
           <strong>Maximum 500 words.</strong>
         </p>
       </div>
@@ -640,10 +751,28 @@
       </div>
     </div>
 
+    <!-- Target text display (for highlighting issues) - This is initially hidden -->
+    <div id="target-display-container" style="display: none;">
+      <div class="text-area-header">
+        <label class="text-area-label">Target Text with Issues Highlighted:</label>
+      </div>
+      <div id="target-display"></div>
+    </div>
+
+    <!-- Corrected text output - This is initially hidden -->
+    <div class="corrected-text-container" id="corrected-text-container">
+      <div class="corrected-text-header">
+        <label class="corrected-text-label">Corrected Text:</label>
+        <button id="copy-btn" class="btn copy-btn">Copy to Clipboard</button>
+      </div>
+      <textarea id="corrected-text" readonly></textarea>
+    </div>
+
     <!-- Buttons -->
     <div class="buttons">
       <button id="analyze-btn" class="btn btn-primary" disabled>Run MQM Analysis</button>
       <button id="reset-btn" class="btn btn-secondary">Reset</button>
+      <button id="apply-all-btn" class="btn btn-primary" style="display: none;">Apply All Suggestions</button>
     </div>
 
     <!-- Error message (initially hidden) -->
@@ -672,6 +801,9 @@
       </div>
     </div>
 
+    <!-- Tooltip element for showing issue details on hover -->
+    <div id="tooltip" class="tooltip"></div>
+
     <!-- Footer -->
     <div class="footer">
       © 2025 Orca Language Solutions. All rights reserved.
@@ -689,6 +821,7 @@
     const wordCount = document.getElementById('word-count');
     const analyzeBtn = document.getElementById('analyze-btn');
     const resetBtn = document.getElementById('reset-btn');
+    const applyAllBtn = document.getElementById('apply-all-btn');
     const errorMessage = document.getElementById('error-message');
     const resultsContainer = document.getElementById('results-container');
     const score = document.getElementById('score');
@@ -696,6 +829,12 @@
     const summary = document.getElementById('summary');
     const categories = document.getElementById('categories');
     const issuesContainer = document.getElementById('issues-container');
+    const targetDisplayContainer = document.getElementById('target-display-container');
+    const targetDisplay = document.getElementById('target-display');
+    const correctedTextContainer = document.getElementById('corrected-text-container');
+    const correctedText = document.getElementById('corrected-text');
+    const copyBtn = document.getElementById('copy-btn');
+    const tooltip = document.getElementById('tooltip');
 
     // Word count limit
     const WORD_COUNT_LIMIT = 500;
@@ -708,30 +847,36 @@
       CRITICAL: { label: 'Critical', value: 10, class: 'critical' }
     };
 
+    // Store issues, text segments, and corrections
+    let currentIssues = [];
+    let issueToSegmentMap = {};
+    let appliedCorrections = {};
+    let currentTargetText = '';
+
     // Update word count
     function updateWordCountDisplay() {
-    const text = sourceText.value.trim();
-    const words = text.length > 0 ? text.split(/\s+/) : [];
-    const count = words.length;
+      const text = sourceText.value.trim();
+      const words = text.length > 0 ? text.split(/\s+/) : [];
+      const count = words.length;
 
-    isOverLimit = count > WORD_COUNT_LIMIT;
+      isOverLimit = count > WORD_COUNT_LIMIT;
 
-    wordCount.textContent = `${count} / ${WORD_COUNT_LIMIT} words${isOverLimit ? ' (limit exceeded)' : ''}`;
+      wordCount.textContent = `${count} / ${WORD_COUNT_LIMIT} words${isOverLimit ? ' (limit exceeded)' : ''}`;
 
-    if (isOverLimit) {
-        wordCount.classList.add('word-count-exceeded');
-        sourceText.style.borderColor = '#ff6b6b';
-    } else {
-        wordCount.classList.remove('word-count-exceeded');
-        sourceText.style.borderColor = 'rgb(60, 60, 60)';
-  }
+      if (isOverLimit) {
+          wordCount.classList.add('word-count-exceeded');
+          sourceText.style.borderColor = '#ff6b6b';
+      } else {
+          wordCount.classList.remove('word-count-exceeded');
+          sourceText.style.borderColor = 'rgb(60, 60, 60)';
+      }
 
-  updateAnalyzeButton();
-}
+      updateAnalyzeButton();
+    }
 
-sourceText.addEventListener('input', () => {
-  setTimeout(updateWordCountDisplay, 10); // Helps with paste event catching
-});
+    sourceText.addEventListener('input', () => {
+      setTimeout(updateWordCountDisplay, 10); // Helps with paste event catching
+    });
 
     // Language detection API function
     async function detectLanguage(text) {
@@ -786,51 +931,51 @@ sourceText.addEventListener('input', () => {
 
     // Update source language detection
     function handleSourceLanguageDetection() {
-  if (sourceText.value.length >= 10 && !sourceLang.value) {
-    sourceLangDetected.textContent = 'Detecting...';
-    detectLanguage(sourceText.value).then(detectedLang => {
-      if (detectedLang) {
-        sourceLang.value = detectedLang;
-        const flag = getLanguageFlag(detectedLang);
-        const name = getLanguageName(detectedLang);
-        sourceLangDetected.textContent = `Detected: ${flag} ${name}`;
-        updateAnalyzeButton();
+      if (sourceText.value.length >= 10 && !sourceLang.value) {
+        sourceLangDetected.textContent = 'Detecting...';
+        detectLanguage(sourceText.value).then(detectedLang => {
+          if (detectedLang) {
+            sourceLang.value = detectedLang;
+            const flag = getLanguageFlag(detectedLang);
+            const name = getLanguageName(detectedLang);
+            sourceLangDetected.textContent = `Detected: ${flag} ${name}`;
+            updateAnalyzeButton();
+          }
+        });
       }
-    });
-  }
-  updateAnalyzeButton();
-}
+      updateAnalyzeButton();
+    }
 
-sourceText.addEventListener('input', () => {
-  setTimeout(handleSourceLanguageDetection, 10);
-});
-sourceText.addEventListener('paste', () => {
-  setTimeout(handleSourceLanguageDetection, 10);
-});
+    sourceText.addEventListener('input', () => {
+      setTimeout(handleSourceLanguageDetection, 10);
+    });
+    sourceText.addEventListener('paste', () => {
+      setTimeout(handleSourceLanguageDetection, 10);
+    });
 
     // Update target language detection
     function handleTargetLanguageDetection() {
-  if (targetText.value.length >= 10 && !targetLang.value) {
-    targetLangDetected.textContent = 'Detecting...';
-    detectLanguage(targetText.value).then(detectedLang => {
-      if (detectedLang) {
-        targetLang.value = detectedLang;
-        const flag = getLanguageFlag(detectedLang);
-        const name = getLanguageName(detectedLang);
-        targetLangDetected.textContent = `Detected: ${flag} ${name}`;
-        updateAnalyzeButton();
+      if (targetText.value.length >= 10 && !targetLang.value) {
+        targetLangDetected.textContent = 'Detecting...';
+        detectLanguage(targetText.value).then(detectedLang => {
+          if (detectedLang) {
+            targetLang.value = detectedLang;
+            const flag = getLanguageFlag(detectedLang);
+            const name = getLanguageName(detectedLang);
+            targetLangDetected.textContent = `Detected: ${flag} ${name}`;
+            updateAnalyzeButton();
+          }
+        });
       }
-    });
-  }
-  updateAnalyzeButton();
-}
+      updateAnalyzeButton();
+    }
 
-targetText.addEventListener('input', () => {
-  setTimeout(handleTargetLanguageDetection, 10);
-});
-targetText.addEventListener('paste', () => {
-  setTimeout(handleTargetLanguageDetection, 10);
-});
+    targetText.addEventListener('input', () => {
+      setTimeout(handleTargetLanguageDetection, 10);
+    });
+    targetText.addEventListener('paste', () => {
+      setTimeout(handleTargetLanguageDetection, 10);
+    });
 
     // Update language display when selected manually
     sourceLang.addEventListener('change', () => {
@@ -875,188 +1020,638 @@ targetText.addEventListener('paste', () => {
       sourceText.style.borderColor = 'rgb(60, 60, 60)';
       errorMessage.style.display = 'none';
       resultsContainer.style.display = 'none';
+      targetDisplayContainer.style.display = 'none';
+      applyAllBtn.style.display = 'none';
+      correctedTextContainer.style.display = 'none';
+      currentIssues = [];
+      issueToSegmentMap = {};
+      appliedCorrections = {};
       isOverLimit = false;
       updateAnalyzeButton();
     });
 
- // Run MQM analysis
-analyzeBtn.addEventListener('click', async () => {
-  if (!sourceText.value || !targetText.value || !sourceLang.value || !targetLang.value) {
-    showError('Please enter both source and target text and select languages');
-    return;
-  }
-  
-  if (isOverLimit) {
-    showError(`Source text exceeds the ${WORD_COUNT_LIMIT} word limit`);
-    return;
-  }
-  
-  // Show loading state
-  analyzeBtn.disabled = true;
-  analyzeBtn.innerHTML = '<span class="spinner">⟳</span> Analyzing...';
-  errorMessage.style.display = 'none';
-  
-  try {
-    // For development/testing without backend
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      // Simulate API call with a delay
-      setTimeout(() => {
-        const words = sourceText.value.trim().split(/\s+/);
-        const wordCount = words.length > 0 && words[0] !== '' ? words.length : 0;
-        const mockResults = generateMockResults(wordCount);
-        displayResults(mockResults);
+    // Run MQM analysis
+    analyzeBtn.addEventListener('click', async () => {
+      if (!sourceText.value || !targetText.value || !sourceLang.value || !targetLang.value) {
+        showError('Please enter both source and target text and select languages');
+        return;
+      }
+      
+      if (isOverLimit) {
+        showError(`Source text exceeds the ${WORD_COUNT_LIMIT} word limit`);
+        return;
+      }
+      
+      // Show loading state
+      analyzeBtn.disabled = true;
+      analyzeBtn.innerHTML = '<span class="spinner">⟳</span> Analyzing...';
+      errorMessage.style.display = 'none';
+      
+      try {
+        // For development/testing without backend
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+          // Simulate API call with a delay
+          setTimeout(() => {
+            const words = sourceText.value.trim().split(/\s+/);
+            const wordCount = words.length > 0 && words[0] !== '' ? words.length : 0;
+            const mockResults = generateMockResults(wordCount);
+            
+            // Store current issues and target text
+            currentIssues = mockResults.mqmIssues;
+            currentTargetText = targetText.value;
+            
+            // Process and display results
+            displayResults(mockResults);
+            
+            // Show the target display with highlighted issues
+            highlightIssuesInText(targetText.value, mockResults.mqmIssues);
+            
+            // Reset button state
+            analyzeBtn.disabled = false;
+            analyzeBtn.textContent = 'Run MQM Analysis';
+            
+            // Show apply all button if there are issues
+            if (mockResults.mqmIssues && mockResults.mqmIssues.length > 0) {
+              applyAllBtn.style.display = 'block';
+            }
+          }, 1500);
+          return;
+        }
         
+        // Step 1: Call /api/check-alignment before /api/mqm-analysis
+        const alignmentResponse = await fetch('/api/check-alignment', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            sourceText: sourceText.value,
+            targetText: targetText.value,
+            sourceLang: sourceLang.value,
+            targetLang: targetLang.value
+          })
+        });
+
+        if (!alignmentResponse.ok) {
+          const errorData = await alignmentResponse.json();
+          throw new Error(errorData.error || 'Source/target alignment check failed');
+        }
+
+        // Step 2: If alignment passes, proceed with MQM analysis
+        const mqmResponse = await fetch('/api/mqm-analysis', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            sourceText: sourceText.value,
+            targetText: targetText.value,
+            sourceLang: sourceLang.value,
+            targetLang: targetLang.value
+          })
+        });
+
+        if (!mqmResponse.ok) {
+          const errorData = await mqmResponse.json();
+          throw new Error(errorData.error || 'Analysis failed');
+        }
+
+        const results = await mqmResponse.json();
+        
+        // Store current issues and target text
+        currentIssues = results.mqmIssues;
+        currentTargetText = targetText.value;
+        
+        // Process and display results
+        displayResults(results);
+        
+        // Show the target display with highlighted issues
+        highlightIssuesInText(targetText.value, results.mqmIssues);
+        
+        // Show apply all button if there are issues
+        if (results.mqmIssues && results.mqmIssues.length > 0) {
+          applyAllBtn.style.display = 'block';
+        }
+        
+      } catch (error) {
+        console.error('Error during analysis:', error);
+        showError(error.message || 'An error occurred during analysis');
+      } finally {
         // Reset button state
         analyzeBtn.disabled = false;
         analyzeBtn.textContent = 'Run MQM Analysis';
-      }, 1500);
-      return;
-    }
-    
-    // Step 1: Call /api/check-alignment before /api/mqm-analysis
-    const alignmentResponse = await fetch('/api/check-alignment', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        sourceText: sourceText.value,
-        targetText: targetText.value,
-        sourceLang: sourceLang.value,
-        targetLang: targetLang.value
-      })
+      }
     });
 
-    if (!alignmentResponse.ok) {
-      const errorData = await alignmentResponse.json();
-      throw new Error(errorData.error || 'Source/target alignment check failed');
+    // Show error message
+    function showError(message) {
+      errorMessage.textContent = message;
+      errorMessage.style.display = 'block';
     }
 
-    // Step 2: If alignment passes, proceed with MQM analysis
-    const mqmResponse = await fetch('/api/mqm-analysis', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        sourceText: sourceText.value,
-        targetText: targetText.value,
-        sourceLang: sourceLang.value,
-        targetLang: targetLang.value
-      })
+    // Find segments in text based on issue location
+    function findSegmentsInText(text, issues) {
+      // This function will try to identify text segments based on issue locations
+      const segments = [];
+      
+      issues.forEach((issue, index) => {
+        // Parse location to identify text segments
+        const location = issue.location || '';
+        
+        // Try to extract segment information from location
+        // This is a simplified approach - in a real implementation,
+        // the backend should provide specific position information
+        
+        let segment = null;
+        
+        // Check for specific location patterns
+        if (location.includes('sentence')) {
+          // Example: "Paragraph 2, sentence 1" or "sentence 3"
+          const sentences = text.split(/[.!?]+\s+/);
+          
+          let sentenceIndex = -1;
+          const sentenceMatch = location.match(/sentence\s+(\d+)/i);
+          if (sentenceMatch && sentenceMatch[1]) {
+            sentenceIndex = parseInt(sentenceMatch[1]) - 1;
+          }
+          
+          let paragraphIndex = 0;
+          const paragraphMatch = location.match(/paragraph\s+(\d+)/i);
+          if (paragraphMatch && paragraphMatch[1]) {
+            paragraphIndex = parseInt(paragraphMatch[1]) - 1;
+          }
+          
+          // Try to find the sentence
+          if (sentenceIndex >= 0) {
+            // If paragraph is specified, we need to first find the paragraph
+            if (paragraphIndex > 0) {
+              const paragraphs = text.split(/\n\s*\n/);
+              if (paragraphIndex < paragraphs.length) {
+                const paragraphSentences = paragraphs[paragraphIndex].split(/[.!?]+\s+/);
+                if (sentenceIndex < paragraphSentences.length) {
+                  segment = {
+                    text: paragraphSentences[sentenceIndex],
+                    start: text.indexOf(paragraphSentences[sentenceIndex]),
+                    end: text.indexOf(paragraphSentences[sentenceIndex]) + paragraphSentences[sentenceIndex].length
+                  };
+                }
+              }
+            } else {
+              // Just look for the sentence in the whole text
+              if (sentenceIndex < sentences.length) {
+                segment = {
+                  text: sentences[sentenceIndex],
+                  start: text.indexOf(sentences[sentenceIndex]),
+                  end: text.indexOf(sentences[sentenceIndex]) + sentences[sentenceIndex].length
+                };
+              }
+            }
+          }
+        } else if (location.includes('paragraph')) {
+          // Example: "Paragraph 3"
+          const paragraphs = text.split(/\n\s*\n/);
+          
+          const paragraphMatch = location.match(/paragraph\s+(\d+)/i);
+          if (paragraphMatch && paragraphMatch[1]) {
+            const paragraphIndex = parseInt(paragraphMatch[1]) - 1;
+            if (paragraphIndex < paragraphs.length) {
+              segment = {
+                text: paragraphs[paragraphIndex],
+                start: text.indexOf(paragraphs[paragraphIndex]),
+                end: text.indexOf(paragraphs[paragraphIndex]) + paragraphs[paragraphIndex].length
+              };
+            }
+          }
+        }
+        
+        // If we couldn't identify a segment, make a simple guess based on the issue
+        if (!segment) {
+          // For demonstration purposes, let's use a simple algorithm:
+          // Take words from the suggestion or explanation and try to find them in the text
+          
+          // Extract key terms from the issue
+          let keyTerms = [];
+          
+          if (issue.subcategory === 'Mistranslation' && issue.explanation) {
+            // Try to extract the mistranslated term from explanation
+            const match = issue.explanation.match(/'([^']+)'\s+was\s+mistranslated\s+as\s+'([^']+)'/);
+            if (match && match[2]) {
+              keyTerms.push(match[2]);
+            }
+          }
+          
+          // If we couldn't extract from explanation, use key words from the issue
+          if (keyTerms.length === 0) {
+            const allTerms = (issue.explanation || '') + ' ' + (issue.suggestion || '');
+            keyTerms = allTerms.split(/\s+/).filter(term => term.length > 4);
+          }
+          
+          // Try to find the terms in the text
+          for (const term of keyTerms) {
+            const index = text.indexOf(term);
+            if (index !== -1) {
+              // Find the beginning of the sentence
+              let start = index;
+              while (start > 0 && !'.!?'.includes(text[start - 1])) {
+                start--;
+              }
+              
+              // Find the end of the sentence
+              let end = index + term.length;
+              while (end < text.length && !'.!?'.includes(text[end])) {
+                end++;
+              }
+              if (end < text.length) end++; // Include the ending punctuation
+              
+              segment = {
+                text: text.substring(start, end),
+                start: start,
+                end: end
+              };
+              break;
+            }
+          }
+        }
+        
+        // If we still couldn't find a segment, use a fallback
+        if (!segment && index === 0) {
+          // For the first issue, highlight the first paragraph or sentence
+          const firstSentence = text.split(/[.!?]+\s+/)[0];
+          if (firstSentence) {
+            segment = {
+              text: firstSentence,
+              start: 0,
+              end: firstSentence.length
+            };
+          }
+        } else if (!segment && index > 0 && segments.length > 0) {
+          // For subsequent issues, try the next sentence after the previous segment
+          const prevSegment = segments[segments.length - 1];
+          const remainingText = text.substring(prevSegment.end);
+          const nextSentence = remainingText.split(/[.!?]+\s+/)[0];
+          if (nextSentence) {
+            segment = {
+              text: nextSentence,
+              start: prevSegment.end,
+              end: prevSegment.end + nextSentence.length
+            };
+          }
+        }
+        
+        // If all else fails, just highlight a random short segment
+        if (!segment) {
+          const words = text.split(/\s+/);
+          if (words.length > 0) {
+            const randomIndex = Math.floor(Math.random() * (words.length - 3));
+            const randomSegment = words.slice(randomIndex, randomIndex + 3).join(' ');
+            const start = text.indexOf(randomSegment);
+            if (start !== -1) {
+              segment = {
+                text: randomSegment,
+                start: start,
+                end: start + randomSegment.length
+              };
+            }
+          }
+        }
+        
+        if (segment) {
+          segments.push(segment);
+          issueToSegmentMap[index] = segment;
+        }
+      });
+      
+      return segments;
+    }
+
+    // Highlight issues in the target text
+    function highlightIssuesInText(text, issues) {
+      if (!issues || issues.length === 0) {
+        targetDisplayContainer.style.display = 'none';
+        return;
+      }
+      
+      // Find segments to highlight
+      const segments = findSegmentsInText(text, issues);
+      
+      // Show the target display container
+      targetDisplayContainer.style.display = 'block';
+      
+      // Create HTML with highlighted segments
+      let html = '';
+      let lastEnd = 0;
+      
+      segments.forEach((segment, index) => {
+        // Add text before this segment
+        html += escapeHtml(text.substring(lastEnd, segment.start));
+        
+        // Add the highlighted segment
+        html += `<span class="highlight" data-issue-id="${index}">${escapeHtml(segment.text)}</span>`;
+        
+        lastEnd = segment.end;
+      });
+      
+      // Add any remaining text
+      html += escapeHtml(text.substring(lastEnd));
+      
+      // Set the HTML
+      targetDisplay.innerHTML = html;
+      
+      // Add event listeners for the highlighted segments
+      const highlightElements = targetDisplay.querySelectorAll('.highlight');
+      highlightElements.forEach(el => {
+        el.addEventListener('mouseenter', handleHighlightMouseEnter);
+        el.addEventListener('mouseleave', handleHighlightMouseLeave);
+        el.addEventListener('click', handleHighlightClick);
+      });
+      
+      // Initialize corrected text
+      correctedText.value = text;
+    }
+
+    // Handle mouse enter on highlighted text
+    function handleHighlightMouseEnter(event) {
+      const highlightEl = event.target;
+      const issueId = parseInt(highlightEl.getAttribute('data-issue-id'));
+      const issue = currentIssues[issueId];
+      
+      if (issue) {
+        tooltip.innerHTML = `
+          <strong>${issue.category}: ${issue.subcategory}</strong> (${severityLevels[issue.severity].label})<br>
+          ${issue.explanation}<br>
+          <strong>Suggestion:</strong> ${issue.suggestion || 'No suggestion provided'}
+        `;
+        
+        // Position the tooltip
+        const rect = highlightEl.getBoundingClientRect();
+        tooltip.style.left = rect.left + 'px';
+        tooltip.style.top = (rect.bottom + 10) + 'px';
+        tooltip.style.opacity = '1';
+      }
+    }
+
+    // Handle mouse leave from highlighted text
+    function handleHighlightMouseLeave() {
+      tooltip.style.opacity = '0';
+    }
+
+    // Handle click on highlighted text
+    function handleHighlightClick(event) {
+      const highlightEl = event.target;
+      const issueId = parseInt(highlightEl.getAttribute('data-issue-id'));
+      
+      // Scroll to the corresponding issue in the issues list
+      const issueElement = document.getElementById(`issue-${issueId}`);
+      if (issueElement) {
+        issueElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+
+    // Accept a suggestion for an issue
+    function acceptSuggestion(issueId) {
+      const issue = currentIssues[issueId];
+      const segment = issueToSegmentMap[issueId];
+      
+      if (!issue || !segment) return;
+      
+      // Mark this issue as having an applied correction
+      appliedCorrections[issueId] = true;
+      
+      // Update the highlight appearance
+      const highlightEl = targetDisplay.querySelector(`.highlight[data-issue-id="${issueId}"]`);
+      if (highlightEl) {
+        highlightEl.classList.add('accepted');
+      }
+      
+      // Update the corrected text
+      const currentValue = correctedText.value;
+      let newText = '';
+      
+      // Simple implementation for now - in a real app, this would need to account for
+      // already applied changes and segment position shifts
+      if (issue.suggestion) {
+        // Replace the segment with the suggestion
+        newText = currentValue.substring(0, segment.start) + 
+                 issue.suggestion + 
+                 currentValue.substring(segment.end);
+      } else {
+        // If no specific suggestion, try to fix based on the issue type
+        switch(issue.subcategory) {
+          case 'Omission':
+            // Add a placeholder for missing content
+            newText = currentValue.substring(0, segment.end) + 
+                     ' [MISSING CONTENT] ' + 
+                     currentValue.substring(segment.end);
+            break;
+          case 'Addition':
+            // Remove the segment as it's an addition
+            newText = currentValue.substring(0, segment.start) + 
+                     currentValue.substring(segment.end);
+            break;
+          default:
+            // For other issues, just mark it as corrected without changes
+            newText = currentValue;
+        }
+      }
+      
+      correctedText.value = newText;
+      
+      // Show the corrected text container
+      correctedTextContainer.style.display = 'block';
+      
+      // Update UI of the issue
+      const acceptBtn = document.getElementById(`accept-btn-${issueId}`);
+      const rejectBtn = document.getElementById(`reject-btn-${issueId}`);
+      
+      if (acceptBtn) acceptBtn.disabled = true;
+      if (rejectBtn) rejectBtn.disabled = false;
+      
+      // Show status in the issue
+      const statusEl = document.getElementById(`issue-status-${issueId}`);
+      if (statusEl) {
+        statusEl.textContent = 'Correction applied';
+        statusEl.className = 'issue-status success';
+        statusEl.style.display = 'block';
+      }
+    }
+
+    // Reject a suggestion for an issue
+    function rejectSuggestion(issueId) {
+      // Remove this issue from applied corrections
+      delete appliedCorrections[issueId];
+      
+      // Update the highlight appearance
+      const highlightEl = targetDisplay.querySelector(`.highlight[data-issue-id="${issueId}"]`);
+      if (highlightEl) {
+        highlightEl.classList.remove('accepted');
+      }
+      
+      // Recalculate the corrected text - revert to original and apply all current corrections
+      let newText = currentTargetText;
+      
+      // Apply all current corrections
+      // In a real app, this would be much more complex to account for position shifts
+      // This is a simplified version for demonstration
+      Object.keys(appliedCorrections).forEach(id => {
+        const correctionIssueId = parseInt(id);
+        const correctionIssue = currentIssues[correctionIssueId];
+        const correctionSegment = issueToSegmentMap[correctionIssueId];
+        
+        if (correctionIssue && correctionSegment && correctionIssue.suggestion) {
+          // Replace the segment with the suggestion
+          const segmentStart = newText.indexOf(correctionSegment.text);
+          if (segmentStart !== -1) {
+            newText = newText.substring(0, segmentStart) + 
+                     correctionIssue.suggestion + 
+                     newText.substring(segmentStart + correctionSegment.text.length);
+          }
+        }
+      });
+      
+      correctedText.value = newText;
+      
+      // If no more corrections, hide the corrected text container
+      if (Object.keys(appliedCorrections).length === 0) {
+        correctedTextContainer.style.display = 'none';
+      }
+      
+      // Update UI of the issue
+      const acceptBtn = document.getElementById(`accept-btn-${issueId}`);
+      const rejectBtn = document.getElementById(`reject-btn-${issueId}`);
+      
+      if (acceptBtn) acceptBtn.disabled = false;
+      if (rejectBtn) rejectBtn.disabled = true;
+      
+      // Show status in the issue
+      const statusEl = document.getElementById(`issue-status-${issueId}`);
+      if (statusEl) {
+        statusEl.textContent = 'Correction rejected';
+        statusEl.className = 'issue-status minor';
+        statusEl.style.display = 'block';
+        
+        // Hide the status after 2 seconds
+        setTimeout(() => {
+          statusEl.style.display = 'none';
+        }, 2000);
+      }
+    }
+
+    // Apply all suggestions at once
+    applyAllBtn.addEventListener('click', () => {
+      // Apply all suggestions
+      currentIssues.forEach((_, index) => {
+        acceptSuggestion(index);
+      });
+      
+      // Update the button
+      applyAllBtn.disabled = true;
+      applyAllBtn.textContent = 'All Suggestions Applied';
     });
 
-    if (!mqmResponse.ok) {
-      const errorData = await mqmResponse.json();
-      throw new Error(errorData.error || 'Analysis failed');
+    // Copy corrected text to clipboard
+    copyBtn.addEventListener('click', () => {
+      correctedText.select();
+      document.execCommand('copy');
+      copyBtn.textContent = 'Copied!';
+      setTimeout(() => {
+        copyBtn.textContent = 'Copy to Clipboard';
+      }, 2000);
+    });
+
+    // Escape HTML for safe insertion
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
     }
 
-    const results = await mqmResponse.json();
-    displayResults(results);
-    
-  } catch (error) {
-    console.error('Error during analysis:', error);
-    showError(error.message || 'An error occurred during analysis');
-  } finally {
-    // Reset button state
-    analyzeBtn.disabled = false;
-    analyzeBtn.textContent = 'Run MQM Analysis';
-  }
-});
-
-// Show error message
-function showError(message) {
-  errorMessage.textContent = message;
-  errorMessage.style.display = 'block';
-}
-
-// Get language flag
-function getLanguageFlag(code) {
-  // Extract main language code for regional variants
-  const mainCode = code.split('-')[0];
-  
-  // Define flags for all language codes
-  const flags = {
-    en: '🇬🇧', // Default English flag
-    'en-US': '🇺🇸',
-    'en-GB': '🇬🇧',
-    'en-CA': '🇨🇦',
-    'en-AU': '🇦🇺',
-    
-    es: '🇪🇸',
-    'es-ES': '🇪🇸',
-    'es-MX': '🇲🇽',
-    'es-CO': '🇨🇴',
-    'es-AR': '🇦🇷',
-    
-    fr: '🇫🇷',
-    'fr-FR': '🇫🇷',
-    'fr-CA': '🇨🇦',
-    'fr-BE': '🇧🇪',
-    'fr-CH': '🇨🇭',
-    
-    pt: '🇵🇹',
-    'pt-PT': '🇵🇹',
-    'pt-BR': '🇧🇷',
-    
-    zh: '🇨🇳',
-    'zh-CN': '🇨🇳',
-    'zh-TW': '🇹🇼',
-    'zh-HK': '🇭🇰',
-    'zh-SG': '🇸🇬',
-    
-    ar: '🇸🇦',
-    'ar-SA': '🇸🇦',
-    'ar-EG': '🇪🇬',
-    'ar-AE': '🇦🇪',
-    'ar-MA': '🇲🇦',
-    
-    de: '🇩🇪',
-    'de-DE': '🇩🇪',
-    'de-AT': '🇦🇹',
-    'de-CH': '🇨🇭',
-    
-    it: '🇮🇹',
-    ja: '🇯🇵',
-    ko: '🇰🇷',
-    ru: '🇷🇺',
-    hi: '🇮🇳',
-    bn: '🇧🇩',
-    tr: '🇹🇷',
-    vi: '🇻🇳',
-    pl: '🇵🇱',
-    uk: '🇺🇦',
-    fa: '🇮🇷',
-    nl: '🇳🇱',
-    ta: '🇮🇳',
-    ur: '🇵🇰',
-    th: '🇹🇭',
-    ms: '🇲🇾',
-    sw: '🇰🇪',
-    tl: '🇵🇭',
-    he: '🇮🇱',
-    ro: '🇷🇴',
-    hu: '🇭🇺',
-    el: '🇬🇷',
-    cs: '🇨🇿',
-    sv: '🇸🇪',
-    da: '🇩🇰',
-    fi: '🇫🇮',
-    no: '🇳🇴',
-    id: '🇮🇩',
-    sr: '🇷🇸',
-    sk: '🇸🇰',
-    bg: '🇧🇬',
-    hr: '🇭🇷',
-    sl: '🇸🇮',
-    et: '🇪🇪',
-    lv: '🇱🇻',
-    lt: '🇱🇹'
-  };
-  
-  // Return the specific flag if available, or the main language flag if available, or a default
-  return flags[code] || flags[mainCode] || '🏳️';
-}
+    // Get language flag
+    function getLanguageFlag(code) {
+      // Extract main language code for regional variants
+      const mainCode = code.split('-')[0];
+      
+      // Define flags for all language codes
+      const flags = {
+        en: '🇬🇧', // Default English flag
+        'en-US': '🇺🇸',
+        'en-GB': '🇬🇧',
+        'en-CA': '🇨🇦',
+        'en-AU': '🇦🇺',
+        
+        es: '🇪🇸',
+        'es-ES': '🇪🇸',
+        'es-MX': '🇲🇽',
+        'es-CO': '🇨🇴',
+        'es-AR': '🇦🇷',
+        
+        fr: '🇫🇷',
+        'fr-FR': '🇫🇷',
+        'fr-CA': '🇨🇦',
+        'fr-BE': '🇧🇪',
+        'fr-CH': '🇨🇭',
+        
+        pt: '🇵🇹',
+        'pt-PT': '🇵🇹',
+        'pt-BR': '🇧🇷',
+        
+        zh: '🇨🇳',
+        'zh-CN': '🇨🇳',
+        'zh-TW': '🇹🇼',
+        'zh-HK': '🇭🇰',
+        'zh-SG': '🇸🇬',
+        
+        ar: '🇸🇦',
+        'ar-SA': '🇸🇦',
+        'ar-EG': '🇪🇬',
+        'ar-AE': '🇦🇪',
+        'ar-MA': '🇲🇦',
+        
+        de: '🇩🇪',
+        'de-DE': '🇩🇪',
+        'de-AT': '🇦🇹',
+        'de-CH': '🇨🇭',
+        
+        it: '🇮🇹',
+        ja: '🇯🇵',
+        ko: '🇰🇷',
+        ru: '🇷🇺',
+        hi: '🇮🇳',
+        bn: '🇧🇩',
+        tr: '🇹🇷',
+        vi: '🇻🇳',
+        pl: '🇵🇱',
+        uk: '🇺🇦',
+        fa: '🇮🇷',
+        nl: '🇳🇱',
+        ta: '🇮🇳',
+        ur: '🇵🇰',
+        th: '🇹🇭',
+        ms: '🇲🇾',
+        sw: '🇰🇪',
+        tl: '🇵🇭',
+        he: '🇮🇱',
+        ro: '🇷🇴',
+        hu: '🇭🇺',
+        el: '🇬🇷',
+        cs: '🇨🇿',
+        sv: '🇸🇪',
+        da: '🇩🇰',
+        fi: '🇫🇮',
+        no: '🇳🇴',
+        id: '🇮🇩',
+        sr: '🇷🇸',
+        sk: '🇸🇰',
+        bg: '🇧🇬',
+        hr: '🇭🇷',
+        sl: '🇸🇮',
+        et: '🇪🇪',
+        lv: '🇱🇻',
+        lt: '🇱🇹'
+      };
+      
+      // Return the specific flag if available, or the main language flag if available, or a default
+      return flags[code] || flags[mainCode] || '🏳️';
+    }
 
     // Get language name
     function getLanguageName(code) {
@@ -1183,7 +1778,7 @@ function getLanguageFlag(code) {
           severity: "MAJOR",
           explanation: "The phrase 'annual report' was mistranslated as 'monthly report'",
           location: "Paragraph 2, sentence 1",
-          suggestion: "Replace with the correct translation for 'annual report'"
+          suggestion: "Use 'annual report' instead of 'monthly report'"
         },
         {
           category: "Fluency",
@@ -1326,42 +1921,48 @@ function getLanguageFlag(code) {
           </div>
         `;
       } else {
-// Display issues
-results.mqmIssues.forEach(issue => {
-  // Debug log for unexpected severity values
-  if (!severityLevels[issue.severity]) {
-    console.warn(`⚠️ Unknown severity level: "${issue.severity}"`, issue);
-  }
+        // Display issues
+        results.mqmIssues.forEach((issue, index) => {
+          // Debug log for unexpected severity values
+          if (!severityLevels[issue.severity]) {
+            console.warn(`⚠️ Unknown severity level: "${issue.severity}"`, issue);
+          }
 
-  // Fallback to MINOR if severity is undefined or unrecognized
-  const severityInfo = severityLevels[issue.severity] || { class: 'minor', label: 'Minor', value: 1 };
-  const severityClass = severityInfo.class;
+          // Fallback to MINOR if severity is undefined or unrecognized
+          const severityInfo = severityLevels[issue.severity] || { class: 'minor', label: 'Minor', value: 1 };
+          const severityClass = severityInfo.class;
 
-  const issueEl = document.createElement('div');
-  issueEl.className = 'issue';
-  issueEl.innerHTML = `
-    <div class="issue-container">
-      <div class="issue-indicator ${severityClass}">
-        ${issue.severity === 'MINOR' ? 'i' : issue.severity === 'MAJOR' ? '!' : '✕'}
-      </div>
-      <div class="issue-content">
-        <div class="issue-header">
-          <h3 class="issue-title">${issue.category}: ${issue.subcategory}</h3>
-          <span class="issue-severity ${severityClass}">
-            ${severityInfo.label} (${severityInfo.value} pts)
-          </span>
-        </div>
-        <p class="issue-explanation">${issue.explanation}</p>
-        ${issue.location ? `<p class="issue-location"><strong>Location:</strong> ${issue.location}</p>` : ''}
-        ${issue.suggestion ? `<div class="issue-suggestion"><strong>Suggestion:</strong> ${issue.suggestion}</div>` : ''}
-      </div>
-    </div>
-  `;
+          const issueEl = document.createElement('div');
+          issueEl.className = 'issue';
+          issueEl.id = `issue-${index}`;
+          issueEl.innerHTML = `
+            <div class="issue-container">
+              <div class="issue-indicator ${severityClass}">
+                ${issue.severity === 'MINOR' ? 'i' : issue.severity === 'MAJOR' ? '!' : '✕'}
+              </div>
+              <div class="issue-content">
+                <div class="issue-header">
+                  <h3 class="issue-title">${issue.category}: ${issue.subcategory}</h3>
+                  <span class="issue-severity ${severityClass}">
+                    ${severityInfo.label} (${severityInfo.value} pts)
+                  </span>
+                </div>
+                <p class="issue-explanation">${issue.explanation}</p>
+                ${issue.location ? `<p class="issue-location"><strong>Location:</strong> ${issue.location}</p>` : ''}
+                ${issue.suggestion ? `<div class="issue-suggestion"><strong>Suggestion:</strong> ${issue.suggestion}</div>` : ''}
+                <div class="issue-actions">
+                  <button id="accept-btn-${index}" class="action-btn accept-btn" onclick="acceptSuggestion(${index})">Accept Suggestion</button>
+                  <button id="reject-btn-${index}" class="action-btn reject-btn" onclick="rejectSuggestion(${index})" disabled>Reject Suggestion</button>
+                </div>
+                <div id="issue-status-${index}" class="issue-status" style="display: none; margin-top: 8px; font-size: 14px;"></div>
+              </div>
+            </div>
+          `;
 
-  issuesContainer.appendChild(issueEl);
-});
-  }
-}
-</script>
+          issuesContainer.appendChild(issueEl);
+        });
+      }
+    }
+  </script>
 </body>
 </html>
