@@ -765,7 +765,10 @@
         <label class="corrected-text-label">Corrected Text:</label>
         <button id="copy-btn" class="btn copy-btn">Copy to Clipboard</button>
       </div>
-      <textarea id="corrected-text" readonly></textarea>
+      <textarea id="corrected-text"></textarea>
+      <div class="text-area-footer">
+        <div id="correction-status" class="correction-status">You can edit this text to refine corrections</div>
+      </div>
     </div>
 
     <!-- Buttons -->
@@ -1426,32 +1429,121 @@
       // Update the corrected text
       const currentValue = correctedText.value;
       let newText = '';
+      let correction = '';
       
-      // Simple implementation for now - in a real app, this would need to account for
-      // already applied changes and segment position shifts
+      // Intelligently process the suggestion to apply the actual correction
       if (issue.suggestion) {
-        // Replace the segment with the suggestion
+        // Try to determine the actual correction from the suggestion
+        switch(issue.subcategory) {
+          case 'Mistranslation':
+            // Look for patterns like "Use 'X' instead of 'Y'" or similar
+            const mistranslationPattern1 = /use ['"](.*?)['"] instead of ['"](.*?)['"]/i;
+            const mistranslationPattern2 = /replace ['"](.*?)['"] with ['"](.*?)['"]/i;
+            const mistranslationPattern3 = /change ['"](.*?)['"] to ['"](.*?)['"]/i;
+            
+            let match = issue.suggestion.match(mistranslationPattern1) || 
+                      issue.suggestion.match(mistranslationPattern2) ||
+                      issue.suggestion.match(mistranslationPattern3);
+            
+            if (match) {
+              // If pattern1, wrong term is in group 2, correct is in group 1
+              // If pattern2 or 3, wrong term is in group 1, correct is in group 2
+              const patternType = issue.suggestion.toLowerCase().startsWith('use') ? 1 : 2;
+              const correctTerm = patternType === 1 ? match[1] : match[2];
+              
+              correction = segment.text.replace(
+                new RegExp(patternType === 1 ? match[2] : match[1], 'gi'),
+                correctTerm
+              );
+            } else if (issue.suggestion.toLowerCase().includes('consistently')) {
+              // For consistency issues, extract the term to use consistently
+              const consistencyMatch = issue.suggestion.match(/use ['"](.*?)['"]/i);
+              if (consistencyMatch) {
+                correction = consistencyMatch[1]; // Use the consistent term
+              } else {
+                correction = segment.text; // No clear instruction, keep original
+              }
+            } else {
+              // For other cases, try to extract corrected text between quotes
+              const quotedText = issue.suggestion.match(/['"](.*?)['"]/);
+              if (quotedText) {
+                correction = quotedText[1];
+              } else {
+                // If we can't find a pattern, preserve the original and show a manual edit prompt
+                correction = segment.text;
+                // Set a flag to indicate manual editing may be needed
+                window.setTimeout(() => {
+                  alert("The suggestion couldn't be automatically applied. You may need to edit the corrected text manually.");
+                }, 500);
+              }
+            }
+            break;
+            
+          case 'Grammar':
+          case 'Spelling':
+          case 'Punctuation':
+            // For these issues, look for explicit corrections in the suggestion
+            const grammarMatch = issue.suggestion.match(/use ['"](.*?)['"]/i) || 
+                              issue.suggestion.match(/replace with ['"](.*?)['"]/i) ||
+                              issue.suggestion.match(/correct to ['"](.*?)['"]/i);
+            
+            if (grammarMatch) {
+              correction = grammarMatch[1];
+            } else {
+              // If there's no explicit correction, offer manual editing
+              correction = segment.text;
+              window.setTimeout(() => {
+                alert("Please review and edit the corrected text manually for this grammar/spelling issue.");
+              }, 500);
+            }
+            break;
+            
+          case 'Omission':
+            // Try to find what content needs to be added
+            const omissionMatch = issue.suggestion.match(/add ['"](.*?)['"]/i);
+            if (omissionMatch) {
+              correction = segment.text + ' ' + omissionMatch[1];
+            } else {
+              // Add a placeholder that the user can edit
+              correction = segment.text + ' [MISSING CONTENT]';
+              window.setTimeout(() => {
+                alert("Please add the missing content in the corrected text where indicated.");
+              }, 500);
+            }
+            break;
+            
+          case 'Addition':
+            // Remove unnecessary content
+            const additionMatch = issue.suggestion.match(/remove ['"](.*?)['"]/i);
+            if (additionMatch) {
+              correction = segment.text.replace(additionMatch[1], '');
+            } else {
+              // Let the user decide what to remove
+              correction = segment.text;
+              window.setTimeout(() => {
+                alert("Please edit the corrected text to remove the unnecessary addition.");
+              }, 500);
+            }
+            break;
+            
+          default:
+            // For other issues or if no pattern matches, keep the segment but warn
+            correction = segment.text;
+            window.setTimeout(() => {
+              alert("The suggestion couldn't be automatically applied. Please edit the corrected text manually.");
+            }, 500);
+        }
+        
+        // Apply the correction
         newText = currentValue.substring(0, segment.start) + 
-                 issue.suggestion + 
+                 correction + 
                  currentValue.substring(segment.end);
       } else {
-        // If no specific suggestion, try to fix based on the issue type
-        switch(issue.subcategory) {
-          case 'Omission':
-            // Add a placeholder for missing content
-            newText = currentValue.substring(0, segment.end) + 
-                     ' [MISSING CONTENT] ' + 
-                     currentValue.substring(segment.end);
-            break;
-          case 'Addition':
-            // Remove the segment as it's an addition
-            newText = currentValue.substring(0, segment.start) + 
-                     currentValue.substring(segment.end);
-            break;
-          default:
-            // For other issues, just mark it as corrected without changes
-            newText = currentValue;
-        }
+        // If no suggestion provided, keep the original
+        newText = currentValue;
+        window.setTimeout(() => {
+          alert("No specific correction was suggested. Please edit the text manually if needed.");
+        }, 500);
       }
       
       correctedText.value = newText;
@@ -1473,6 +1565,19 @@
         statusEl.className = 'issue-status success';
         statusEl.style.display = 'block';
       }
+      
+      // Add editable indicator to show users they can manually refine the correction
+      if (!document.getElementById('corrected-text-editable-hint')) {
+        const editableHint = document.createElement('div');
+        editableHint.id = 'corrected-text-editable-hint';
+        editableHint.className = 'text-sm mt-1';
+        editableHint.style.color = '#a0a0a0';
+        editableHint.textContent = 'This text is editable. You can manually refine any automatic corrections.';
+        correctedTextContainer.insertBefore(editableHint, correctedText);
+      }
+      
+      // Make the corrected text editable
+      correctedText.removeAttribute('readonly');
     }
 
     // Reject a suggestion for an issue
