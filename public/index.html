@@ -895,19 +895,46 @@
           return;
         }
         
-        // Call the API for analysis
-        const response = await fetch('/api/mqm-analysis', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            sourceText: sourceText.value,
-            targetText: targetText.value,
-            sourceLang: sourceLang.value,
-            targetLang: targetLang.value
-          })
-        });
+    // Step 1: Call /api/check-alignment before /api/mqm-analysis
+    const alignmentResponse = await fetch('/api/check-alignment', {
+        method: 'POST',
+        headers: {
+        'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+        sourceText: sourceText.value,
+        targetText: targetText.value,
+        sourceLang: sourceLang.value,
+        targetLang: targetLang.value
+        })
+    });
+
+if (!alignmentResponse.ok) {
+  const errorData = await alignmentResponse.json();
+  throw new Error(errorData.error || 'Source/target alignment check failed');
+}
+
+// Step 2: If alignment passes, proceed with MQM analysis
+const mqmResponse = await fetch('/api/mqm-analysis', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    sourceText: sourceText.value,
+    targetText: targetText.value,
+    sourceLang: sourceLang.value,
+    targetLang: targetLang.value
+  })
+});
+
+if (!mqmResponse.ok) {
+  const errorData = await mqmResponse.json();
+  throw new Error(errorData.error || 'Analysis failed');
+}
+
+const results = await mqmResponse.json();
+displayResults(results);
         
         if (!response.ok) {
           const errorData = await response.json();
