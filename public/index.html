@@ -282,6 +282,7 @@
       padding: 15px;
       border-bottom: 1px solid rgb(45, 45, 45);
       background-color: rgb(30, 30, 30);
+      display: block;
     }
 
     .issue:last-child {
@@ -372,6 +373,24 @@
       width: 100%;
     }
 
+    .accept-btn {
+      background-color: rgba(40, 167, 69, 0.8);
+      color: white;
+    }
+
+    .accept-btn:hover {
+      background-color: rgba(40, 167, 69, 1);
+    }
+
+    .reject-btn {
+      background-color: rgba(255, 107, 107, 0.8);
+      color: white;
+    }
+
+    .reject-btn:hover {
+      background-color: rgba(255, 107, 107, 1);
+    }
+
     /* Severity colors */
     .minor {
       background-color: rgba(255, 140, 0, 0.15);
@@ -457,6 +476,28 @@
       max-width: calc(100% - 20px); /* Constrain to screen width */
     }
 
+    /* Error message */
+    .error-message {
+      background-color: rgba(255, 107, 107, 0.15);
+      color: #ff6b6b;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      border: 1px solid rgba(255, 107, 107, 0.3);
+    }
+
+    /* No issues message */
+    .no-issues {
+      padding: 32px;
+      text-align: center;
+      color: #4cd964;
+    }
+
+    .check-icon {
+      font-size: 48px;
+      margin-bottom: 8px;
+    }
+
     /* Footer */
     .footer {
       text-align: center;
@@ -480,6 +521,21 @@
       to {
         transform: rotate(360deg);
       }
+    }
+
+    /* Fix for results container display */
+    #results-container {
+      display: none; /* Initially hidden */
+    }
+
+    #results-container.visible {
+      display: block;
+    }
+
+    /* Make sure the issues container is visible */
+    #issues-container {
+      display: block;
+      width: 100%;
     }
 
     /* Media queries for larger screens */
@@ -637,8 +693,8 @@
         <p>
           Use this tool to assess the quality of your localization content based on the
           <a href="https://themqm.org/" target="_blank" rel="noopener noreferrer" style="color: #00B3D6; text-decoration: underline;">
-            Multidimensional Quality Metrics
-          </a>(MQM) framework.
+            Multidimensional Quality Metrics (MQM) framework
+          </a>.
           It checks for issues in accuracy, fluency, and terminology, and helps you fix them interactively.
           <strong>Maximum 500 words.</strong>
         </p>
@@ -2274,8 +2330,9 @@
 
     // Display results
     function displayResults(results) {
-      // Show results container
+      // Show results container and ensure visibility
       resultsContainer.style.display = 'block';
+      resultsContainer.classList.add('visible');
       
       // Update score
       score.textContent = results.overallScore.toFixed(1);
@@ -2309,7 +2366,120 @@
         `;
         categories.appendChild(categoryEl);
       });
+      
+      // Update issues
+      issuesContainer.innerHTML = '';
+      issuesContainer.style.display = 'block'; // Ensure issues container is visible
+      
+      if (!results.mqmIssues || results.mqmIssues.length === 0) {
+        // No issues found
+        issuesContainer.innerHTML = `
+          <div class="no-issues">
+            <div class="check-icon">✓</div>
+            <p>No issues found! The translation meets all quality criteria.</p>
+          </div>
+        `;
+      } else {
+        // Display issues
+        results.mqmIssues.forEach((issue, index) => {
+          // Debug log for unexpected severity values
+          if (!severityLevels[issue.severity]) {
+            console.warn(`⚠️ Unknown severity level: "${issue.severity}"`, issue);
+          }
+
+          // Fallback to MINOR if severity is undefined or unrecognized
+          const severityInfo = severityLevels[issue.severity] || { class: 'minor', label: 'Minor', value: 1 };
+          const severityClass = severityInfo.class;
+
+          const issueEl = document.createElement('div');
+          issueEl.className = 'issue';
+          issueEl.id = `issue-${index}`;
+          issueEl.style.display = 'block'; // Ensure each issue is visible
+          
+          // Build the HTML for the issue
+          let issueHTML = `
+            <div class="issue-container">
+              <div class="issue-indicator ${severityClass}">
+                ${issue.severity === 'MINOR' ? 'i' : issue.severity === 'MAJOR' ? '!' : '✕'}
+              </div>
+              <div class="issue-content">
+                <div class="issue-header">
+                  <h3 class="issue-title">${issue.category}: ${issue.subcategory}</h3>
+                  <span class="issue-severity ${severityClass}">
+                    ${severityInfo.label} (${severityInfo.value} pts)
+                  </span>
+                </div>
+                <p class="issue-explanation">${issue.explanation}</p>
+                ${issue.location ? `<p class="issue-location"><strong>Location:</strong> ${issue.location}</p>` : ''}`;
+                
+          // Show original problematic text
+          if (issue.segment) {
+            issueHTML += `<div class="issue-segment"><strong>Problem:</strong> <span class="problematic-text">${issue.segment}</span></div>`;
+          }
+          
+          // Show suggestion
+          if (issue.suggestion) {
+            issueHTML += `<div class="issue-suggestion"><strong>Suggestion:</strong> ${issue.suggestion}</div>`;
+          }
+          
+          // Show the corrected version if available
+          if (issue.correctedSegment) {
+            issueHTML += `<div class="issue-corrected"><strong>Corrected version:</strong> <span class="corrected-text">${issue.correctedSegment}</span></div>`;
+          }
+          
+          // Add buttons and status
+          issueHTML += `
+                <div class="issue-actions">
+                  <button id="accept-btn-${index}" class="action-btn accept-btn" onclick="acceptSuggestion(${index})">Apply Correction</button>
+                  <button id="reject-btn-${index}" class="action-btn reject-btn" onclick="rejectSuggestion(${index})" disabled>Reject Correction</button>
+                </div>
+                <div id="issue-status-${index}" class="issue-status" style="display: none; margin-top: 8px; font-size: 14px;"></div>
+              </div>
+            </div>
+          `;
+          
+          issueEl.innerHTML = issueHTML;
+          issuesContainer.appendChild(issueEl);
+        });
+      }
     }
-  </script>
-</body>
-</html>
+
+    // Initialize the application
+    document.addEventListener('DOMContentLoaded', function() {
+      // Update word count on page load
+      updateWordCountDisplay();
+      
+      // Check for mobile device to adjust tooltip behavior
+      const isMobile = window.matchMedia("(max-width: 767px)").matches;
+      if (isMobile) {
+        // Add viewport height check to ensure content is visible on small screens
+        window.addEventListener('resize', function() {
+          adjustViewportForKeyboard();
+        });
+        
+        // Adjust on input focus for when keyboard appears
+        const allInputs = document.querySelectorAll('textarea, select');
+        allInputs.forEach(input => {
+          input.addEventListener('focus', function() {
+            adjustViewportForKeyboard();
+          });
+        });
+      }
+    });
+    
+    // Function to adjust viewport for mobile when keyboard appears
+    function adjustViewportForKeyboard() {
+      // Only apply on mobile
+      if (window.innerWidth >= 768) return;
+      
+      // Check if an input is focused
+      const activeElement = document.activeElement;
+      const isInput = activeElement.tagName === 'TEXTAREA' || activeElement.tagName === 'SELECT';
+      
+      if (isInput) {
+        // Scroll to the active element with some padding
+        setTimeout(() => {
+          activeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 300);
+      }
+    }
