@@ -228,8 +228,9 @@ For each issue found, provide:
 - Severity (Minor=1, Major=5, Critical=10)
 - Explanation
 - Location (if possible, provide specific information like character positions or word indices)
-- Specific text segment that has the issue
-- Suggested fix
+- The exact problematic text segment from the target translation
+- A suggested fix (textual description of what needs to be changed)
+- A fully corrected version of the entire segment with the fix applied
 
 Also provide an MQM score calculated as:
 MQM Score = 100 - (sum of error points / word count * 100)
@@ -248,7 +249,8 @@ Return ONLY valid JSON without any other text. Use this exact structure:
       "explanation": "...",
       "location": "...",
       "segment": "...",
-      "suggestion": "..."
+      "suggestion": "...",
+      "correctedSegment": "..."
     },
     ...
   ],
@@ -269,7 +271,10 @@ For the location field, try to be as specific as possible. Preferred format is:
 - For sentences: "Sentence 3 in paragraph 2"
 - For paragraphs: "Paragraph 4"
 
-For the segment field, include the exact problematic text from the target translation.
+For the segment field, include ONLY the exact problematic text from the target translation.
+For the correctedSegment field, provide the complete fixed version of the segment with all corrections applied.
+
+For example, if the segment is "The internationale women day" and the issue is terminology inconsistency, then correctedSegment might be "La journée internationale des femmes".
 `;
 
     // Call Claude API

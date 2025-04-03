@@ -1036,7 +1036,7 @@
       updateAnalyzeButton();
     });
     
-// Helper function to escape special characters in regular expressions
+  // Helper function to escape special characters in regular expressions
 function escapeRegExp(string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -1063,6 +1063,7 @@ resetBtn.addEventListener('click', () => {
   isOverLimit = false;
   updateAnalyzeButton();
 });
+
 
     // Run MQM analysis
     analyzeBtn.addEventListener('click', async () => {
@@ -1450,7 +1451,7 @@ resetBtn.addEventListener('click', () => {
     // Store history for undo functionality
     let changeHistory = [];
     
-    // Accept a suggestion for an issue
+    // Accept a suggestion for an issue - SIMPLIFIED VERSION
     function acceptSuggestion(issueId) {
       const issue = currentIssues[issueId];
       const segment = issueToSegmentMap[issueId];
@@ -1478,253 +1479,29 @@ resetBtn.addEventListener('click', () => {
         highlightEl.classList.add('accepted');
       }
       
-      // Update the corrected text
+      // Update the corrected text with Claude's pre-corrected version
       const currentValue = correctedText.value;
-      let newText = '';
-      let correction = '';
       
-      // Intelligently process the suggestion to apply the actual correction
-      let requiresManualEdit = false;
-      let manualEditMessage = "";
-      
-      if (issue.suggestion) {
-        // Try to determine the actual correction from the suggestion
-        switch(issue.subcategory) {
-          case 'Mistranslation':
-            // Look for patterns like "Use 'X' instead of 'Y'" or similar
-            const mistranslationPattern1 = /use ['"](.*?)['"] instead of ['"](.*?)['"]/i;
-            const mistranslationPattern2 = /replace ['"](.*?)['"] with ['"](.*?)['"]/i;
-            const mistranslationPattern3 = /change ['"](.*?)['"] to ['"](.*?)['"]/i;
-            const mistranslationPattern4 = /correct ['"](.*?)['"] to ['"](.*?)['"]/i;
-            
-            let match = issue.suggestion.match(mistranslationPattern1) || 
-                      issue.suggestion.match(mistranslationPattern2) ||
-                      issue.suggestion.match(mistranslationPattern3) ||
-                      issue.suggestion.match(mistranslationPattern4);
-            
-            if (match) {
-              // If pattern1, wrong term is in group 2, correct is in group 1
-              // If pattern2/3/4, wrong term is in group 1, correct is in group 2
-              const patternType = issue.suggestion.toLowerCase().startsWith('use') ? 1 : 2;
-              const correctTerm = patternType === 1 ? match[1] : match[2];
-              const wrongTerm = patternType === 1 ? match[2] : match[1];
-              
-              // Only replace if wrong term is found in segment
-              if (segment.text.toLowerCase().includes(wrongTerm.toLowerCase())) {
-                correction = segment.text.replace(
-                  new RegExp(escapeRegExp(wrongTerm), 'gi'),
-                  correctTerm
-                );
-              } else {
-                // If wrong term not found, probably needs manual edit
-                correction = segment.text;
-                requiresManualEdit = true;
-                manualEditMessage = `Please replace "${wrongTerm}" with "${correctTerm}" in the text.`;
-              }
-            } else if (issue.suggestion.toLowerCase().includes('consistently')) {
-              // For consistency issues, extract the term to use consistently
-              const consistencyMatch = issue.suggestion.match(/use ['"](.*?)['"]/i) || 
-                                      issue.suggestion.match(/be consistent with ['"](.*?)['"]/i);
-              if (consistencyMatch) {
-                const correctTerm = consistencyMatch[1];
-                // Try to identify the incorrect term from the segment
-                const inconsistentTerms = [
-                  // Common patterns for term/phrase variations
-                  'journée', 'jour', 'fecha', 'dia', 'date', 'day',
-                  'international', 'internationale', 'mundial', 'world',
-                  'femme', 'mujer', 'woman', 'women',
-                  // Add other common variants as needed
-                ];
-                
-                let found = false;
-                for (const term of inconsistentTerms) {
-                  if (segment.text.toLowerCase().includes(term.toLowerCase()) && 
-                      !correctTerm.toLowerCase().includes(term.toLowerCase())) {
-                    correction = segment.text.replace(
-                      new RegExp(escapeRegExp(term), 'gi'), 
-                      correctTerm
-                    );
-                    found = true;
-                    break;
-                  }
-                }
-                
-                if (!found) {
-                  // If we can't identify which term to replace
-                  correction = segment.text;
-                  requiresManualEdit = true;
-                  manualEditMessage = `Please use "${correctTerm}" consistently throughout the text.`;
-                }
-              } else {
-                correction = segment.text;
-                requiresManualEdit = true;
-                manualEditMessage = "Please edit the text for terminology consistency.";
-              }
-            } else {
-              // For other cases, try to extract corrected text between quotes
-              const quotedTexts = issue.suggestion.match(/['"]([^'"]+)['"]/g);
-              if (quotedTexts && quotedTexts.length >= 1) {
-                // Use first quoted text as correct version if only one quoted string
-                if (quotedTexts.length === 1) {
-                  const correctTerm = quotedTexts[0].replace(/['"]/g, '');
-                  correction = correctTerm;
-                } 
-                // If multiple quoted texts, try to determine which is correct
-                else if (quotedTexts.length >= 2) {
-                  const term1 = quotedTexts[0].replace(/['"]/g, '');
-                  const term2 = quotedTexts[1].replace(/['"]/g, '');
-                  
-                  // Check if first term is in the text
-                  if (segment.text.includes(term1)) {
-                    correction = segment.text.replace(term1, term2);
-                  } else if (segment.text.includes(term2)) {
-                    correction = segment.text.replace(term2, term1);
-                  } else {
-                    correction = segment.text;
-                    requiresManualEdit = true;
-                    manualEditMessage = "Please review and edit this segment based on the suggestion.";
-                  }
-                }
-              } else {
-                // If we can't find quoted terms, try other patterns
-                const capitalizePattern = /capitalize/i;
-                const lowercasePattern = /lowercase/i;
-                
-                if (capitalizePattern.test(issue.suggestion)) {
-                  // Apply capitalization to first letter of each word or sentence
-                  if (issue.suggestion.includes("first letter")) {
-                    correction = segment.text.charAt(0).toUpperCase() + segment.text.slice(1);
-                  } else if (issue.suggestion.includes("each word")) {
-                    correction = segment.text.split(' ')
-                      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                      .join(' ');
-                  } else {
-                    correction = segment.text.charAt(0).toUpperCase() + segment.text.slice(1);
-                  }
-                } else if (lowercasePattern.test(issue.suggestion)) {
-                  // Apply lowercase
-                  if (issue.suggestion.includes("all letters") || issue.suggestion.includes("entire")) {
-                    correction = segment.text.toLowerCase();
-                  } else {
-                    // Default to preserving original with manual edit
-                    correction = segment.text;
-                    requiresManualEdit = true;
-                    manualEditMessage = "Please apply the correct case formatting according to the suggestion.";
-                  }
-                } else {
-                  // If no pattern matches, preserve the original for manual editing
-                  correction = segment.text;
-                  requiresManualEdit = true;
-                  manualEditMessage = "Please edit this text according to the suggestion.";
-                }
-              }
-            }
-            break;
-            
-          case 'Grammar':
-          case 'Spelling':
-          case 'Punctuation':
-            // For these issues, look for explicit corrections in the suggestion
-            const grammarMatch = issue.suggestion.match(/use ['"](.*?)['"]/i) || 
-                              issue.suggestion.match(/replace with ['"](.*?)['"]/i) ||
-                              issue.suggestion.match(/correct to ['"](.*?)['"]/i) ||
-                              issue.suggestion.match(/should be ['"](.*?)['"]/i);
-            
-            if (grammarMatch) {
-              correction = grammarMatch[1];
-            } else {
-              // Check for punctuation patterns
-              const addPunctuationPattern = /add (a|an) ([.,;:'"!?])/i;
-              const removePunctuationPattern = /remove (the|a|an) ([.,;:'"!?])/i;
-              
-              const addMatch = issue.suggestion.match(addPunctuationPattern);
-              const removeMatch = issue.suggestion.match(removePunctuationPattern);
-              
-              if (addMatch) {
-                correction = segment.text + addMatch[2];
-              } else if (removeMatch) {
-                correction = segment.text.replace(removeMatch[2], '');
-              } else {
-                // If there's no explicit correction, offer manual editing
-                correction = segment.text;
-                requiresManualEdit = true;
-                manualEditMessage = "Please correct the grammar or spelling issue in this text.";
-              }
-            }
-            break;
-            
-          case 'Omission':
-            // Try to find what content needs to be added
-            const omissionMatch = issue.suggestion.match(/add ['"](.*?)['"]/i) || 
-                                issue.suggestion.match(/include ['"](.*?)['"]/i);
-            if (omissionMatch) {
-              // Try to determine where to add the content
-              if (issue.suggestion.includes("at the beginning")) {
-                correction = omissionMatch[1] + ' ' + segment.text;
-              } else if (issue.suggestion.includes("at the end")) {
-                correction = segment.text + ' ' + omissionMatch[1];
-              } else {
-                // Default to adding at the end
-                correction = segment.text + ' ' + omissionMatch[1];
-              }
-            } else {
-              // Add a placeholder that the user can edit
-              correction = segment.text + ' [MISSING CONTENT]';
-              requiresManualEdit = true;
-              manualEditMessage = "Please add the missing content where indicated.";
-            }
-            break;
-            
-          case 'Addition':
-            // Remove unnecessary content
-            const additionMatch = issue.suggestion.match(/remove ['"](.*?)['"]/i) || 
-                                issue.suggestion.match(/delete ['"](.*?)['"]/i);
-            if (additionMatch) {
-              const textToRemove = additionMatch[1];
-              if (segment.text.includes(textToRemove)) {
-                correction = segment.text.replace(textToRemove, '').trim();
-                // Clean up double spaces
-                correction = correction.replace(/\s{2,}/g, ' ');
-              } else {
-                correction = segment.text;
-                requiresManualEdit = true;
-                manualEditMessage = `Please remove the unnecessary text: "${textToRemove}"`;
-              }
-            } else {
-              // Let the user decide what to remove
-              correction = segment.text;
-              requiresManualEdit = true;
-              manualEditMessage = "Please edit the text to remove the unnecessary addition.";
-            }
-            break;
-            
-          default:
-            // For other issues or if no pattern matches, keep the segment but warn
-            correction = segment.text;
-            requiresManualEdit = true;
-            manualEditMessage = "Please edit this text according to the suggestion.";
-        }
-        
-        // Apply the correction
+      // Simply use the correctedSegment provided by Claude
+      let newText;
+      if (issue.correctedSegment) {
         newText = currentValue.substring(0, segment.start) + 
-                 correction + 
-                 currentValue.substring(segment.end);
-      } else {
-        // If no suggestion provided, keep the original
-        newText = currentValue;
-        requiresManualEdit = true;
-        manualEditMessage = "No specific correction was suggested. Please edit as needed.";
-      }
-      
-      // Update the correction status message
-      const correctionStatus = document.getElementById('correction-status');
-      if (correctionStatus) {
-        if (requiresManualEdit) {
-          correctionStatus.textContent = manualEditMessage;
-          correctionStatus.style.color = '#ff8c00'; // Orange for manual edit required
-        } else {
+                  issue.correctedSegment + 
+                  currentValue.substring(segment.end);
+                  
+        // Update the correction status message
+        const correctionStatus = document.getElementById('correction-status');
+        if (correctionStatus) {
           correctionStatus.textContent = "Correction applied automatically";
           correctionStatus.style.color = '#4cd964'; // Green for automatic correction
+        }
+      } else {
+        // Fallback if no correctedSegment is provided
+        newText = currentValue;
+        const correctionStatus = document.getElementById('correction-status');
+        if (correctionStatus) {
+          correctionStatus.textContent = "No fixed version available. Please edit manually.";
+          correctionStatus.style.color = '#ff8c00'; // Orange for manual edit required
         }
       }
       
@@ -1753,16 +1530,6 @@ resetBtn.addEventListener('click', () => {
         statusEl.textContent = 'Correction applied';
         statusEl.className = 'issue-status success';
         statusEl.style.display = 'block';
-      }
-      
-      // Add editable indicator to show users they can manually refine the correction
-      if (!document.getElementById('corrected-text-editable-hint')) {
-        const editableHint = document.createElement('div');
-        editableHint.id = 'corrected-text-editable-hint';
-        editableHint.className = 'text-sm mt-1';
-        editableHint.style.color = '#a0a0a0';
-        editableHint.textContent = 'This text is editable. You can manually refine any automatic corrections.';
-        correctedTextContainer.insertBefore(editableHint, correctedText);
       }
       
       // Make the corrected text editable
@@ -2466,7 +2233,9 @@ resetBtn.addEventListener('click', () => {
           const issueEl = document.createElement('div');
           issueEl.className = 'issue';
           issueEl.id = `issue-${index}`;
-          issueEl.innerHTML = `
+          
+          // Build the HTML for the issue
+          let issueHTML = `
             <div class="issue-container">
               <div class="issue-indicator ${severityClass}">
                 ${issue.severity === 'MINOR' ? 'i' : issue.severity === 'MAJOR' ? '!' : '✕'}
@@ -2479,16 +2248,35 @@ resetBtn.addEventListener('click', () => {
                   </span>
                 </div>
                 <p class="issue-explanation">${issue.explanation}</p>
-                ${issue.location ? `<p class="issue-location"><strong>Location:</strong> ${issue.location}</p>` : ''}
-                ${issue.suggestion ? `<div class="issue-suggestion"><strong>Suggestion:</strong> ${issue.suggestion}</div>` : ''}
+                ${issue.location ? `<p class="issue-location"><strong>Location:</strong> ${issue.location}</p>` : ''}`;
+                
+          // Show original problematic text
+          if (issue.segment) {
+            issueHTML += `<div class="issue-segment"><strong>Problem:</strong> <span class="problematic-text">${issue.segment}</span></div>`;
+          }
+          
+          // Show suggestion
+          if (issue.suggestion) {
+            issueHTML += `<div class="issue-suggestion"><strong>Suggestion:</strong> ${issue.suggestion}</div>`;
+          }
+          
+          // Show the corrected version if available
+          if (issue.correctedSegment) {
+            issueHTML += `<div class="issue-corrected"><strong>Corrected version:</strong> <span class="corrected-text">${issue.correctedSegment}</span></div>`;
+          }
+          
+          // Add buttons and status
+          issueHTML += `
                 <div class="issue-actions">
-                  <button id="accept-btn-${index}" class="action-btn accept-btn" onclick="acceptSuggestion(${index})">Accept Suggestion</button>
-                  <button id="reject-btn-${index}" class="action-btn reject-btn" onclick="rejectSuggestion(${index})" disabled>Reject Suggestion</button>
+                  <button id="accept-btn-${index}" class="action-btn accept-btn" onclick="acceptSuggestion(${index})">Apply Correction</button>
+                  <button id="reject-btn-${index}" class="action-btn reject-btn" onclick="rejectSuggestion(${index})" disabled>Reject Correction</button>
                 </div>
                 <div id="issue-status-${index}" class="issue-status" style="display: none; margin-top: 8px; font-size: 14px;"></div>
               </div>
             </div>
           `;
+          
+          issueEl.innerHTML = issueHTML;
 
           issuesContainer.appendChild(issueEl);
         });
