@@ -24,35 +24,41 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.post('/api/detect-language', async (req, res) => {
   try {
     const { text } = req.body;
-    
+
     if (!text || text.length < 10) {
       return res.status(400).json({ error: 'Text too short for reliable detection' });
     }
-    
-    // For a production app, you would use a language detection service here
-    // For this example, we'll use the Google Cloud Translation API
-    // This is just a placeholder - you'll need to implement real detection
-    
-    // Simulated language detection
-    const detectLanguage = (text) => {
-      // This is a very simplified detection 
-      const firstChar = text.trim()[0].toLowerCase();
-      
-      if (/[áéíóúüñ¿¡]/.test(text.slice(0, 10))) return 'es';
-      if (/[àâçéèêëîïôùûüÿ]/.test(text.slice(0, 10))) return 'fr';
-      if (/[äöüß]/.test(text.slice(0, 10))) return 'de';
-      if (/[\u4e00-\u9fff]/.test(text.slice(0, 10))) return 'zh';
-      if (/[\u3040-\u30ff]/.test(text.slice(0, 10))) return 'ja';
-      if (/[\uAC00-\uD7AF]/.test(text.slice(0, 10))) return 'ko';
-      if (/[\u0400-\u04FF]/.test(text.slice(0, 10))) return 'ru';
-      
-      // Default to English
-      return 'en';
-    };
-    
-    const detectedLanguage = detectLanguage(text);
-    
-    return res.json({ detectedLanguage });
+
+    const detectLanguageApiKey = process.env.DETECT_LANGUAGE_API_KEY;
+
+    if (!detectLanguageApiKey) {
+      return res.status(500).json({ error: 'Language detection API key not configured' });
+    }
+
+    const response = await axios.post(
+      'https://ws.detectlanguage.com/0.2/detect',
+      new URLSearchParams({ q: text }), // detectlanguage.com expects form-encoded params
+      {
+        headers: {
+          'Authorization': `Bearer ${detectLanguageApiKey}`,
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+      }
+    );
+
+    const detections = response.data?.data?.detections;
+
+    if (!detections || detections.length === 0) {
+      return res.status(500).json({ error: 'No language detected' });
+    }
+
+    const topDetection = detections[0];
+
+    return res.json({
+      detectedLanguage: topDetection.language,
+      confidence: topDetection.confidence,
+      reliable: topDetection.isReliable
+    });
   } catch (error) {
     console.error('Language detection error:', error);
     return res.status(500).json({ error: 'Language detection failed' });
