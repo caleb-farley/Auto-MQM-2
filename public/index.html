@@ -18,7 +18,7 @@
       background-color: rgb(22, 22, 22);
       color: #e0e0e0;
       line-height: 1.5;
-      padding: 20px;
+      padding: 10px;
     }
 
     /* Main container */
@@ -27,15 +27,15 @@
       margin: 0 auto;
       background-color: rgb(30, 30, 30);
       border-radius: 12px;
-      padding: 20px;
+      padding: 15px;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
     }
 
-    /* Header section */
+    /* Header section - better responsive behavior */
     .header {
       display: flex;
-      align-items: center;
-      justify-content: space-between;
+      flex-direction: column;
+      align-items: flex-start;
       padding-bottom: 20px;
       border-bottom: 1px solid rgb(45, 45, 45);
       margin-bottom: 20px;
@@ -44,17 +44,20 @@
     .logo-container {
       display: flex;
       align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+      width: 100%;
     }
 
     .logo-img {
-    width: 140px;
-    height: 70px;
-    object-fit: contain;
-    margin-right: 12px;
+      width: 110px;
+      height: 55px;
+      object-fit: contain;
+      margin-right: 12px;
     }
 
     .title {
-      font-size: 24px;
+      font-size: 20px;
       font-weight: bold;
       color: #ffffff;
     }
@@ -62,16 +65,20 @@
     .subtitle {
       font-size: 14px;
       color: #a0a0a0;
+      width: 100%;
+      text-align: left;
+      margin-top: 5px;
     }
 
     /* Info box */
     .info-box {
       background-color: rgba(0, 179, 214, 0.15);
       color: #00B3D6;
-      padding: 16px;
+      padding: 12px;
       border-radius: 8px;
       margin-bottom: 20px;
       border: 1px solid rgba(0, 179, 214, 0.3);
+      font-size: 14px;
     }
 
     /* Text areas */
@@ -82,12 +89,6 @@
       margin-bottom: 20px;
     }
 
-    @media (min-width: 768px) {
-      .text-areas {
-        grid-template-columns: 1fr 1fr;
-      }
-    }
-
     .text-area-container {
       display: flex;
       flex-direction: column;
@@ -95,14 +96,14 @@
 
     .text-area-header {
       display: flex;
-      justify-content: space-between;
-      align-items: center;
+      flex-direction: column;
       margin-bottom: 8px;
     }
 
     .text-area-label {
       font-weight: 500;
       color: #ffffff;
+      margin-bottom: 5px;
     }
 
     select {
@@ -112,11 +113,13 @@
       font-size: 14px;
       background-color: rgb(40, 40, 40);
       color: #e0e0e0;
+      width: 100%;
+      margin-bottom: 5px;
     }
 
     textarea {
       width: 100%;
-      height: 200px;
+      height: 180px; /* Slightly reduced for mobile */
       padding: 12px;
       border: 1px solid rgb(60, 60, 60);
       border-radius: 8px;
@@ -133,9 +136,9 @@
 
     .text-area-footer {
       display: flex;
-      justify-content: space-between;
+      flex-direction: column;
       margin-top: 8px;
-      font-size: 14px;
+      font-size: 13px;
       color: #a0a0a0;
     }
 
@@ -148,20 +151,26 @@
       font-weight: 500;
     }
 
-    /* Buttons */
+    /* Buttons - improved for mobile */
     .buttons {
       display: flex;
+      flex-wrap: wrap;
       justify-content: center;
-      gap: 16px;
+      gap: 10px;
       margin-bottom: 20px;
     }
 
     .btn {
-      padding: 10px 20px;
+      padding: 10px 15px;
       border: none;
       border-radius: 8px;
       font-weight: 500;
       cursor: pointer;
+      font-size: 14px;
+      text-align: center;
+      white-space: nowrap;
+      min-width: 120px;
+      margin-bottom: 5px;
     }
 
     .btn-primary {
@@ -187,7 +196,7 @@
       background-color: rgb(60, 60, 60);
     }
 
-    /* Results */
+    /* Results - improved for mobile */
     .results {
       border: 1px solid rgb(45, 45, 45);
       border-radius: 8px;
@@ -195,27 +204,29 @@
     }
 
     .results-header {
-      padding: 16px;
+      padding: 15px;
       border-bottom: 1px solid rgb(45, 45, 45);
       background-color: rgb(35, 35, 35);
     }
 
     .results-title-row {
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
+      flex-direction: column;
+      align-items: flex-start;
+      margin-bottom: 10px;
     }
 
     .results-title {
-      font-size: 20px;
+      font-size: 18px;
       font-weight: 600;
       color: #ffffff;
+      margin-bottom: 5px;
     }
 
     .score-container {
       display: flex;
       align-items: center;
+      margin-top: 5px;
     }
 
     .score {
@@ -226,8 +237,8 @@
     }
 
     .score-indicator {
-      width: 32px;
-      height: 32px;
+      width: 28px;
+      height: 28px;
       border-radius: 50%;
       display: flex;
       align-items: center;
@@ -246,12 +257,6 @@
       margin-top: 12px;
     }
 
-    @media (min-width: 768px) {
-      .categories {
-        grid-template-columns: repeat(5, 1fr);
-      }
-    }
-
     .category {
       background-color: rgb(40, 40, 40);
       border: 1px solid rgb(60, 60, 60);
@@ -267,14 +272,14 @@
 
     .category-stats {
       display: flex;
-      justify-content: space-between;
+      flex-direction: column;
       margin-top: 4px;
       color: #a0a0a0;
     }
 
-    /* Issues */
+    /* Issues - improved for mobile */
     .issue {
-      padding: 16px;
+      padding: 15px;
       border-bottom: 1px solid rgb(45, 45, 45);
       background-color: rgb(30, 30, 30);
     }
@@ -311,17 +316,11 @@
       margin-bottom: 8px;
     }
 
-    @media (min-width: 768px) {
-      .issue-header {
-        flex-direction: row;
-        justify-content: space-between;
-        align-items: center;
-      }
-    }
-
     .issue-title {
       font-weight: 500;
       color: #ffffff;
+      font-size: 15px;
+      margin-bottom: 5px;
     }
 
     .issue-severity {
@@ -330,21 +329,17 @@
       border-radius: 999px;
       font-size: 12px;
       margin-top: 4px;
-    }
-
-    @media (min-width: 768px) {
-      .issue-severity {
-        margin-top: 0;
-      }
+      align-self: flex-start;
     }
 
     .issue-explanation {
       margin-bottom: 8px;
       color: #e0e0e0;
+      font-size: 14px;
     }
 
     .issue-location {
-      font-size: 14px;
+      font-size: 13px;
       color: #a0a0a0;
       margin-bottom: 8px;
     }
@@ -355,8 +350,26 @@
       color: #4cd964;
       padding: 8px;
       border-radius: 8px;
-      font-size: 14px;
+      font-size: 13px;
       margin-top: 8px;
+    }
+
+    /* Issue actions - improved for mobile */
+    .issue-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .action-btn {
+      padding: 8px 12px;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      width: 100%;
     }
 
     /* Severity colors */
@@ -384,16 +397,64 @@
       border: 1px solid rgba(40, 167, 69, 0.3);
     }
 
-    /* No issues message */
-    .no-issues {
-      padding: 32px;
-      text-align: center;
-      color: #4cd964;
+    /* Highlighted text handling - improved for mobile */
+    #target-display {
+      white-space: pre-wrap;
+      background-color: rgb(35, 35, 35);
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid rgb(60, 60, 60);
+      min-height: 150px; /* Reduced for mobile */
+      font-family: 'Inter', system-ui, sans-serif;
+      line-height: 1.5;
+      margin-bottom: 10px;
+      font-size: 14px; /* Better size for mobile */
+      overflow-x: auto; /* Allow horizontal scrolling for long lines */
     }
 
-    .check-icon {
-      font-size: 48px;
-      margin-bottom: 8px;
+    .highlight {
+      background-color: rgba(255, 107, 107, 0.3);
+      position: relative;
+      border-radius: 3px;
+      cursor: pointer;
+      padding: 2px 0; /* Better tap target */
+    }
+
+    .highlight.accepted {
+      background-color: rgba(40, 167, 69, 0.3);
+    }
+
+    /* Corrected text handling - improved for mobile */
+    #corrected-text {
+      width: 100%;
+      height: 130px; /* Reduced for mobile */
+      padding: 12px;
+      border: 1px solid rgb(60, 60, 60);
+      border-radius: 8px;
+      resize: vertical;
+      font-family: inherit;
+      background-color: rgb(35, 35, 35);
+      color: #e0e0e0;
+      font-size: 14px; /* Better size for mobile */
+    }
+
+    /* Tooltip - improved for mobile */
+    .tooltip {
+      position: fixed; /* Changed from absolute for better mobile support */
+      bottom: 10px; /* Fixed position at bottom of screen */
+      left: 10px;
+      right: 10px;
+      background: rgb(50, 50, 50);
+      color: white;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 13px;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s;
+      max-width: calc(100% - 20px); /* Constrain to screen width */
     }
 
     /* Footer */
@@ -403,7 +464,7 @@
       padding-top: 16px;
       border-top: 1px solid rgb(45, 45, 45);
       color: #a0a0a0;
-      font-size: 14px;
+      font-size: 13px;
     }
 
     /* Loading spinner */
@@ -421,126 +482,140 @@
       }
     }
 
-    /* Error message */
-    .error-message {
-      background-color: rgba(255, 107, 107, 0.15);
-      color: #ff6b6b;
-      padding: 16px;
-      border-radius: 8px;
-      margin-bottom: 20px;
-      border: 1px solid rgba(255, 107, 107, 0.3);
-    }
+    /* Media queries for larger screens */
+    @media (min-width: 768px) {
+      body {
+        padding: 20px;
+      }
 
-    /* New styles for highlighted text and issue correction */
-    #target-display {
-      white-space: pre-wrap;
-      background-color: rgb(35, 35, 35);
-      padding: 12px;
-      border-radius: 8px;
-      border: 1px solid rgb(60, 60, 60);
-      min-height: 200px;
-      font-family: 'Inter', system-ui, sans-serif;
-      line-height: 1.5;
-      margin-bottom: 10px;
-    }
+      .container {
+        padding: 20px;
+      }
 
-    .highlight {
-      background-color: rgba(255, 107, 107, 0.3);
-      position: relative;
-      border-radius: 3px;
-      cursor: pointer;
-    }
+      .header {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+      }
 
-    .highlight.accepted {
-      background-color: rgba(40, 167, 69, 0.3);
-    }
+      .logo-container {
+        margin-bottom: 0;
+        width: auto;
+      }
 
-    .issue-actions {
-      display: flex;
-      gap: 8px;
-      margin-top: 12px;
-    }
+      .logo-img {
+        width: 140px;
+        height: 70px;
+      }
 
-    .action-btn {
-      padding: 6px 12px;
-      border: none;
-      border-radius: 4px;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-    }
+      .title {
+        font-size: 24px;
+      }
 
-    .accept-btn {
-      background-color: rgba(40, 167, 69, 0.8);
-      color: white;
-    }
+      .subtitle {
+        width: auto;
+        text-align: right;
+        margin-top: 0;
+      }
 
-    .accept-btn:hover {
-      background-color: rgba(40, 167, 69, 1);
-    }
+      .info-box {
+        padding: 16px;
+        font-size: 16px;
+      }
 
-    .reject-btn {
-      background-color: rgba(255, 107, 107, 0.8);
-      color: white;
-    }
+      .text-areas {
+        grid-template-columns: 1fr 1fr;
+      }
 
-    .reject-btn:hover {
-      background-color: rgba(255, 107, 107, 1);
-    }
+      .text-area-header {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+      }
 
-    /* Container for corrected text output */
-    .corrected-text-container {
-      margin-top: 20px;
-      display: none;
-    }
+      .text-area-label {
+        margin-bottom: 0;
+      }
 
-    .corrected-text-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
-    }
+      select {
+        width: auto;
+        margin-bottom: 0;
+      }
 
-    .corrected-text-label {
-      font-weight: 500;
-      color: #ffffff;
-    }
+      textarea {
+        height: 200px;
+      }
 
-    #corrected-text {
-      width: 100%;
-      height: 150px;
-      padding: 12px;
-      border: 1px solid rgb(60, 60, 60);
-      border-radius: 8px;
-      resize: vertical;
-      font-family: inherit;
-      background-color: rgb(35, 35, 35);
-      color: #e0e0e0;
-    }
+      .text-area-footer {
+        flex-direction: row;
+        justify-content: space-between;
+        font-size: 14px;
+      }
 
-    .copy-btn {
-      margin-left: auto;
-      background-color: rgb(50, 50, 50);
-      color: #e0e0e0;
-    }
+      .buttons {
+        flex-direction: row;
+        gap: 16px;
+      }
 
-    .copy-btn:hover {
-      background-color: rgb(60, 60, 60);
-    }
+      .btn {
+        padding: 10px 20px;
+        font-size: 16px;
+        margin-bottom: 0;
+      }
 
-    .tooltip {
-      position: absolute;
-      background: rgb(50, 50, 50);
-      color: white;
-      padding: 5px 10px;
-      border-radius: 4px;
-      font-size: 14px;
-      z-index: 100;
-      max-width: 300px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity 0.2s;
+      .results-title-row {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .results-title {
+        font-size: 20px;
+        margin-bottom: 0;
+      }
+
+      .score-container {
+        margin-top: 0;
+      }
+
+      .categories {
+        grid-template-columns: repeat(5, 1fr);
+      }
+
+      .category-stats {
+        flex-direction: row;
+        justify-content: space-between;
+      }
+
+      .issue-header {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .issue-title {
+        margin-bottom: 0;
+      }
+
+      .issue-severity {
+        margin-top: 0;
+      }
+
+      .issue-actions {
+        flex-direction: row;
+      }
+
+      .action-btn {
+        width: auto;
+      }
+
+      .tooltip {
+        position: absolute;
+        bottom: auto;
+        left: auto;
+        right: auto;
+        max-width: 300px;
+      }
     }
   </style>
 </head>
@@ -760,7 +835,7 @@
     </div>
 
     <!-- Corrected text output - This is initially hidden -->
-    <div class="corrected-text-container" id="corrected-text-container">
+    <div class="corrected-text-container" id="corrected-text-container" style="display: none;">
       <div class="corrected-text-header">
         <label class="corrected-text-label">Corrected Text:</label>
         <button id="copy-btn" class="btn copy-btn">Copy to Clipboard</button>
@@ -775,8 +850,8 @@
     <div class="buttons">
       <button id="analyze-btn" class="btn btn-primary" disabled>Run MQM Analysis</button>
       <button id="reset-btn" class="btn btn-secondary">Reset</button>
-      <button id="apply-all-btn" class="btn btn-primary" style="display: none;">Apply All Suggestions</button>
-      <button id="undo-btn" class="btn btn-secondary" style="display: none;" disabled>Undo Last Change</button>
+      <button id="apply-all-btn" class="btn btn-primary" style="display: none;">Apply All</button>
+      <button id="undo-btn" class="btn btn-secondary" style="display: none;" disabled>Undo Last</button>
     </div>
 
     <!-- Error message (initially hidden) -->
@@ -839,6 +914,7 @@
     const correctedText = document.getElementById('corrected-text');
     const copyBtn = document.getElementById('copy-btn');
     const tooltip = document.getElementById('tooltip');
+    const undoBtn = document.getElementById('undo-btn');
 
     // Word count limit
     const WORD_COUNT_LIMIT = 500;
@@ -856,6 +932,7 @@
     let issueToSegmentMap = {};
     let appliedCorrections = {};
     let currentTargetText = '';
+    let changeHistory = [];
 
     // Update word count
     function updateWordCountDisplay() {
@@ -1011,6 +1088,11 @@
       analyzeBtn.disabled = !sourceText.value || !targetText.value || !sourceLang.value || !targetLang.value || isOverLimit;
     }
 
+    // Helper function to escape special characters in regular expressions
+    function escapeRegExp(string) {
+      return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
     // Reset everything
     resetBtn.addEventListener('click', () => {
       sourceText.value = '';
@@ -1035,35 +1117,6 @@
       isOverLimit = false;
       updateAnalyzeButton();
     });
-    
-  // Helper function to escape special characters in regular expressions
-function escapeRegExp(string) {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-// Reset everything
-resetBtn.addEventListener('click', () => {
-  sourceText.value = '';
-  targetText.value = '';
-  sourceLang.value = '';
-  targetLang.value = '';
-  sourceLangDetected.textContent = '';
-  targetLangDetected.textContent = '';
-  wordCount.textContent = `0 / ${WORD_COUNT_LIMIT} words`;
-  wordCount.classList.remove('word-count-exceeded');
-  sourceText.style.borderColor = 'rgb(60, 60, 60)';
-  errorMessage.style.display = 'none';
-  resultsContainer.style.display = 'none';
-  targetDisplayContainer.style.display = 'none';
-  applyAllBtn.style.display = 'none';
-  correctedTextContainer.style.display = 'none';
-  currentIssues = [];
-  issueToSegmentMap = {};
-  appliedCorrections = {};
-  isOverLimit = false;
-  updateAnalyzeButton();
-});
-
 
     // Run MQM analysis
     analyzeBtn.addEventListener('click', async () => {
@@ -1169,9 +1222,11 @@ resetBtn.addEventListener('click', () => {
         // Show the target display with highlighted issues
         highlightIssuesInText(targetText.value, results.mqmIssues);
         
-        // Show apply all button if there are issues
+        // Show apply all button and undo button if there are issues
         if (results.mqmIssues && results.mqmIssues.length > 0) {
           applyAllBtn.style.display = 'block';
+          undoBtn.style.display = 'block';
+          undoBtn.disabled = true; // Initially disabled until changes are made
         }
         
       } catch (error) {
@@ -1404,6 +1459,8 @@ resetBtn.addEventListener('click', () => {
         el.addEventListener('mouseenter', handleHighlightMouseEnter);
         el.addEventListener('mouseleave', handleHighlightMouseLeave);
         el.addEventListener('click', handleHighlightClick);
+        // Add touch events for mobile
+        el.addEventListener('touchstart', handleHighlightTouch, {passive: true});
       });
       
       // Initialize corrected text
@@ -1423,11 +1480,58 @@ resetBtn.addEventListener('click', () => {
           <strong>Suggestion:</strong> ${issue.suggestion || 'No suggestion provided'}
         `;
         
-        // Position the tooltip
-        const rect = highlightEl.getBoundingClientRect();
-        tooltip.style.left = rect.left + 'px';
-        tooltip.style.top = (rect.bottom + 10) + 'px';
+        // Position the tooltip - for mobile, we'll fix the position at the bottom
+        const isMobile = window.innerWidth < 768;
+        if (isMobile) {
+          tooltip.style.bottom = '10px';
+          tooltip.style.left = '10px';
+          tooltip.style.right = '10px';
+        } else {
+          // Desktop positioning
+          const rect = highlightEl.getBoundingClientRect();
+          tooltip.style.bottom = 'auto';
+          tooltip.style.left = rect.left + 'px';
+          tooltip.style.top = (rect.bottom + 10) + 'px';
+          tooltip.style.right = 'auto';
+        }
         tooltip.style.opacity = '1';
+      }
+    }
+
+    // Handle touch for mobile devices
+    function handleHighlightTouch(event) {
+      // Prevent default touch behavior
+      event.preventDefault();
+      
+      // Get the issue details
+      const highlightEl = event.target;
+      const issueId = parseInt(highlightEl.getAttribute('data-issue-id'));
+      const issue = currentIssues[issueId];
+      
+      if (issue) {
+        // First hide any visible tooltip
+        tooltip.style.opacity = '0';
+        
+        // Wait a bit to show the new tooltip
+        setTimeout(() => {
+          // Build and position tooltip
+          tooltip.innerHTML = `
+            <strong>${issue.category}: ${issue.subcategory}</strong> (${severityLevels[issue.severity].label})<br>
+            ${issue.explanation}<br>
+            <strong>Suggestion:</strong> ${issue.suggestion || 'No suggestion provided'}
+          `;
+          
+          // Position at bottom of screen for mobile
+          tooltip.style.bottom = '10px';
+          tooltip.style.left = '10px';
+          tooltip.style.right = '10px';
+          tooltip.style.opacity = '1';
+          
+          // Auto-hide after 4 seconds
+          setTimeout(() => {
+            tooltip.style.opacity = '0';
+          }, 4000);
+        }, 100);
       }
     }
 
@@ -1448,10 +1552,7 @@ resetBtn.addEventListener('click', () => {
       }
     }
 
-    // Store history for undo functionality
-    let changeHistory = [];
-    
-    // Accept a suggestion for an issue - SIMPLIFIED VERSION
+    // Accept a suggestion for an issue
     function acceptSuggestion(issueId) {
       const issue = currentIssues[issueId];
       const segment = issueToSegmentMap[issueId];
@@ -1841,10 +1942,7 @@ resetBtn.addEventListener('click', () => {
     });
     
     // Undo button event listener
-    const undoBtn = document.getElementById('undo-btn');
-    if (undoBtn) {
-      undoBtn.addEventListener('click', undoLastCorrection);
-    }
+    undoBtn.addEventListener('click', undoLastCorrection);
 
     // Copy corrected text to clipboard
     copyBtn.addEventListener('click', () => {
@@ -2076,7 +2174,8 @@ resetBtn.addEventListener('click', () => {
           severity: "MAJOR",
           explanation: "The phrase 'annual report' was mistranslated as 'monthly report'",
           location: "Paragraph 2, sentence 1",
-          suggestion: "Use 'annual report' instead of 'monthly report'"
+          suggestion: "Use 'annual report' instead of 'monthly report'",
+          correctedSegment: "The annual report shows our financial results for the fiscal year."
         },
         {
           category: "Fluency",
@@ -2084,7 +2183,8 @@ resetBtn.addEventListener('click', () => {
           severity: "MINOR",
           explanation: "Incorrect verb conjugation in the second paragraph",
           location: "Paragraph 2, sentence 3",
-          suggestion: "Use the past tense form of the verb"
+          suggestion: "Use the past tense form of the verb",
+          correctedSegment: "The company increased its market share by 15% last quarter."
         },
         {
           category: "Terminology",
@@ -2092,7 +2192,8 @@ resetBtn.addEventListener('click', () => {
           severity: "MINOR",
           explanation: "The term 'stakeholder' is translated inconsistently throughout the text",
           location: "Multiple locations",
-          suggestion: "Use consistent terminology for 'stakeholder' throughout the translation"
+          suggestion: "Use consistent terminology for 'stakeholder' throughout the translation",
+          correctedSegment: "We value the input from all stakeholders in our decision-making process."
         },
         {
           category: "Style",
@@ -2100,7 +2201,8 @@ resetBtn.addEventListener('click', () => {
           severity: "MINOR",
           explanation: "The phrasing in the third paragraph sounds unnatural in the target language",
           location: "Paragraph 3",
-          suggestion: "Restructure the sentence to follow target language conventions"
+          suggestion: "Restructure the sentence to follow target language conventions",
+          correctedSegment: "Our team is dedicated to providing exceptional service to our clients."
         },
         {
           category: "Design",
@@ -2108,7 +2210,8 @@ resetBtn.addEventListener('click', () => {
           severity: "MAJOR",
           explanation: "The translation is significantly longer than the source, which may cause layout issues",
           location: "Throughout the document",
-          suggestion: "Consider rephrasing to be more concise while maintaining meaning"
+          suggestion: "Consider rephrasing to be more concise while maintaining meaning",
+          correctedSegment: "We've simplified this paragraph to maintain the core message while reducing the overall length."
         }
       ];
       
@@ -2206,81 +2309,6 @@ resetBtn.addEventListener('click', () => {
         `;
         categories.appendChild(categoryEl);
       });
-      
-      // Update issues
-      issuesContainer.innerHTML = '';
-      
-      if (!results.mqmIssues || results.mqmIssues.length === 0) {
-        // No issues found
-        issuesContainer.innerHTML = `
-          <div class="no-issues">
-            <div class="check-icon">✓</div>
-            <p>No issues found! The translation meets all quality criteria.</p>
-          </div>
-        `;
-      } else {
-        // Display issues
-        results.mqmIssues.forEach((issue, index) => {
-          // Debug log for unexpected severity values
-          if (!severityLevels[issue.severity]) {
-            console.warn(`⚠️ Unknown severity level: "${issue.severity}"`, issue);
-          }
-
-          // Fallback to MINOR if severity is undefined or unrecognized
-          const severityInfo = severityLevels[issue.severity] || { class: 'minor', label: 'Minor', value: 1 };
-          const severityClass = severityInfo.class;
-
-          const issueEl = document.createElement('div');
-          issueEl.className = 'issue';
-          issueEl.id = `issue-${index}`;
-          
-          // Build the HTML for the issue
-          let issueHTML = `
-            <div class="issue-container">
-              <div class="issue-indicator ${severityClass}">
-                ${issue.severity === 'MINOR' ? 'i' : issue.severity === 'MAJOR' ? '!' : '✕'}
-              </div>
-              <div class="issue-content">
-                <div class="issue-header">
-                  <h3 class="issue-title">${issue.category}: ${issue.subcategory}</h3>
-                  <span class="issue-severity ${severityClass}">
-                    ${severityInfo.label} (${severityInfo.value} pts)
-                  </span>
-                </div>
-                <p class="issue-explanation">${issue.explanation}</p>
-                ${issue.location ? `<p class="issue-location"><strong>Location:</strong> ${issue.location}</p>` : ''}`;
-                
-          // Show original problematic text
-          if (issue.segment) {
-            issueHTML += `<div class="issue-segment"><strong>Problem:</strong> <span class="problematic-text">${issue.segment}</span></div>`;
-          }
-          
-          // Show suggestion
-          if (issue.suggestion) {
-            issueHTML += `<div class="issue-suggestion"><strong>Suggestion:</strong> ${issue.suggestion}</div>`;
-          }
-          
-          // Show the corrected version if available
-          if (issue.correctedSegment) {
-            issueHTML += `<div class="issue-corrected"><strong>Corrected version:</strong> <span class="corrected-text">${issue.correctedSegment}</span></div>`;
-          }
-          
-          // Add buttons and status
-          issueHTML += `
-                <div class="issue-actions">
-                  <button id="accept-btn-${index}" class="action-btn accept-btn" onclick="acceptSuggestion(${index})">Apply Correction</button>
-                  <button id="reject-btn-${index}" class="action-btn reject-btn" onclick="rejectSuggestion(${index})" disabled>Reject Correction</button>
-                </div>
-                <div id="issue-status-${index}" class="issue-status" style="display: none; margin-top: 8px; font-size: 14px;"></div>
-              </div>
-            </div>
-          `;
-          
-          issueEl.innerHTML = issueHTML;
-
-          issuesContainer.appendChild(issueEl);
-        });
-      }
     }
   </script>
 </body>
