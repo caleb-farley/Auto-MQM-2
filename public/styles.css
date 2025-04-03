@@ -372,3 +372,11 @@
       transform: rotate(360deg);
     }
   }
+  
+  .orca-logo-img {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    display: inline-block;
+  }
+  
