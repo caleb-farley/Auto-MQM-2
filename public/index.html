@@ -542,6 +542,23 @@
       opacity: 0;
       transition: opacity 0.2s;
     }
+    
+    .issue-segment, .issue-corrected {
+      margin-top: 8px;
+      margin-bottom: 8px;
+    }
+    
+    .problematic-text {
+      background-color: rgba(255, 107, 107, 0.2);
+      padding: 2px 4px;
+      border-radius: 3px;
+    }
+    
+    .corrected-text {
+      background-color: rgba(40, 167, 69, 0.2);
+      padding: 2px 4px;
+      border-radius: 3px;
+    }
   </style>
 </head>
 <body>
@@ -1011,447 +1028,68 @@
       analyzeBtn.disabled = !sourceText.value || !targetText.value || !sourceLang.value || !targetLang.value || isOverLimit;
     }
 
-    // Reset everything
-    resetBtn.addEventListener('click', () => {
-      sourceText.value = '';
-      targetText.value = '';
-      sourceLang.value = '';
-      targetLang.value = '';
-      sourceLangDetected.textContent = '';
-      targetLangDetected.textContent = '';
-      wordCount.textContent = `0 / ${WORD_COUNT_LIMIT} words`;
-      wordCount.classList.remove('word-count-exceeded');
-      sourceText.style.borderColor = 'rgb(60, 60, 60)';
-      errorMessage.style.display = 'none';
-      resultsContainer.style.display = 'none';
-      targetDisplayContainer.style.display = 'none';
-      applyAllBtn.style.display = 'none';
-      undoBtn.style.display = 'none';
-      correctedTextContainer.style.display = 'none';
-      currentIssues = [];
-      issueToSegmentMap = {};
-      appliedCorrections = {};
-      changeHistory = [];
-      isOverLimit = false;
-      updateAnalyzeButton();
-    });
-    
-  // Helper function to escape special characters in regular expressions
-function escapeRegExp(string) {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-// Reset everything
-resetBtn.addEventListener('click', () => {
-  sourceText.value = '';
-  targetText.value = '';
-  sourceLang.value = '';
-  targetLang.value = '';
-  sourceLangDetected.textContent = '';
-  targetLangDetected.textContent = '';
-  wordCount.textContent = `0 / ${WORD_COUNT_LIMIT} words`;
-  wordCount.classList.remove('word-count-exceeded');
-  sourceText.style.borderColor = 'rgb(60, 60, 60)';
-  errorMessage.style.display = 'none';
-  resultsContainer.style.display = 'none';
-  targetDisplayContainer.style.display = 'none';
-  applyAllBtn.style.display = 'none';
-  correctedTextContainer.style.display = 'none';
-  currentIssues = [];
-  issueToSegmentMap = {};
-  appliedCorrections = {};
-  isOverLimit = false;
-  updateAnalyzeButton();
-});
-
-
-    // Run MQM analysis
-    analyzeBtn.addEventListener('click', async () => {
-      if (!sourceText.value || !targetText.value || !sourceLang.value || !targetLang.value) {
-        showError('Please enter both source and target text and select languages');
-        return;
-      }
-      
-      if (isOverLimit) {
-        showError(`Source text exceeds the ${WORD_COUNT_LIMIT} word limit`);
-        return;
-      }
-      
-      // Show loading state
-      analyzeBtn.disabled = true;
-      analyzeBtn.innerHTML = '<span class="spinner">⟳</span> Analyzing...';
-      errorMessage.style.display = 'none';
-      
-      // Reset previous corrections and history
-      appliedCorrections = {};
-      changeHistory = [];
-      
-      try {
-        // For development/testing without backend
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-          // Simulate API call with a delay
-          setTimeout(() => {
-            const words = sourceText.value.trim().split(/\s+/);
-            const wordCount = words.length > 0 && words[0] !== '' ? words.length : 0;
-            const mockResults = generateMockResults(wordCount);
-            
-            // Store current issues and target text
-            currentIssues = mockResults.mqmIssues;
-            currentTargetText = targetText.value;
-            
-            // Process and display results
-            displayResults(mockResults);
-            
-            // Show the target display with highlighted issues
-            highlightIssuesInText(targetText.value, mockResults.mqmIssues);
-            
-            // Reset button state
-            analyzeBtn.disabled = false;
-            analyzeBtn.textContent = 'Run MQM Analysis';
-            
-            // Show apply all button and undo button if there are issues
-            if (mockResults.mqmIssues && mockResults.mqmIssues.length > 0) {
-              applyAllBtn.style.display = 'block';
-              undoBtn.style.display = 'block';
-              undoBtn.disabled = true; // Initially disabled until changes are made
-            }
-          }, 1500);
-          return;
-        }
-        
-        // Step 1: Call /api/check-alignment before /api/mqm-analysis
-        const alignmentResponse = await fetch('/api/check-alignment', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            sourceText: sourceText.value,
-            targetText: targetText.value,
-            sourceLang: sourceLang.value,
-            targetLang: targetLang.value
-          })
-        });
-
-        if (!alignmentResponse.ok) {
-          const errorData = await alignmentResponse.json();
-          throw new Error(errorData.error || 'Source/target alignment check failed');
-        }
-
-        // Step 2: If alignment passes, proceed with MQM analysis
-        const mqmResponse = await fetch('/api/mqm-analysis', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            sourceText: sourceText.value,
-            targetText: targetText.value,
-            sourceLang: sourceLang.value,
-            targetLang: targetLang.value
-          })
-        });
-
-        if (!mqmResponse.ok) {
-          const errorData = await mqmResponse.json();
-          throw new Error(errorData.error || 'Analysis failed');
-        }
-
-        const results = await mqmResponse.json();
-        
-        // Store current issues and target text
-        currentIssues = results.mqmIssues;
-        currentTargetText = targetText.value;
-        
-        // Process and display results
-        displayResults(results);
-        
-        // Show the target display with highlighted issues
-        highlightIssuesInText(targetText.value, results.mqmIssues);
-        
-        // Show apply all button if there are issues
-        if (results.mqmIssues && results.mqmIssues.length > 0) {
-          applyAllBtn.style.display = 'block';
-        }
-        
-      } catch (error) {
-        console.error('Error during analysis:', error);
-        showError(error.message || 'An error occurred during analysis');
-      } finally {
-        // Reset button state
-        analyzeBtn.disabled = false;
-        analyzeBtn.textContent = 'Run MQM Analysis';
-      }
-    });
-
-    // Show error message
-    function showError(message) {
-      errorMessage.textContent = message;
-      errorMessage.style.display = 'block';
-    }
-
-    // Find segments in text based on issue location
-    function findSegmentsInText(text, issues) {
-      // This function will try to identify text segments based on issue locations
-      const segments = [];
-      
-      issues.forEach((issue, index) => {
-        // Parse location to identify text segments
-        const location = issue.location || '';
-        
-        // Try to extract segment information from location
-        // This is a simplified approach - in a real implementation,
-        // the backend should provide specific position information
-        
-        let segment = null;
-        
-        // Check for specific location patterns
-        if (location.includes('sentence')) {
-          // Example: "Paragraph 2, sentence 1" or "sentence 3"
-          const sentences = text.split(/[.!?]+\s+/);
-          
-          let sentenceIndex = -1;
-          const sentenceMatch = location.match(/sentence\s+(\d+)/i);
-          if (sentenceMatch && sentenceMatch[1]) {
-            sentenceIndex = parseInt(sentenceMatch[1]) - 1;
-          }
-          
-          let paragraphIndex = 0;
-          const paragraphMatch = location.match(/paragraph\s+(\d+)/i);
-          if (paragraphMatch && paragraphMatch[1]) {
-            paragraphIndex = parseInt(paragraphMatch[1]) - 1;
-          }
-          
-          // Try to find the sentence
-          if (sentenceIndex >= 0) {
-            // If paragraph is specified, we need to first find the paragraph
-            if (paragraphIndex > 0) {
-              const paragraphs = text.split(/\n\s*\n/);
-              if (paragraphIndex < paragraphs.length) {
-                const paragraphSentences = paragraphs[paragraphIndex].split(/[.!?]+\s+/);
-                if (sentenceIndex < paragraphSentences.length) {
-                  segment = {
-                    text: paragraphSentences[sentenceIndex],
-                    start: text.indexOf(paragraphSentences[sentenceIndex]),
-                    end: text.indexOf(paragraphSentences[sentenceIndex]) + paragraphSentences[sentenceIndex].length
-                  };
-                }
-              }
-            } else {
-              // Just look for the sentence in the whole text
-              if (sentenceIndex < sentences.length) {
-                segment = {
-                  text: sentences[sentenceIndex],
-                  start: text.indexOf(sentences[sentenceIndex]),
-                  end: text.indexOf(sentences[sentenceIndex]) + sentences[sentenceIndex].length
-                };
-              }
-            }
-          }
-        } else if (location.includes('paragraph')) {
-          // Example: "Paragraph 3"
-          const paragraphs = text.split(/\n\s*\n/);
-          
-          const paragraphMatch = location.match(/paragraph\s+(\d+)/i);
-          if (paragraphMatch && paragraphMatch[1]) {
-            const paragraphIndex = parseInt(paragraphMatch[1]) - 1;
-            if (paragraphIndex < paragraphs.length) {
-              segment = {
-                text: paragraphs[paragraphIndex],
-                start: text.indexOf(paragraphs[paragraphIndex]),
-                end: text.indexOf(paragraphs[paragraphIndex]) + paragraphs[paragraphIndex].length
-              };
-            }
-          }
-        }
-        
-        // If we couldn't identify a segment, make a simple guess based on the issue
-        if (!segment) {
-          // For demonstration purposes, let's use a simple algorithm:
-          // Take words from the suggestion or explanation and try to find them in the text
-          
-          // Extract key terms from the issue
-          let keyTerms = [];
-          
-          if (issue.subcategory === 'Mistranslation' && issue.explanation) {
-            // Try to extract the mistranslated term from explanation
-            const match = issue.explanation.match(/'([^']+)'\s+was\s+mistranslated\s+as\s+'([^']+)'/);
-            if (match && match[2]) {
-              keyTerms.push(match[2]);
-            }
-          }
-          
-          // If we couldn't extract from explanation, use key words from the issue
-          if (keyTerms.length === 0) {
-            const allTerms = (issue.explanation || '') + ' ' + (issue.suggestion || '');
-            keyTerms = allTerms.split(/\s+/).filter(term => term.length > 4);
-          }
-          
-          // Try to find the terms in the text
-          for (const term of keyTerms) {
-            const index = text.indexOf(term);
-            if (index !== -1) {
-              // Find the beginning of the sentence
-              let start = index;
-              while (start > 0 && !'.!?'.includes(text[start - 1])) {
-                start--;
-              }
-              
-              // Find the end of the sentence
-              let end = index + term.length;
-              while (end < text.length && !'.!?'.includes(text[end])) {
-                end++;
-              }
-              if (end < text.length) end++; // Include the ending punctuation
-              
-              segment = {
-                text: text.substring(start, end),
-                start: start,
-                end: end
-              };
-              break;
-            }
-          }
-        }
-        
-        // If we still couldn't find a segment, use a fallback
-        if (!segment && index === 0) {
-          // For the first issue, highlight the first paragraph or sentence
-          const firstSentence = text.split(/[.!?]+\s+/)[0];
-          if (firstSentence) {
-            segment = {
-              text: firstSentence,
-              start: 0,
-              end: firstSentence.length
-            };
-          }
-        } else if (!segment && index > 0 && segments.length > 0) {
-          // For subsequent issues, try the next sentence after the previous segment
-          const prevSegment = segments[segments.length - 1];
-          const remainingText = text.substring(prevSegment.end);
-          const nextSentence = remainingText.split(/[.!?]+\s+/)[0];
-          if (nextSentence) {
-            segment = {
-              text: nextSentence,
-              start: prevSegment.end,
-              end: prevSegment.end + nextSentence.length
-            };
-          }
-        }
-        
-        // If all else fails, just highlight a random short segment
-        if (!segment) {
-          const words = text.split(/\s+/);
-          if (words.length > 0) {
-            const randomIndex = Math.floor(Math.random() * (words.length - 3));
-            const randomSegment = words.slice(randomIndex, randomIndex + 3).join(' ');
-            const start = text.indexOf(randomSegment);
-            if (start !== -1) {
-              segment = {
-                text: randomSegment,
-                start: start,
-                end: start + randomSegment.length
-              };
-            }
-          }
-        }
-        
-        if (segment) {
-          segments.push(segment);
-          issueToSegmentMap[index] = segment;
-        }
-      });
-      
-      return segments;
-    }
-
-    // Highlight issues in the target text
-    function highlightIssuesInText(text, issues) {
-      if (!issues || issues.length === 0) {
-        targetDisplayContainer.style.display = 'none';
-        return;
-      }
-      
-      // Find segments to highlight
-      const segments = findSegmentsInText(text, issues);
-      
-      // Show the target display container
-      targetDisplayContainer.style.display = 'block';
-      
-      // Create HTML with highlighted segments
-      let html = '';
-      let lastEnd = 0;
-      
-      segments.forEach((segment, index) => {
-        // Add text before this segment
-        html += escapeHtml(text.substring(lastEnd, segment.start));
-        
-        // Add the highlighted segment
-        html += `<span class="highlight" data-issue-id="${index}">${escapeHtml(segment.text)}</span>`;
-        
-        lastEnd = segment.end;
-      });
-      
-      // Add any remaining text
-      html += escapeHtml(text.substring(lastEnd));
-      
-      // Set the HTML
-      targetDisplay.innerHTML = html;
-      
-      // Add event listeners for the highlighted segments
-      const highlightElements = targetDisplay.querySelectorAll('.highlight');
-      highlightElements.forEach(el => {
-        el.addEventListener('mouseenter', handleHighlightMouseEnter);
-        el.addEventListener('mouseleave', handleHighlightMouseLeave);
-        el.addEventListener('click', handleHighlightClick);
-      });
-      
-      // Initialize corrected text
-      correctedText.value = text;
-    }
-
-    // Handle mouse enter on highlighted text
-    function handleHighlightMouseEnter(event) {
-      const highlightEl = event.target;
-      const issueId = parseInt(highlightEl.getAttribute('data-issue-id'));
-      const issue = currentIssues[issueId];
-      
-      if (issue) {
-        tooltip.innerHTML = `
-          <strong>${issue.category}: ${issue.subcategory}</strong> (${severityLevels[issue.severity].label})<br>
-          ${issue.explanation}<br>
-          <strong>Suggestion:</strong> ${issue.suggestion || 'No suggestion provided'}
-        `;
-        
-        // Position the tooltip
-        const rect = highlightEl.getBoundingClientRect();
-        tooltip.style.left = rect.left + 'px';
-        tooltip.style.top = (rect.bottom + 10) + 'px';
-        tooltip.style.opacity = '1';
-      }
-    }
-
-    // Handle mouse leave from highlighted text
-    function handleHighlightMouseLeave() {
-      tooltip.style.opacity = '0';
-    }
-
-    // Handle click on highlighted text
-    function handleHighlightClick(event) {
-      const highlightEl = event.target;
-      const issueId = parseInt(highlightEl.getAttribute('data-issue-id'));
-      
-      // Scroll to the corresponding issue in the issues list
-      const issueElement = document.getElementById(`issue-${issueId}`);
-      if (issueElement) {
-        issueElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-    }
-
     // Store history for undo functionality
     let changeHistory = [];
     
-    // Accept a suggestion for an issue - SIMPLIFIED VERSION
+    // Levenshtein distance calculation (edit distance)
+    function levenshteinDistance(a, b) {
+      if (a.length === 0) return b.length;
+      if (b.length === 0) return a.length;
+
+      const matrix = [];
+
+      // Initialize matrix
+      for (let i = 0; i <= b.length; i++) {
+        matrix[i] = [i];
+      }
+      for (let j = 0; j <= a.length; j++) {
+        matrix[0][j] = j;
+      }
+
+      // Fill matrix
+      for (let i = 1; i <= b.length; i++) {
+        for (let j = 1; j <= a.length; j++) {
+          const cost = a[j - 1] === b[i - 1] ? 0 : 1;
+          matrix[i][j] = Math.min(
+            matrix[i - 1][j] + 1,      // deletion
+            matrix[i][j - 1] + 1,      // insertion
+            matrix[i - 1][j - 1] + cost // substitution
+          );
+        }
+      }
+
+      return matrix[b.length][a.length];
+    }
+
+    // Find closest word in text
+    function findClosestWord(searchTerm, text) {
+      // Split text into words
+      const words = text.split(/\s+/);
+      
+      let bestMatch = null;
+      let lowestDistance = Infinity;
+      
+      words.forEach(word => {
+        // Calculate Levenshtein distance (edit distance)
+        const distance = levenshteinDistance(searchTerm.toLowerCase(), word.toLowerCase());
+        
+        // If this word is closer than previous matches
+        if (distance < lowestDistance) {
+          lowestDistance = distance;
+          bestMatch = word;
+        }
+      });
+      
+      // Only return matches that are reasonably close (threshold can be adjusted)
+      return lowestDistance <= Math.min(3, searchTerm.length / 2) ? bestMatch : null;
+    }
+
+    // Helper function to escape special characters in regular expressions
+    function escapeRegExp(string) {
+      return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    // Accept a suggestion for an issue
     function acceptSuggestion(issueId) {
       const issue = currentIssues[issueId];
       const segment = issueToSegmentMap[issueId];
@@ -1479,36 +1117,139 @@ resetBtn.addEventListener('click', () => {
         highlightEl.classList.add('accepted');
       }
       
-      // Update the corrected text with Claude's pre-corrected version
+      // Update the corrected text
       const currentValue = correctedText.value;
+      let newText = currentValue;
+      let correction = '';
       
-      // Simply use the correctedSegment provided by Claude
-      let newText;
-      if (issue.correctedSegment) {
-        newText = currentValue.substring(0, segment.start) + 
-                  issue.correctedSegment + 
-                  currentValue.substring(segment.end);
-                  
-        // Update the correction status message
-        const correctionStatus = document.getElementById('correction-status');
-        if (correctionStatus) {
-          correctionStatus.textContent = "Correction applied automatically";
-          correctionStatus.style.color = '#4cd964'; // Green for automatic correction
+      // Set default status
+      let correctionApplied = false;
+      let statusMessage = "Manual editing may be required";
+      
+      if (issue.suggestion) {
+        // Try to extract the terms to replace from the suggestion
+        const patterns = [
+          // "Change X to Y" pattern
+          { regex: /change ['"](.*?)['"] to ['"](.*?)['"]/i, fromIndex: 1, toIndex: 2 },
+          // "Use X instead of Y" pattern
+          { regex: /use ['"](.*?)['"] instead of ['"](.*?)['"]/i, fromIndex: 1, toIndex: 2, swapped: true },
+          // "Replace X with Y" pattern
+          { regex: /replace ['"](.*?)['"] with ['"](.*?)['"]/i, fromIndex: 1, toIndex: 2 }
+        ];
+        
+        // Try each pattern until we find a match
+        let fromTerm = null;
+        let toTerm = null;
+        
+        for (const pattern of patterns) {
+          const match = issue.suggestion.match(pattern.regex);
+          if (match) {
+            fromTerm = match[pattern.swapped ? 2 : pattern.fromIndex];
+            toTerm = match[pattern.toIndex];
+            break;
+          }
         }
-      } else {
-        // Fallback if no correctedSegment is provided
-        newText = currentValue;
-        const correctionStatus = document.getElementById('correction-status');
-        if (correctionStatus) {
-          correctionStatus.textContent = "No fixed version available. Please edit manually.";
-          correctionStatus.style.color = '#ff8c00'; // Orange for manual edit required
+        
+        if (fromTerm && toTerm) {
+          // Try direct replacement first
+          if (segment.text.includes(fromTerm)) {
+            correction = segment.text.replace(new RegExp(escapeRegExp(fromTerm), 'g'), toTerm);
+            correctionApplied = true;
+            statusMessage = "Correction applied";
+          } else {
+            // If direct replacement fails, try fuzzy matching
+            const similarWord = findClosestWord(fromTerm, segment.text);
+            if (similarWord) {
+              correction = segment.text.replace(new RegExp(`\\b${escapeRegExp(similarWord)}\\b`, 'g'), toTerm);
+              correctionApplied = true;
+              statusMessage = `Applied to similar word: "${similarWord}"`;
+            }
+            
+            // Special case for "sont" to "sont chez" type suggestions
+            if (!correctionApplied && toTerm.startsWith(fromTerm)) {
+              const addition = toTerm.substring(fromTerm.length);
+              
+              // Try to find a word that starts with the same letters
+              const words = segment.text.split(/\s+/);
+              for (const word of words) {
+                if (word.toLowerCase().startsWith(fromTerm.toLowerCase())) {
+                  correction = segment.text.replace(
+                    new RegExp(`\\b${escapeRegExp(word)}\\b`, 'g'), 
+                    word + addition
+                  );
+                  correctionApplied = true;
+                  statusMessage = `Applied suffix to similar word: "${word}"`;
+                  break;
+                }
+              }
+            }
+          }
+        } else {
+          // Handle other suggestion types like "Add X", "Remove X", etc.
+          const addPattern = /add ['"](.*?)['"]/i;
+          const removePattern = /remove ['"](.*?)['"]/i;
+          
+          const addMatch = issue.suggestion.match(addPattern);
+          if (addMatch) {
+            // Add content (default to end)
+            correction = segment.text + ' ' + addMatch[1];
+            correctionApplied = true;
+            statusMessage = "Added content";
+          } else {
+            const removeMatch = issue.suggestion.match(removePattern);
+            if (removeMatch) {
+              const termToRemove = removeMatch[1];
+              if (segment.text.includes(termToRemove)) {
+                correction = segment.text.replace(new RegExp(escapeRegExp(termToRemove), 'g'), '');
+                correction = correction.replace(/\s+/g, ' ').trim(); // Clean up double spaces
+                correctionApplied = true;
+                statusMessage = "Removed specified text";
+              } else {
+                // Try fuzzy matching for removal
+                const similarWord = findClosestWord(termToRemove, segment.text);
+                if (similarWord) {
+                  correction = segment.text.replace(new RegExp(`\\b${escapeRegExp(similarWord)}\\b`, 'g'), '');
+                  correction = correction.replace(/\s+/g, ' ').trim();
+                  correctionApplied = true;
+                  statusMessage = `Removed similar word: "${similarWord}"`;
+                }
+              }
+            }
+          }
         }
       }
       
+      // If all the above failed but we have correctedSegment from Claude, use that
+      if (!correctionApplied && issue.correctedSegment) {
+        correction = issue.correctedSegment;
+        correctionApplied = true;
+        statusMessage = "Using suggested correction";
+      }
+      
+      // If we were able to generate a correction, apply it
+      if (correctionApplied && correction) {
+        newText = currentValue.substring(0, segment.start) + 
+                 correction + 
+                 currentValue.substring(segment.end);
+      } else {
+        // If no correction was applied, keep the original text
+        correction = segment.text;
+        newText = currentValue;
+        statusMessage = "Couldn't automatically apply correction";
+      }
+      
+      // Update the corrected text
       correctedText.value = newText;
       
       // Show the corrected text container
       correctedTextContainer.style.display = 'block';
+      
+      // Update the correction status message
+      const correctionStatus = document.getElementById('correction-status');
+      if (correctionStatus) {
+        correctionStatus.textContent = statusMessage;
+        correctionStatus.style.color = correctionApplied ? '#4cd964' : '#ff8c00';
+      }
       
       // Update UI of the issue
       const acceptBtn = document.getElementById(`accept-btn-${issueId}`);
@@ -1538,7 +1279,7 @@ resetBtn.addEventListener('click', () => {
       // Update overall score and categories
       updateScoreAfterCorrection(issue);
     }
-    
+
     // Undo the last correction
     function undoLastCorrection() {
       if (changeHistory.length === 0) return;
@@ -1599,7 +1340,120 @@ resetBtn.addEventListener('click', () => {
         correctedTextContainer.style.display = 'none';
       }
     }
-    
+
+    // Reject a suggestion for an issue
+    function rejectSuggestion(issueId) {
+      // Remove this issue from applied corrections
+      delete appliedCorrections[issueId];
+      
+      // Update the highlight appearance
+      const highlightEl = targetDisplay.querySelector(`.highlight[data-issue-id="${issueId}"]`);
+      if (highlightEl) {
+        highlightEl.classList.remove('accepted');
+      }
+      
+      // Recalculate the corrected text - revert to original and apply all current corrections
+      let newText = currentTargetText;
+      
+      // Apply all current corrections
+      // In a real app, this would be much more complex to account for position shifts
+      // This is a simplified version for demonstration
+      Object.keys(appliedCorrections).forEach(id => {
+        const correctionIssueId = parseInt(id);
+        const correctionIssue = currentIssues[correctionIssueId];
+        const correctionSegment = issueToSegmentMap[correctionIssueId];
+        
+        if (correctionIssue && correctionSegment) {
+          // Try to extract correction from the issue
+          let correction = '';
+          let correctionApplied = false;
+          
+          // Try patterns to extract correction
+          if (correctionIssue.suggestion) {
+            const patterns = [
+              // "Change X to Y" pattern
+              { regex: /change ['"](.*?)['"] to ['"](.*?)['"]/i, fromIndex: 1, toIndex: 2 },
+              // "Use X instead of Y" pattern
+              { regex: /use ['"](.*?)['"] instead of ['"](.*?)['"]/i, fromIndex: 1, toIndex: 2, swapped: true },
+              // "Replace X with Y" pattern
+              { regex: /replace ['"](.*?)['"] with ['"](.*?)['"]/i, fromIndex: 1, toIndex: 2 }
+            ];
+            
+            // Try each pattern until we find a match
+            let fromTerm = null;
+            let toTerm = null;
+            
+            for (const pattern of patterns) {
+              const match = correctionIssue.suggestion.match(pattern.regex);
+              if (match) {
+                fromTerm = match[pattern.swapped ? 2 : pattern.fromIndex];
+                toTerm = match[pattern.toIndex];
+                break;
+              }
+            }
+            
+            if (fromTerm && toTerm) {
+              // Try direct replacement
+              if (correctionSegment.text.includes(fromTerm)) {
+                correction = correctionSegment.text.replace(new RegExp(escapeRegExp(fromTerm), 'g'), toTerm);
+                correctionApplied = true;
+              } else {
+                // Try fuzzy matching
+                const similarWord = findClosestWord(fromTerm, correctionSegment.text);
+                if (similarWord) {
+                  correction = correctionSegment.text.replace(new RegExp(`\\b${escapeRegExp(similarWord)}\\b`, 'g'), toTerm);
+                  correctionApplied = true;
+                }
+              }
+            }
+          }
+          
+          // If we couldn't extract correction from suggestion but have correctedSegment, use that
+          if (!correctionApplied && correctionIssue.correctedSegment) {
+            correction = correctionIssue.correctedSegment;
+            correctionApplied = true;
+          }
+          
+          // Apply the correction if we have one
+          if (correctionApplied && correction) {
+            const segmentStart = newText.indexOf(correctionSegment.text);
+            if (segmentStart !== -1) {
+              newText = newText.substring(0, segmentStart) + 
+                      correction + 
+                      newText.substring(segmentStart + correctionSegment.text.length);
+            }
+          }
+        }
+      });
+      
+      correctedText.value = newText;
+      
+      // If no more corrections, hide the corrected text container
+      if (Object.keys(appliedCorrections).length === 0) {
+        correctedTextContainer.style.display = 'none';
+      }
+      
+      // Update UI of the issue
+      const acceptBtn = document.getElementById(`accept-btn-${issueId}`);
+      const rejectBtn = document.getElementById(`reject-btn-${issueId}`);
+      
+      if (acceptBtn) acceptBtn.disabled = false;
+      if (rejectBtn) rejectBtn.disabled = true;
+      
+      // Show status in the issue
+      const statusEl = document.getElementById(`issue-status-${issueId}`);
+      if (statusEl) {
+        statusEl.textContent = 'Correction rejected';
+        statusEl.className = 'issue-status minor';
+        statusEl.style.display = 'block';
+        
+        // Hide the status after 2 seconds
+        setTimeout(() => {
+          statusEl.style.display = 'none';
+        }, 2000);
+      }
+    }
+
     // Update score after applying a correction
     function updateScoreAfterCorrection(issue) {
       // Get current score and category elements
@@ -1735,94 +1589,268 @@ resetBtn.addEventListener('click', () => {
         }
       }
     }
-    
-    // Helper for jQuery-like contains selector
-    document.addEventListener('DOMContentLoaded', function() {
-      // Polyfill for :contains selector
-      if (!Element.prototype.matches) {
-        Element.prototype.matches = Element.prototype.msMatchesSelector || Element.prototype.webkitMatchesSelector;
-      }
-      
-      if (window.CSS && window.CSS.escape) {
-        const originalQuerySelector = Element.prototype.querySelector;
-        const originalQuerySelectorAll = Element.prototype.querySelectorAll;
-        
-        Element.prototype.querySelector = function(selector) {
-          selector = selector.replace(/:contains\(['"]([^'"]*)['"]\)/g, 
-            function(match, text) {
-              return `:has(*:contains(${CSS.escape(text)}))`;
-            });
-          return originalQuerySelector.call(this, selector);
-        };
-        
-        Element.prototype.querySelectorAll = function(selector) {
-          selector = selector.replace(/:contains\(['"]([^'"]*)['"]\)/g, 
-            function(match, text) {
-              return `:has(*:contains(${CSS.escape(text)}))`;
-            });
-          return originalQuerySelectorAll.call(this, selector);
-        };
-      }
-    });
 
-    // Reject a suggestion for an issue
-    function rejectSuggestion(issueId) {
-      // Remove this issue from applied corrections
-      delete appliedCorrections[issueId];
+    // Find segments in text based on issue location
+    function findSegmentsInText(text, issues) {
+      // This function will try to identify text segments based on issue locations
+      const segments = [];
       
-      // Update the highlight appearance
-      const highlightEl = targetDisplay.querySelector(`.highlight[data-issue-id="${issueId}"]`);
-      if (highlightEl) {
-        highlightEl.classList.remove('accepted');
-      }
-      
-      // Recalculate the corrected text - revert to original and apply all current corrections
-      let newText = currentTargetText;
-      
-      // Apply all current corrections
-      // In a real app, this would be much more complex to account for position shifts
-      // This is a simplified version for demonstration
-      Object.keys(appliedCorrections).forEach(id => {
-        const correctionIssueId = parseInt(id);
-        const correctionIssue = currentIssues[correctionIssueId];
-        const correctionSegment = issueToSegmentMap[correctionIssueId];
+      issues.forEach((issue, index) => {
+        // Parse location to identify text segments
+        const location = issue.location || '';
         
-        if (correctionIssue && correctionSegment && correctionIssue.suggestion) {
-          // Replace the segment with the suggestion
-          const segmentStart = newText.indexOf(correctionSegment.text);
-          if (segmentStart !== -1) {
-            newText = newText.substring(0, segmentStart) + 
-                     correctionIssue.suggestion + 
-                     newText.substring(segmentStart + correctionSegment.text.length);
+        // Try to extract segment information from location
+        // This is a simplified approach - in a real implementation,
+        // the backend should provide specific position information
+        
+        let segment = null;
+        
+        // Check for specific location patterns
+        if (location.includes('sentence')) {
+          // Example: "Paragraph 2, sentence 1" or "sentence 3"
+          const sentences = text.split(/[.!?]+\s+/);
+          
+          let sentenceIndex = -1;
+          const sentenceMatch = location.match(/sentence\s+(\d+)/i);
+          if (sentenceMatch && sentenceMatch[1]) {
+            sentenceIndex = parseInt(sentenceMatch[1]) - 1;
           }
+          
+          let paragraphIndex = 0;
+          const paragraphMatch = location.match(/paragraph\s+(\d+)/i);
+          if (paragraphMatch && paragraphMatch[1]) {
+            paragraphIndex = parseInt(paragraphMatch[1]) - 1;
+          }
+          
+          // Try to find the sentence
+          if (sentenceIndex >= 0) {
+            // If paragraph is specified, we need to first find the paragraph
+            if (paragraphIndex > 0) {
+              const paragraphs = text.split(/\n\s*\n/);
+              if (paragraphIndex < paragraphs.length) {
+                const paragraphSentences = paragraphs[paragraphIndex].split(/[.!?]+\s+/);
+                if (sentenceIndex < paragraphSentences.length) {
+                  segment = {
+                    text: paragraphSentences[sentenceIndex],
+                    start: text.indexOf(paragraphSentences[sentenceIndex]),
+                    end: text.indexOf(paragraphSentences[sentenceIndex]) + paragraphSentences[sentenceIndex].length
+                  };
+                }
+              }
+            } else {
+              // Just look for the sentence in the whole text
+              if (sentenceIndex < sentences.length) {
+                segment = {
+                  text: sentences[sentenceIndex],
+                  start: text.indexOf(sentences[sentenceIndex]),
+                  end: text.indexOf(sentences[sentenceIndex]) + sentences[sentenceIndex].length
+                };
+              }
+            }
+          }
+        } else if (location.includes('paragraph')) {
+          // Example: "Paragraph 3"
+          const paragraphs = text.split(/\n\s*\n/);
+          
+          const paragraphMatch = location.match(/paragraph\s+(\d+)/i);
+          if (paragraphMatch && paragraphMatch[1]) {
+            const paragraphIndex = parseInt(paragraphMatch[1]) - 1;
+            if (paragraphIndex < paragraphs.length) {
+              segment = {
+                text: paragraphs[paragraphIndex],
+                start: text.indexOf(paragraphs[paragraphIndex]),
+                end: text.indexOf(paragraphs[paragraphIndex]) + paragraphs[paragraphIndex].length
+              };
+            }
+          }
+        }
+        
+        // If we couldn't identify a segment, make a simple guess based on the issue
+        if (!segment) {
+          // Use segment from the issue if available
+          if (issue.segment && text.includes(issue.segment)) {
+            segment = {
+              text: issue.segment,
+              start: text.indexOf(issue.segment),
+              end: text.indexOf(issue.segment) + issue.segment.length
+            };
+          } else {
+            // Extract key terms from the issue
+            let keyTerms = [];
+            
+            if (issue.subcategory === 'Mistranslation' && issue.explanation) {
+              // Try to extract the mistranslated term from explanation
+              const match = issue.explanation.match(/'([^']+)'\s+was\s+mistranslated\s+as\s+'([^']+)'/);
+              if (match && match[2]) {
+                keyTerms.push(match[2]);
+              }
+            }
+            
+            // If we couldn't extract from explanation, use key words from the issue
+            if (keyTerms.length === 0) {
+              const allTerms = (issue.explanation || '') + ' ' + (issue.suggestion || '');
+              keyTerms = allTerms.split(/\s+/).filter(term => term.length > 4);
+            }
+            
+            // Try to find the terms in the text
+            for (const term of keyTerms) {
+              const index = text.indexOf(term);
+              if (index !== -1) {
+                // Find the beginning of the sentence
+                let start = index;
+                while (start > 0 && !'.!?'.includes(text[start - 1])) {
+                  start--;
+                }
+                
+                // Find the end of the sentence
+                let end = index + term.length;
+                while (end < text.length && !'.!?'.includes(text[end])) {
+                  end++;
+                }
+                if (end < text.length) end++; // Include the ending punctuation
+                
+                segment = {
+                  text: text.substring(start, end),
+                  start: start,
+                  end: end
+                };
+                break;
+              }
+            }
+          }
+        }
+        
+        // If we still couldn't find a segment, use a fallback
+        if (!segment && index === 0) {
+          // For the first issue, highlight the first paragraph or sentence
+          const firstSentence = text.split(/[.!?]+\s+/)[0];
+          if (firstSentence) {
+            segment = {
+              text: firstSentence,
+              start: 0,
+              end: firstSentence.length
+            };
+          }
+        } else if (!segment && index > 0 && segments.length > 0) {
+          // For subsequent issues, try the next sentence after the previous segment
+          const prevSegment = segments[segments.length - 1];
+          const remainingText = text.substring(prevSegment.end);
+          const nextSentence = remainingText.split(/[.!?]+\s+/)[0];
+          if (nextSentence) {
+            segment = {
+              text: nextSentence,
+              start: prevSegment.end,
+              end: prevSegment.end + nextSentence.length
+            };
+          }
+        }
+        
+        // If all else fails, just highlight a random short segment
+        if (!segment) {
+          const words = text.split(/\s+/);
+          if (words.length > 0) {
+            const randomIndex = Math.floor(Math.random() * (words.length - 3));
+            const randomSegment = words.slice(randomIndex, randomIndex + 3).join(' ');
+            const start = text.indexOf(randomSegment);
+            if (start !== -1) {
+              segment = {
+                text: randomSegment,
+                start: start,
+                end: start + randomSegment.length
+              };
+            }
+          }
+        }
+        
+        if (segment) {
+          segments.push(segment);
+          issueToSegmentMap[index] = segment;
         }
       });
       
-      correctedText.value = newText;
-      
-      // If no more corrections, hide the corrected text container
-      if (Object.keys(appliedCorrections).length === 0) {
-        correctedTextContainer.style.display = 'none';
+      return segments;
+    }
+
+    // Highlight issues in the target text
+    function highlightIssuesInText(text, issues) {
+      if (!issues || issues.length === 0) {
+        targetDisplayContainer.style.display = 'none';
+        return;
       }
       
-      // Update UI of the issue
-      const acceptBtn = document.getElementById(`accept-btn-${issueId}`);
-      const rejectBtn = document.getElementById(`reject-btn-${issueId}`);
+      // Find segments to highlight
+      const segments = findSegmentsInText(text, issues);
       
-      if (acceptBtn) acceptBtn.disabled = false;
-      if (rejectBtn) rejectBtn.disabled = true;
+      // Show the target display container
+      targetDisplayContainer.style.display = 'block';
       
-      // Show status in the issue
-      const statusEl = document.getElementById(`issue-status-${issueId}`);
-      if (statusEl) {
-        statusEl.textContent = 'Correction rejected';
-        statusEl.className = 'issue-status minor';
-        statusEl.style.display = 'block';
+      // Create HTML with highlighted segments
+      let html = '';
+      let lastEnd = 0;
+      
+      segments.forEach((segment, index) => {
+        // Add text before this segment
+        html += escapeHtml(text.substring(lastEnd, segment.start));
         
-        // Hide the status after 2 seconds
-        setTimeout(() => {
-          statusEl.style.display = 'none';
-        }, 2000);
+        // Add the highlighted segment
+        html += `<span class="highlight" data-issue-id="${index}">${escapeHtml(segment.text)}</span>`;
+        
+        lastEnd = segment.end;
+      });
+      
+      // Add any remaining text
+      html += escapeHtml(text.substring(lastEnd));
+      
+      // Set the HTML
+      targetDisplay.innerHTML = html;
+      
+      // Add event listeners for the highlighted segments
+      const highlightElements = targetDisplay.querySelectorAll('.highlight');
+      highlightElements.forEach(el => {
+        el.addEventListener('mouseenter', handleHighlightMouseEnter);
+        el.addEventListener('mouseleave', handleHighlightMouseLeave);
+        el.addEventListener('click', handleHighlightClick);
+      });
+      
+      // Initialize corrected text
+      correctedText.value = text;
+    }
+
+    // Handle mouse enter on highlighted text
+    function handleHighlightMouseEnter(event) {
+      const highlightEl = event.target;
+      const issueId = parseInt(highlightEl.getAttribute('data-issue-id'));
+      const issue = currentIssues[issueId];
+      
+      if (issue) {
+        tooltip.innerHTML = `
+          <strong>${issue.category}: ${issue.subcategory}</strong> (${severityLevels[issue.severity].label})<br>
+          ${issue.explanation}<br>
+          <strong>Suggestion:</strong> ${issue.suggestion || 'No suggestion provided'}
+        `;
+        
+        // Position the tooltip
+        const rect = highlightEl.getBoundingClientRect();
+        tooltip.style.left = rect.left + 'px';
+        tooltip.style.top = (rect.bottom + 10) + 'px';
+        tooltip.style.opacity = '1';
+      }
+    }
+
+    // Handle mouse leave from highlighted text
+    function handleHighlightMouseLeave() {
+      tooltip.style.opacity = '0';
+    }
+
+    // Handle click on highlighted text
+    function handleHighlightClick(event) {
+      const highlightEl = event.target;
+      const issueId = parseInt(highlightEl.getAttribute('data-issue-id'));
+      
+      // Scroll to the corresponding issue in the issues list
+      const issueElement = document.getElementById(`issue-${issueId}`);
+      if (issueElement) {
+        issueElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
     }
 
@@ -2076,7 +2104,9 @@ resetBtn.addEventListener('click', () => {
           severity: "MAJOR",
           explanation: "The phrase 'annual report' was mistranslated as 'monthly report'",
           location: "Paragraph 2, sentence 1",
-          suggestion: "Use 'annual report' instead of 'monthly report'"
+          suggestion: "Use 'annual report' instead of 'monthly report'",
+          segment: "monthly report",
+          correctedSegment: "annual report"
         },
         {
           category: "Fluency",
@@ -2084,7 +2114,9 @@ resetBtn.addEventListener('click', () => {
           severity: "MINOR",
           explanation: "Incorrect verb conjugation in the second paragraph",
           location: "Paragraph 2, sentence 3",
-          suggestion: "Use the past tense form of the verb"
+          suggestion: "Use the past tense form of the verb",
+          segment: "is going",
+          correctedSegment: "went"
         },
         {
           category: "Terminology",
@@ -2092,7 +2124,9 @@ resetBtn.addEventListener('click', () => {
           severity: "MINOR",
           explanation: "The term 'stakeholder' is translated inconsistently throughout the text",
           location: "Multiple locations",
-          suggestion: "Use consistent terminology for 'stakeholder' throughout the translation"
+          suggestion: "Use consistent terminology for 'stakeholder' throughout the translation",
+          segment: "interested party",
+          correctedSegment: "stakeholder"
         },
         {
           category: "Style",
@@ -2100,7 +2134,9 @@ resetBtn.addEventListener('click', () => {
           severity: "MINOR",
           explanation: "The phrasing in the third paragraph sounds unnatural in the target language",
           location: "Paragraph 3",
-          suggestion: "Restructure the sentence to follow target language conventions"
+          suggestion: "Restructure the sentence to follow target language conventions",
+          segment: "They have completed the task with speed",
+          correctedSegment: "They completed the task quickly"
         },
         {
           category: "Design",
@@ -2108,7 +2144,9 @@ resetBtn.addEventListener('click', () => {
           severity: "MAJOR",
           explanation: "The translation is significantly longer than the source, which may cause layout issues",
           location: "Throughout the document",
-          suggestion: "Consider rephrasing to be more concise while maintaining meaning"
+          suggestion: "Consider rephrasing to be more concise while maintaining meaning",
+          segment: "We want to express our most sincere gratitude for your participation in this important event",
+          correctedSegment: "Thank you for participating in this important event"
         }
       ];
       
@@ -2269,7 +2307,8 @@ resetBtn.addEventListener('click', () => {
           issueHTML += `
                 <div class="issue-actions">
                   <button id="accept-btn-${index}" class="action-btn accept-btn" onclick="acceptSuggestion(${index})">Apply Correction</button>
-                  <button id="reject-btn-${index}" class="action-btn reject-btn" onclick="rejectSuggestion(${index})" disabled>Reject Correction</button>
+                  <button id="reject-btn-${index}" class="action-btn reject-btn" onclick="rejectSuggestion(${index})" disabled>Reject Correction
+                    </button>
                 </div>
                 <div id="issue-status-${index}" class="issue-status" style="display: none; margin-top: 8px; font-size: 14px;"></div>
               </div>
@@ -2282,6 +2321,152 @@ resetBtn.addEventListener('click', () => {
         });
       }
     }
+
+    // Run MQM analysis
+    analyzeBtn.addEventListener('click', async () => {
+      if (!sourceText.value || !targetText.value || !sourceLang.value || !targetLang.value) {
+        showError('Please enter both source and target text and select languages');
+        return;
+      }
+      
+      if (isOverLimit) {
+        showError(`Source text exceeds the ${WORD_COUNT_LIMIT} word limit`);
+        return;
+      }
+      
+      // Show loading state
+      analyzeBtn.disabled = true;
+      analyzeBtn.innerHTML = '<span class="spinner">⟳</span> Analyzing...';
+      errorMessage.style.display = 'none';
+      
+      // Reset previous corrections and history
+      appliedCorrections = {};
+      changeHistory = [];
+      
+      try {
+        // For development/testing without backend
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+          // Simulate API call with a delay
+          setTimeout(() => {
+            const words = sourceText.value.trim().split(/\s+/);
+            const wordCount = words.length > 0 && words[0] !== '' ? words.length : 0;
+            const mockResults = generateMockResults(wordCount);
+            
+            // Store current issues and target text
+            currentIssues = mockResults.mqmIssues;
+            currentTargetText = targetText.value;
+            
+            // Process and display results
+            displayResults(mockResults);
+            
+            // Show the target display with highlighted issues
+            highlightIssuesInText(targetText.value, mockResults.mqmIssues);
+            
+            // Reset button state
+            analyzeBtn.disabled = false;
+            analyzeBtn.textContent = 'Run MQM Analysis';
+            
+            // Show apply all button and undo button if there are issues
+            if (mockResults.mqmIssues && mockResults.mqmIssues.length > 0) {
+              applyAllBtn.style.display = 'block';
+              undoBtn.style.display = 'block';
+              undoBtn.disabled = true; // Initially disabled until changes are made
+            }
+          }, 1500);
+          return;
+        }
+        
+        // Step 1: Call /api/check-alignment before /api/mqm-analysis
+        const alignmentResponse = await fetch('/api/check-alignment', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            sourceText: sourceText.value,
+            targetText: targetText.value,
+            sourceLang: sourceLang.value,
+            targetLang: targetLang.value
+          })
+        });
+
+        if (!alignmentResponse.ok) {
+          const errorData = await alignmentResponse.json();
+          throw new Error(errorData.error || 'Source/target alignment check failed');
+        }
+
+        // Step 2: If alignment passes, proceed with MQM analysis
+        const mqmResponse = await fetch('/api/mqm-analysis', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            sourceText: sourceText.value,
+            targetText: targetText.value,
+            sourceLang: sourceLang.value,
+            targetLang: targetLang.value
+          })
+        });
+
+        if (!mqmResponse.ok) {
+          const errorData = await mqmResponse.json();
+          throw new Error(errorData.error || 'Analysis failed');
+        }
+
+        const results = await mqmResponse.json();
+        
+        // Store current issues and target text
+        currentIssues = results.mqmIssues;
+        currentTargetText = targetText.value;
+        
+        // Process and display results
+        displayResults(results);
+        
+        // Show the target display with highlighted issues
+        highlightIssuesInText(targetText.value, results.mqmIssues);
+        
+        // Show apply all button and undo button if there are issues
+        if (results.mqmIssues && results.mqmIssues.length > 0) {
+          applyAllBtn.style.display = 'block';
+          undoBtn.style.display = 'block';
+          undoBtn.disabled = true; // Initially disabled until changes are made
+        }
+        
+      } catch (error) {
+        console.error('Error during analysis:', error);
+        showError(error.message || 'An error occurred during analysis');
+      } finally {
+        // Reset button state
+        analyzeBtn.disabled = false;
+        analyzeBtn.textContent = 'Run MQM Analysis';
+      }
+    });
+
+    // Reset everything
+    resetBtn.addEventListener('click', () => {
+      sourceText.value = '';
+      targetText.value = '';
+      sourceLang.value = '';
+      targetLang.value = '';
+      sourceLangDetected.textContent = '';
+      targetLangDetected.textContent = '';
+      wordCount.textContent = `0 / ${WORD_COUNT_LIMIT} words`;
+      wordCount.classList.remove('word-count-exceeded');
+      sourceText.style.borderColor = 'rgb(60, 60, 60)';
+      errorMessage.style.display = 'none';
+      resultsContainer.style.display = 'none';
+      targetDisplayContainer.style.display = 'none';
+      applyAllBtn.style.display = 'none';
+      undoBtn.style.display = 'none';
+      correctedTextContainer.style.display = 'none';
+      currentIssues = [];
+      issueToSegmentMap = {};
+      appliedCorrections = {};
+      changeHistory = [];
+      isOverLimit = false;
+      updateAnalyzeButton();
+    });
   </script>
 </body>
 </html>
