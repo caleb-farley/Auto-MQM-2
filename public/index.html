@@ -1811,21 +1811,10 @@
     const text = sourceText.value.trim();
     const words = text.length > 0 ? text.split(/\s+/) : [];
     const count = words.length;
-          
-          // Show save button if user is logged in
-          if (authState.isAuthenticated) {
-            saveRunBtn.style.display = 'block';
-            saveRunBtn.onclick = () => saveCurrentRun(runId);
-          }
+    
     isOverLimit = count > WORD_COUNT_LIMIT;
-        currentRunId = results._id;
     wordCount.textContent = `${count} / ${WORD_COUNT_LIMIT} words${isOverLimit ? ' (limit exceeded)' : ''}`;
-          
-          // Show save button if user is logged in
-          if (authState.isAuthenticated) {
-            saveRunBtn.style.display = 'block';
-            saveRunBtn.onclick = () => saveCurrentRun(runId);
-          }
+    
     if (isOverLimit) {
         wordCount.classList.add('word-count-exceeded');
         sourceText.style.borderColor = '#ff6b6b';
