@@ -1015,8 +1015,39 @@
 
   .success {
     background-color: var(--bg-success);
+  }
+  
+  .issue-status {
+    padding: 14px 22px;
+    margin: 20px 12px;
+    border-radius: 24px;
+    font-weight: 500;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.18);
+    transition: all 0.3s ease;
+    animation: fadeInSlide 0.5s ease-out;
     color: var(--severity-success);
     border: 1px solid rgba(40, 167, 69, 0.3);
+    background: linear-gradient(to right, rgba(40, 167, 69, 0.1), rgba(0, 179, 214, 0.1));
+    letter-spacing: 0.2px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .issue-status:before {
+    content: "✅";
+    font-size: 1.1em;
+  }
+  
+  @keyframes fadeInSlide {
+    0% { 
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    100% { 
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
   
   /* Enhance score display */
@@ -1124,11 +1155,19 @@
   .radio-container {
     display: inline-flex;
     align-items: center;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
+    margin-right: 15px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+  }
+
+  .radio-container:hover {
+    background-color: rgba(255, 255, 255, 0.05);
   }
 
   .radio-container input[type="radio"] {
-    margin-right: 5px;
+    margin-right: 8px;
   }
 
     /* Highlighted text handling - improved for mobile */
@@ -1896,17 +1935,17 @@
     </div>
     <textarea id="corrected-text"></textarea>
     <div class="text-area-footer">
-      <div id="correction-status" class="correction-status">You can edit this text to refine corrections</div>
+      <div id="correction-status" class="correction-status">✏️ You can edit this text to refine corrections</div>
     </div>
   </div>
 
   <!-- Buttons -->
   <div class="buttons">
-    <button id="analyze-btn" class="btn btn-primary" disabled>Run MQM Analysis</button>
-    <button id="reset-btn" class="btn btn-secondary">Reset</button>
-    <button id="apply-all-btn" class="btn btn-primary" style="display: none;">Apply All</button>
-    <button id="undo-btn" class="btn btn-secondary" style="display: none;" disabled>Undo Last</button>
-    <button id="toggle-rejected-btn" class="btn btn-secondary" style="display: none;">Show Rejected Issues</button>
+    <button id="analyze-btn" class="btn btn-primary" disabled>🔍 Run MQM Analysis</button>
+    <button id="reset-btn" class="btn btn-secondary">🔄 Reset</button>
+    <button id="apply-all-btn" class="btn btn-primary" style="display: none;">✨ Apply All</button>
+    <button id="undo-btn" class="btn btn-secondary" style="display: none;" disabled>↩️ Undo Last</button>
+    <button id="toggle-rejected-btn" class="btn btn-secondary" style="display: none;">👁️ Show Rejected Issues</button>
   </div>
 
   <div class="buttons" id="download-buttons" style="display: none;">
@@ -2777,7 +2816,7 @@
     // Update the correction status message
     const correctionStatus = document.getElementById('correction-status');
     if (correctionStatus) {
-      correctionStatus.textContent = "Correction applied automatically";
+      correctionStatus.textContent = "✨ Correction applied automatically";
       correctionStatus.style.color = '#4cd964'; // Green for automatic correction
     }
   } else {
@@ -2785,7 +2824,7 @@
     newText = currentValue;
       const correctionStatus = document.getElementById('correction-status');
       if (correctionStatus) {
-        correctionStatus.textContent = "No fixed version available. Please edit manually.";
+      correctionStatus.textContent = "🖊️ No fixed version available. Please edit manually.";
         correctionStatus.style.color = '#ff8c00'; // Orange for manual edit required
       }
     }
