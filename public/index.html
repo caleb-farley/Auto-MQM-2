@@ -6,6 +6,43 @@
   <title>Orca Localization QA Tool</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
+    /* Color variables */
+    :root {
+      /* Theme colors */
+      --bg-main: #161616;
+      --bg-card: #1e1e1e;
+      --bg-input: #232323;
+      --bg-accent: #232323;
+      
+      /* Text colors */
+      --text-primary: #ffffff;
+      --text-body: #e0e0e0;
+      --text-muted: #a0a0a0;
+      
+      /* Border colors */
+      --border-light: #2d2d2d;
+      --border-input: #3c3c3c;
+      
+      /* Brand colors */
+      --brand-blue: #1846FF;
+      --brand-blue-hover: #4A74FF;
+      --brand-teal: #00B3D6;
+      --brand-orange: #ff6c36;
+      
+      /* Severity colors */
+      --severity-minor: #ff8c00;
+      --severity-major: #f46036;
+      --severity-critical: #ff6b6b;
+      --severity-success: #4cd964;
+      
+      /* Backgrounds with opacity */
+      --bg-minor: rgba(255, 140, 0, 0.15);
+      --bg-major: rgba(244, 96, 54, 0.15);
+      --bg-critical: rgba(255, 107, 107, 0.15);
+      --bg-success: rgba(40, 167, 69, 0.15);
+      --bg-info: rgba(0, 179, 214, 0.15);
+    }
+
     /* Base styles */
     * {
       box-sizing: border-box;
@@ -15,8 +52,8 @@
 
     body {
       font-family: 'Inter', system-ui, sans-serif;
-      background-color: rgb(22, 22, 22);
-      color: #e0e0e0;
+      background-color: var(--bg-main);
+      color: var(--text-body);
       line-height: 1.5;
       padding: 10px;
     }
@@ -25,7 +62,7 @@
     .container {
       max-width: 1000px;
       margin: 0 auto;
-      background-color: rgb(30, 30, 30);
+      background-color: var(--bg-card);
       border-radius: 12px;
       padding: 15px;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
@@ -37,7 +74,7 @@
       flex-direction: column;
       align-items: flex-start;
       padding-bottom: 20px;
-      border-bottom: 1px solid rgb(45, 45, 45);
+      border-bottom: 1px solid var(--border-light);
       margin-bottom: 20px;
     }
 
@@ -59,12 +96,12 @@
     .title {
       font-size: 20px;
       font-weight: bold;
-      color: #ffffff;
+      color: var(--text-primary);
     }
 
     .subtitle {
       font-size: 14px;
-      color: #a0a0a0;
+      color: var(--text-muted);
       width: 100%;
       text-align: left;
       margin-top: 5px;
@@ -72,8 +109,8 @@
 
     /* Info box */
     .info-box {
-      background-color: rgba(0, 179, 214, 0.15);
-      color: #00B3D6;
+      background-color: var(--bg-info);
+      color: var(--brand-teal);
       padding: 12px;
       border-radius: 8px;
       margin-bottom: 20px;
@@ -102,53 +139,53 @@
 
     .text-area-label {
       font-weight: 500;
-      color: #ffffff;
+      color: var(--text-primary);
       margin-bottom: 5px;
     }
 
     select {
-  padding: 10px 14px;
-  border: 1px solid rgb(60, 60, 60);
-  border-radius: 8px;
-  font-size: 14px;
-  background-color: rgb(45, 45, 45);
-  color: #ffffff;
-  width: 100%;
-  appearance: none;
-  background-image: url("data:image/svg+xml;utf8,<svg fill='white' height='16' viewBox='0 0 24 24' width='16' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-  background-size: 16px;
-  cursor: pointer;
-  transition: border-color 0.2s ease, background-color 0.2s ease;
-}
+      padding: 10px 14px;
+      border: 1px solid var(--border-input);
+      border-radius: 8px;
+      font-size: 14px;
+      background-color: var(--bg-accent);
+      color: var(--text-primary);
+      width: 100%;
+      appearance: none;
+      background-image: url("data:image/svg+xml;utf8,<svg fill='white' height='16' viewBox='0 0 24 24' width='16' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      background-size: 16px;
+      cursor: pointer;
+      transition: border-color 0.2s ease, background-color 0.2s ease;
+    }
 
-select:hover {
-  border-color: #ff6c36;
-  background-color: rgb(55, 55, 55);
-}
+    select:hover {
+      border-color: var(--brand-orange);
+      background-color: #373737;
+    }
 
-select:focus {
-  outline: none;
-  border-color: #ff6c36;
-  box-shadow: 0 0 0 2px rgba(0, 179, 214, 0.2);
-}
+    select:focus {
+      outline: none;
+      border-color: var(--brand-orange);
+      box-shadow: 0 0 0 2px rgba(0, 179, 214, 0.2);
+    }
 
     textarea {
       width: 100%;
       height: 180px; /* Slightly reduced for mobile */
       padding: 12px;
-      border: 1px solid rgb(60, 60, 60);
+      border: 1px solid var(--border-input);
       border-radius: 8px;
       resize: vertical;
       font-family: inherit;
-      background-color: rgb(35, 35, 35);
-      color: #e0e0e0;
+      background-color: var(--bg-input);
+      color: var(--text-body);
     }
 
     textarea:focus {
       outline: none;
-      border-color: #00B3D6;
+      border-color: var(--brand-teal);
     }
 
     .text-area-footer {
@@ -156,7 +193,7 @@ select:focus {
       flex-direction: column;
       margin-top: 8px;
       font-size: 13px;
-      color: #a0a0a0;
+      color: var(--text-muted);
     }
 
     .word-count {
@@ -164,7 +201,7 @@ select:focus {
     }
 
     .word-count-exceeded {
-      color: #ff6b6b;
+      color: var(--severity-critical);
       font-weight: 500;
     }
 
@@ -191,12 +228,12 @@ select:focus {
     }
 
     .btn-primary {
-      background-color: #1846FF;
+      background-color: var(--brand-blue);
       color: white;
     }
 
     .btn-primary:hover {
-      background-color: #4A74FF;
+      background-color: var(--brand-blue-hover);
     }
 
     .btn-primary:disabled {
@@ -205,25 +242,25 @@ select:focus {
     }
 
     .btn-secondary {
-      background-color: rgb(50, 50, 50);
-      color: #e0e0e0;
+      background-color: #323232;
+      color: var(--text-body);
     }
 
     .btn-secondary:hover {
-      background-color: rgb(60, 60, 60);
+      background-color: #3c3c3c;
     }
 
     /* Results - improved for mobile */
     .results {
-      border: 1px solid rgb(45, 45, 45);
+      border: 1px solid var(--border-light);
       border-radius: 8px;
       overflow: hidden;
     }
 
     .results-header {
       padding: 15px;
-      border-bottom: 1px solid rgb(45, 45, 45);
-      background-color: rgb(35, 35, 35);
+      border-bottom: 1px solid var(--border-light);
+      background-color: var(--bg-accent);
     }
 
     .results-title-row {
@@ -236,7 +273,7 @@ select:focus {
     .results-title {
       font-size: 18px;
       font-weight: 600;
-      color: #ffffff;
+      color: var(--text-primary);
       margin-bottom: 5px;
     }
 
@@ -250,7 +287,7 @@ select:focus {
       font-size: 18px;
       font-weight: 700;
       margin-right: 8px;
-      color: #ffffff;
+      color: var(--text-primary);
     }
 
     .score-indicator {
@@ -264,7 +301,7 @@ select:focus {
 
     .summary {
       font-size: 14px;
-      color: #a0a0a0;
+      color: var(--text-muted);
     }
 
     .categories {
@@ -275,8 +312,8 @@ select:focus {
     }
 
     .category {
-      background-color: rgb(40, 40, 40);
-      border: 1px solid rgb(60, 60, 60);
+      background-color: #282828;
+      border: 1px solid var(--border-input);
       border-radius: 8px;
       padding: 8px;
       font-size: 12px;
@@ -284,21 +321,21 @@ select:focus {
 
     .category-title {
       font-weight: 500;
-      color: #ffffff;
+      color: var(--text-primary);
     }
 
     .category-stats {
       display: flex;
       flex-direction: column;
       margin-top: 4px;
-      color: #a0a0a0;
+      color: var(--text-muted);
     }
 
     /* Issues - improved for mobile */
     .issue {
       padding: 15px;
-      border-bottom: 1px solid rgb(45, 45, 45);
-      background-color: rgb(30, 30, 30);
+      border-bottom: 1px solid var(--border-light);
+      background-color: var(--bg-card);
     }
 
     .issue:last-child {
@@ -335,7 +372,7 @@ select:focus {
 
     .issue-title {
       font-weight: 500;
-      color: #ffffff;
+      color: var(--text-primary);
       font-size: 15px;
       margin-bottom: 5px;
     }
@@ -351,20 +388,20 @@ select:focus {
 
     .issue-explanation {
       margin-bottom: 8px;
-      color: #e0e0e0;
+      color: var(--text-body);
       font-size: 14px;
     }
 
     .issue-location {
       font-size: 13px;
-      color: #a0a0a0;
+      color: var(--text-muted);
       margin-bottom: 8px;
     }
 
     .issue-suggestion {
-      background-color: rgba(40, 167, 69, 0.15);
+      background-color: var(--bg-success);
       border: 1px solid rgba(40, 167, 69, 0.3);
-      color: #4cd964;
+      color: var(--severity-success);
       padding: 8px;
       border-radius: 8px;
       font-size: 13px;
@@ -391,36 +428,36 @@ select:focus {
 
     /* Severity colors */
     .minor {
-      background-color: rgba(255, 140, 0, 0.15);
-      color: #ff8c00;
+      background-color: var(--bg-minor);
+      color: var(--severity-minor);
       border: 1px solid rgba(255, 140, 0, 0.3);
     }
 
     .major {
-      background-color: rgba(244, 96, 54, 0.15);
-      color: #f46036;
+      background-color: var(--bg-major);
+      color: var(--severity-major);
       border: 1px solid rgba(244, 96, 54, 0.3);
     }
 
     .critical {
-      background-color: rgba(255, 107, 107, 0.15);
-      color: #ff6b6b;
+      background-color: var(--bg-critical);
+      color: var(--severity-critical);
       border: 1px solid rgba(255, 107, 107, 0.3);
     }
 
     .success {
-      background-color: rgba(40, 167, 69, 0.15);
-      color: #4cd964;
+      background-color: var(--bg-success);
+      color: var(--severity-success);
       border: 1px solid rgba(40, 167, 69, 0.3);
     }
 
     /* Highlighted text handling - improved for mobile */
     #target-display {
       white-space: pre-wrap;
-      background-color: rgb(35, 35, 35);
+      background-color: var(--bg-input);
       padding: 12px;
       border-radius: 8px;
-      border: 1px solid rgb(60, 60, 60);
+      border: 1px solid var(--border-input);
       min-height: 150px; /* Reduced for mobile */
       font-family: 'Inter', system-ui, sans-serif;
       line-height: 1.5;
@@ -430,7 +467,7 @@ select:focus {
     }
 
     .highlight {
-      background-color: rgba(255, 107, 107, 0.3);
+      background-color: var(--bg-critical);
       position: relative;
       border-radius: 3px;
       cursor: pointer;
@@ -438,7 +475,7 @@ select:focus {
     }
 
     .highlight.accepted {
-      background-color: rgba(40, 167, 69, 0.3);
+      background-color: var(--bg-success);
     }
 
     /* Corrected text handling - improved for mobile */
@@ -446,12 +483,12 @@ select:focus {
       width: 100%;
       height: 130px; /* Reduced for mobile */
       padding: 12px;
-      border: 1px solid rgb(60, 60, 60);
+      border: 1px solid var(--border-input);
       border-radius: 8px;
       resize: vertical;
       font-family: inherit;
-      background-color: rgb(35, 35, 35);
-      color: #e0e0e0;
+      background-color: var(--bg-input);
+      color: var(--text-body);
       font-size: 14px; /* Better size for mobile */
     }
 
@@ -461,7 +498,7 @@ select:focus {
       bottom: 10px; /* Fixed position at bottom of screen */
       left: 10px;
       right: 10px;
-      background: rgb(50, 50, 50);
+      background: #323232;
       color: white;
       padding: 8px 12px;
       border-radius: 4px;
@@ -479,8 +516,8 @@ select:focus {
       text-align: center;
       margin-top: 32px;
       padding-top: 16px;
-      border-top: 1px solid rgb(45, 45, 45);
-      color: #a0a0a0;
+      border-top: 1px solid var(--border-light);
+      color: var(--text-muted);
       font-size: 13px;
     }
 
@@ -1707,22 +1744,32 @@ select:focus {
     // Update the corrected text with Claude's pre-corrected version
     const currentValue = correctedText.value;
     
-    // Simply use the correctedSegment provided by Claude
-    let newText;
-    if (issue.correctedSegment) {
-      newText = currentValue.substring(0, segment.start) + 
-                issue.correctedSegment + 
-                currentValue.substring(segment.end);
-                
-      // Update the correction status message
-      const correctionStatus = document.getElementById('correction-status');
-      if (correctionStatus) {
-        correctionStatus.textContent = "Correction applied automatically";
-        correctionStatus.style.color = '#4cd964'; // Green for automatic correction
-      }
-    } else {
-      // Fallback if no correctedSegment is provided
-      newText = currentValue;
+  // Apply the corrected version using more accurate indices if available
+  let newText;
+  if (issue.correctedSegment) {
+    // Use the startIndex and endIndex from the server if available
+    let start = segment.start;
+    let end = segment.end;
+    
+    // If the server provided indices, use them for more accurate replacement
+    if (issue.startIndex !== undefined && issue.endIndex !== undefined) {
+      start = issue.startIndex;
+      end = issue.endIndex;
+    }
+    
+    newText = currentValue.substring(0, start) + 
+              issue.correctedSegment + 
+              currentValue.substring(end);
+              
+    // Update the correction status message
+    const correctionStatus = document.getElementById('correction-status');
+    if (correctionStatus) {
+      correctionStatus.textContent = "Correction applied automatically";
+      correctionStatus.style.color = '#4cd964'; // Green for automatic correction
+    }
+  } else {
+    // Fallback if no correctedSegment is provided
+    newText = currentValue;
       const correctionStatus = document.getElementById('correction-status');
       if (correctionStatus) {
         correctionStatus.textContent = "No fixed version available. Please edit manually.";
@@ -1992,38 +2039,44 @@ correctedText.removeAttribute('readonly');
 
     // Reject a suggestion for an issue
     window.rejectSuggestion = function(issueId) {
-      // Remove this issue from applied corrections
-      delete appliedCorrections[issueId];
+      const issue = currentIssues[issueId];
+      
+      // Find the history entry where this correction was applied
+      const historyIndex = changeHistory.findIndex(entry => entry.issueId === issueId);
+      
+      if (historyIndex !== -1) {
+        // We found this correction in history, so we can restore from there
+        const originalState = changeHistory[historyIndex];
+        
+        // Save the current state for potential undo
+        const currentState = {
+          correctedText: correctedText.value,
+          appliedCorrections: {...appliedCorrections},
+          issue: issue,
+          issueId: issueId,
+          isRejection: true
+        };
+        
+        // Remove this history entry and add our current state
+        changeHistory.splice(historyIndex, 1);
+        changeHistory.push(currentState);
+        
+        // Restore text from before this correction was applied
+        correctedText.value = originalState.correctedText;
+        
+        // Update applied corrections to match that state, but remove the current one
+        appliedCorrections = {...originalState.appliedCorrections};
+        delete appliedCorrections[issueId];
+      } else {
+        // If we don't have history for this correction, just remove it from applied corrections
+        delete appliedCorrections[issueId];
+      }
       
       // Update the highlight appearance
       const highlightEl = targetDisplay.querySelector(`.highlight[data-issue-id="${issueId}"]`);
       if (highlightEl) {
         highlightEl.classList.remove('accepted');
       }
-      
-      // Recalculate the corrected text - revert to original and apply all current corrections
-      let newText = currentTargetText;
-      
-      // Apply all current corrections
-      // In a real app, this would be much more complex to account for position shifts
-      // This is a simplified version for demonstration
-      Object.keys(appliedCorrections).forEach(id => {
-        const correctionIssueId = parseInt(id);
-        const correctionIssue = currentIssues[correctionIssueId];
-        const correctionSegment = issueToSegmentMap[correctionIssueId];
-        
-        if (correctionIssue && correctionSegment && correctionIssue.suggestion) {
-          // Replace the segment with the suggestion
-          const segmentStart = newText.indexOf(correctionSegment.text);
-          if (segmentStart !== -1) {
-            newText = newText.substring(0, segmentStart) + 
-                     correctionIssue.suggestion + 
-                     newText.substring(segmentStart + correctionSegment.text.length);
-          }
-        }
-      });
-      
-      correctedText.value = newText;
       
       // If no more corrections, hide the corrected text container
       if (Object.keys(appliedCorrections).length === 0) {
