@@ -1033,33 +1033,29 @@ document.addEventListener('DOMContentLoaded', function() {
       updateAnalyzeButton();
     }
 
-    if (sourceText) {
+ // Add this right after all your DOM element declarations
+if (sourceText) {
   sourceText.addEventListener('input', function() {
-    updateWordCountDisplay();
-    handleSourceLanguageDetection();
-  });
-    
-  sourceText.addEventListener('paste', function() {
     setTimeout(function() {
       updateWordCountDisplay();
       handleSourceLanguageDetection();
-    }, 10);
+    }, 0);
   });
+} else {
+  console.error('Source text element not found');
 }
 
 if (targetText) {
   targetText.addEventListener('input', function() {
-    handleTargetLanguageDetection();
-    updateAnalyzeButton();
-  });
-    
-  targetText.addEventListener('paste', function() {
     setTimeout(function() {
       handleTargetLanguageDetection();
       updateAnalyzeButton();
-    }, 10);
+    }, 0);
   });
+} else {
+  console.error('Target text element not found');
 }
+
     // Update target language detection
     function handleTargetLanguageDetection() {
       if (targetText.value.length >= 10 && !targetLang.value) {
