@@ -892,6 +892,14 @@
   </div>
 
   <script>
+
+// Initialize when DOM is fully loaded
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize word count and update button state
+  updateWordCountDisplay();
+  updateAnalyzeButton();
+});
+
     // Get DOM elements
     const sourceText = document.getElementById('source-text');
     const targetText = document.getElementById('target-text');
@@ -1025,34 +1033,33 @@
       updateAnalyzeButton();
     }
 
-    sourceText.addEventListener('input', () => {
-  setTimeout(() => {
+    if (sourceText) {
+  sourceText.addEventListener('input', function() {
     updateWordCountDisplay();
     handleSourceLanguageDetection();
-  }, 10);
-});
+  });
+    
+  sourceText.addEventListener('paste', function() {
+    setTimeout(function() {
+      updateWordCountDisplay();
+      handleSourceLanguageDetection();
+    }, 10);
+  });
+}
 
-    targetText.addEventListener('input', () => {
-  setTimeout(() => {
-    handleTargetLanguageDetection();
-    updateAnalyzeButton(); // Optional, but ensures analyze button updates
-  }, 10);
-});
-
-sourceText.addEventListener('paste', () => {
-  setTimeout(() => {
-    updateWordCountDisplay();
-    handleSourceLanguageDetection();
-  }, 10);
-});
-
-targetText.addEventListener('paste', () => {
-  setTimeout(() => {
+if (targetText) {
+  targetText.addEventListener('input', function() {
     handleTargetLanguageDetection();
     updateAnalyzeButton();
-  }, 10);
-});
-
+  });
+    
+  targetText.addEventListener('paste', function() {
+    setTimeout(function() {
+      handleTargetLanguageDetection();
+      updateAnalyzeButton();
+    }, 10);
+  });
+}
     // Update target language detection
     function handleTargetLanguageDetection() {
       if (targetText.value.length >= 10 && !targetLang.value) {
@@ -1571,8 +1578,8 @@ targetText.addEventListener('paste', () => {
       }
     }
 
-    // Accept a suggestion for an issue
-    function acceptSuggestion(issueId) {
+        // Accept a suggestion for an issue - global function
+        window.acceptSuggestion = function(issueId) {
       const issue = currentIssues[issueId];
       const segment = issueToSegmentMap[issueId];
       
@@ -1886,8 +1893,8 @@ targetText.addEventListener('paste', () => {
     });
 
     // Reject a suggestion for an issue
-    function rejectSuggestion(issueId) {
-      // Remove this issue from applied corrections
+    window.rejectSuggestion = function(issueId) {
+        // Remove this issue from applied corrections
       delete appliedCorrections[issueId];
       
       // Update the highlight appearance
