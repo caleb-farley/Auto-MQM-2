@@ -1511,18 +1511,6 @@
             </div>
           </div>
           
-          <!-- Review Mode Toggle -->
-          <div class="review-mode-toggle-compact">
-            <div class="toggle-container">
-              <span class="toggle-option-left active" id="bilingual-label">Bilingual</span>
-              <label class="switch">
-                <input type="checkbox" id="review-mode-toggle">
-                <span class="slider"></span>
-              </label>
-              <span class="toggle-option-right" id="monolingual-label">Monolingual</span>
-            </div>
-          </div>
-          
           <div class="subtitle ml-4">
             <a href="https://orca-ls.com" target="_blank" rel="noopener noreferrer" style="color: rgb(255, 108, 54); text-decoration: none;">
               Powered by <span style="text-decoration: underline;">Orca LS</span>
@@ -1545,6 +1533,17 @@
         </p>
       </div>
       
+      <!-- Review Mode Toggle - moved from header -->
+      <div class="review-mode-toggle" style="margin: 20px 0;">
+        <div class="toggle-container">
+          <span class="toggle-option-left active" id="bilingual-label">Bilingual</span>
+          <label class="switch">
+            <input type="checkbox" id="review-mode-toggle">
+            <span class="slider"></span>
+          </label>
+          <span class="toggle-option-right" id="monolingual-label">Monolingual</span>
+        </div>
+      </div>
         
     <!-- Text areas -->
     <div class="text-areas">
@@ -3224,11 +3223,12 @@ correctedText.removeAttribute('readonly');
     let rejectedIssues = [];
     let showingRejectedIssues = false;
 
-    // Setup Review Mode Toggle
-    document.addEventListener('DOMContentLoaded', function() {
+  // Setup Review Mode Toggle
+  document.addEventListener('DOMContentLoaded', function() {
       // Get the mode toggle elements
-      const bilingualMode = document.getElementById('bilingual-mode');
-      const monolingualMode = document.getElementById('monolingual-mode');
+      const toggleCheckbox = document.getElementById('review-mode-toggle');
+      const bilingualLabel = document.getElementById('bilingual-label');
+      const monolingualLabel = document.getElementById('monolingual-label');
       const sourceContainer = document.querySelector('.text-areas .text-area-container:first-child');
       
       // Initial setup (show all by default)
@@ -3237,32 +3237,60 @@ correctedText.removeAttribute('readonly');
       }
       
       // Toggle review mode
-      if (bilingualMode && monolingualMode) {
-        // Handle bilingual mode selection
-        bilingualMode.addEventListener('change', function() {
-          if (this.checked && sourceContainer) {
-            sourceContainer.style.display = 'flex';
-            
-            // If we're in grid layout, reset to 1fr 1fr
-            const textAreas = document.querySelector('.text-areas');
-            if (window.innerWidth >= 768 && textAreas) {
-              textAreas.style.gridTemplateColumns = '1fr 1fr';
+      if (toggleCheckbox) {
+        // Handle toggle change
+        toggleCheckbox.addEventListener('change', function() {
+          if (this.checked) {
+            // Monolingual mode
+            if (sourceContainer) {
+              sourceContainer.style.display = 'none';
             }
-          }
-        });
-        
-        // Handle monolingual mode selection
-        monolingualMode.addEventListener('change', function() {
-          if (this.checked && sourceContainer) {
-            sourceContainer.style.display = 'none';
             
             // If we're in grid layout, make target text take full width
             const textAreas = document.querySelector('.text-areas');
             if (window.innerWidth >= 768 && textAreas) {
               textAreas.style.gridTemplateColumns = '1fr';
             }
+            
+            // Update active label
+            if (bilingualLabel && monolingualLabel) {
+              bilingualLabel.classList.remove('active');
+              monolingualLabel.classList.add('active');
+            }
+          } else {
+            // Bilingual mode
+            if (sourceContainer) {
+              sourceContainer.style.display = 'flex';
+            }
+            
+            // If we're in grid layout, reset to 1fr 1fr
+            const textAreas = document.querySelector('.text-areas');
+            if (window.innerWidth >= 768 && textAreas) {
+              textAreas.style.gridTemplateColumns = '1fr 1fr';
+            }
+            
+            // Update active label
+            if (bilingualLabel && monolingualLabel) {
+              bilingualLabel.classList.add('active');
+              monolingualLabel.classList.remove('active');
+            }
           }
         });
+        
+        // Also add click handlers to the labels for better UX
+        if (bilingualLabel) {
+          bilingualLabel.addEventListener('click', function() {
+            toggleCheckbox.checked = false;
+            toggleCheckbox.dispatchEvent(new Event('change'));
+          });
+        }
+        
+        if (monolingualLabel) {
+          monolingualLabel.addEventListener('click', function() {
+            toggleCheckbox.checked = true;
+            toggleCheckbox.dispatchEvent(new Event('change'));
+          });
+        }
       }
     });
 
