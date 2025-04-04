@@ -949,6 +949,48 @@
       </div>
     </div>
 
+    <!-- Excel Upload Section -->
+    <div class="excel-section" style="margin-bottom: 20px; background-color: var(--bg-accent); padding: 15px; border-radius: 8px; border: 1px solid var(--border-light);">
+      <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 10px;">Excel Template</h3>
+      <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 15px;">
+        Download our Excel template to perform MQM assessments offline, then upload it for automated processing.
+      </p>
+      
+      <!-- Download Template Button -->
+      <div style="margin-bottom: 15px;">
+        <button id="download-template-btn" class="btn btn-secondary">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-right: 8px; vertical-align: text-bottom;">
+            <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+            <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+          </svg>
+          Download Excel Template
+        </button>
+      </div>
+      
+      <!-- Upload Form -->
+      <form id="excel-upload-form">
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 10px;">
+          <input type="file" id="excel-file-input" style="display: none;" accept=".xlsx">
+          <button type="button" id="excel-file-select-btn" class="btn btn-secondary" style="flex-grow: 0;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-right: 8px; vertical-align: text-bottom;">
+              <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+              <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
+            </svg>
+            Select Excel File
+          </button>
+          <span id="selected-file-info" style="color: var(--text-muted); flex-grow: 1;"></span>
+          <button type="submit" id="excel-upload-btn" class="btn btn-primary" disabled>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-right: 8px; vertical-align: text-bottom;">
+              <path d="M.5 3a.5.5 0 0 0-.5.5v9a.5.5 0 0 0 .5.5h15a.5.5 0 0 0 .5-.5v-9a.5.5 0 0 0-.5-.5H.5zm1.5.5A.5.5 0 0 1 2.5 3h11a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-1zm0 3a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-4a.5.5 0 0 1-.5-.5v-1zm0 3a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-9a.5.5 0 0 1-.5-.5v-1z"/>
+            </svg>
+            Upload & Analyze
+          </button>
+        </div>
+        <!-- Upload Status -->
+        <div id="excel-upload-status" style="display: none; padding: 10px; border-radius: 6px; margin-top: 10px;"></div>
+      </form>
+    </div>
+
     <!-- Target text display (for highlighting issues) - This is initially hidden -->
     <div id="target-display-container" style="display: none;">
       <div class="text-area-header">
