@@ -1161,6 +1161,10 @@
     border: 1px solid var(--border-light);
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
     transition: all var(--transition-normal);
+    position: absolute;
+    right: 20px;
+    top: 220px;
+    z-index: 100;
   }
   
   .review-mode-label {
@@ -3256,6 +3260,9 @@ correctedText.removeAttribute('readonly');
             if (bilingualLabel && monolingualLabel) {
               bilingualLabel.classList.remove('active');
               monolingualLabel.classList.add('active');
+              // Trigger DOM update to ensure display changes are applied
+              document.getElementById('source-text').dispatchEvent(new Event('input'));
+              document.getElementById('target-text').dispatchEvent(new Event('input'));
             }
           } else {
             // Bilingual mode
@@ -3273,6 +3280,9 @@ correctedText.removeAttribute('readonly');
             if (bilingualLabel && monolingualLabel) {
               bilingualLabel.classList.add('active');
               monolingualLabel.classList.remove('active');
+              // Trigger DOM update to ensure display changes are applied
+              document.getElementById('source-text').dispatchEvent(new Event('input'));
+              document.getElementById('target-text').dispatchEvent(new Event('input'));
             }
           }
         });
