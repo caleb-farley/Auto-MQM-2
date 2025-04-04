@@ -133,6 +133,16 @@ app.post('/api/check-alignment', authMiddleware.optionalAuth, async (req, res) =
     const alignmentPrompt = `
 You are a bilingual language expert. Determine if the following source text and target text are accurate translations of each other.
 
+IMPORTANT GUIDELINES FOR OBJECTIVE ALIGNMENT ASSESSMENT:
+1. ONLY analyze the EXACT text provided in the submission. Never invent or hallucinate differences.
+2. Focus on meaning alignment, not stylistic differences. Different languages express ideas differently.
+3. Consider cultural adaptations as valid when they preserve the intended meaning for the target audience.
+4. Respect domain-specific terminology and conventions that may appear non-standard.
+5. Allow for reasonable additions that provide necessary cultural context in the target language.
+6. When assessing confidence, be conservative - if you're not certain about alignment, provide a lower confidence score.
+7. Recognize that translations rarely maintain perfect one-to-one correspondence with source text.
+8. Be specific about any actual misalignments - quote the exact sections that differ in meaning.
+
 Source language: ${sourceLang || 'undetermined'}
 Target language: ${targetLang || 'undetermined'}
 
@@ -150,8 +160,10 @@ Please respond in **valid JSON** format like this:
 {
   "match": true,
   "confidence": 87,
-  "reason": "The texts align closely with only minor stylistic differences."
+  "reason": "The texts align closely with only minor stylistic differences. [Include specific evidence supporting your conclusion]"
 }
+
+If there are significant mismatches, clearly specify which parts don't align and why, with exact quotes.
 `;
 
     const response = await axios.post(
@@ -249,6 +261,7 @@ app.get('/api/download-template', authMiddleware.optionalAuth, async (req, res) 
     instructionsSheet.addRow(['- Enter source and target text for each segment']);
     instructionsSheet.addRow(['- Add feedback for each segment, even those without issues']);
     instructionsSheet.addRow(['- Identify segment status (No Issues, Minor, Major, Critical)']);
+    instructionsSheet.addRow(['- For each issue, provide a corrected version of the segment']);
     instructionsSheet.addRow(['- This enables more precise, context-aware quality assessment']);
     instructionsSheet.addRow(['']);
     
@@ -395,7 +408,8 @@ app.get('/api/download-template', authMiddleware.optionalAuth, async (req, res) 
       { header: 'Subcategory', key: 'subcategory', width: 20 },
       { header: 'Severity', key: 'severity', width: 15 },
       { header: 'Explanation', key: 'explanation', width: 40 },
-      { header: 'Suggested Fix', key: 'suggestion', width: 40 }
+      { header: 'Suggested Fix', key: 'suggestion', width: 40 },
+      { header: 'Corrected Segment', key: 'correctedSegment', width: 40 }
     ];
     
     const issuesHeaderRow = issuesSheet.getRow(1);
@@ -480,7 +494,17 @@ try {
     const prompt = `
 You are a localization QA expert using the MQM (Multidimensional Quality Metrics) framework to evaluate translations. Please analyze the following source and target text pair and provide a detailed quality assessment.
 
-IMPORTANT: You must ONLY analyze the EXACT text provided in the submission. Do NOT invent or hallucinate errors that don't actually exist in the text. If you don't find any genuine errors, return an empty mqmIssues array. Never fabricate issues - only report problems that are definitively present in the provided text.
+IMPORTANT GUIDELINES FOR OBJECTIVE ASSESSMENT:
+1. ONLY analyze the EXACT text provided in the submission. Do NOT invent or hallucinate errors that don't actually exist in the text.
+2. If you don't find any genuine errors, return an empty mqmIssues array. Never fabricate issues.
+3. For each issue identified, provide SPECIFIC EVIDENCE from the text - quote the exact problematic section.
+4. Distinguish between objective errors and subjective stylistic preferences. Focus primarily on clear errors.
+5. Consider language-specific conventions and cultural context when evaluating translations.
+6. For each issue, assign a confidence level (HIGH, MEDIUM, LOW) based on how certain you are about the error.
+7. Compare corresponding sections of source and target to verify actual translation issues.
+8. Respect domain-specific terminology and conventions that may appear non-standard in general language.
+9. When multiple interpretations are possible, select the most charitable interpretation that makes sense in context.
+10. Evaluate the translation based on its communicative purpose, not just literal accuracy.
 
 Source language: ${sourceLang}
 Target language: ${targetLang}
@@ -495,7 +519,7 @@ Target text:
 ${targetText}
 """
 
-Perform a detailed MQM analysis using the following error categories, but only if you find actual errors in the text:
+Perform a detailed MQM analysis using the following error categories, but only if you find actual errors with concrete evidence:
 1. Accuracy
    - Mistranslation: Content in target language that misrepresents source content
    - Omission: Content missing from translation that is present in source
@@ -527,7 +551,7 @@ For each issue found, provide:
 - Location (if possible, provide specific information like character positions or word indices)
 - The exact problematic text segment from the target translation
 - A suggested fix (textual description of what needs to be changed)
-- A fully corrected version of the entire segment with the fix applied
+- A fully corrected version of the entire segment with the fix applied (this is critical as it will be displayed to users)
 - Provide the exact **start and end character positions** of the segment in the target text.
 
 Also provide an MQM score calculated as:
@@ -572,7 +596,7 @@ For the location field, try to be as specific as possible. Preferred format is:
 - For paragraphs: "Paragraph 4"
 
 For the segment field, include ONLY the exact problematic text from the target translation.
-For the correctedSegment field, provide the complete fixed version of the segment with all corrections applied.
+For the correctedSegment field, provide the complete fixed version of the segment with all corrections applied. This corrected segment will be displayed directly to users, so ensure it maintains the full context and represents a high-quality correction.
 
 For example, if the segment is "The internationale women day" and the issue is terminology inconsistency, then correctedSegment might be "La journée internationale des femmes".
 `;
@@ -934,7 +958,17 @@ app.post('/api/upload-excel',
     const prompt = `
 You are a localization QA expert using the MQM (Multidimensional Quality Metrics) framework to evaluate translations. Please analyze the following source and target text pair and provide a detailed quality assessment.
 
-IMPORTANT: You must ONLY analyze the EXACT text provided in the submission. Do NOT invent or hallucinate errors that don't actually exist in the text. If you don't find any genuine errors, return an empty mqmIssues array. Never fabricate issues - only report problems that are definitively present in the provided text.
+IMPORTANT GUIDELINES FOR OBJECTIVE ASSESSMENT:
+1. ONLY analyze the EXACT text provided in the submission. Do NOT invent or hallucinate errors that don't actually exist in the text.
+2. If you don't find any genuine errors, return an empty mqmIssues array. Never fabricate issues.
+3. For each issue identified, provide SPECIFIC EVIDENCE from the text - quote the exact problematic section.
+4. Distinguish between objective errors and subjective stylistic preferences. Focus primarily on clear errors.
+5. Consider language-specific conventions and cultural context when evaluating translations.
+6. For each issue, assign a confidence level (HIGH, MEDIUM, LOW) based on how certain you are about the error.
+7. Compare corresponding sections of source and target to verify actual translation issues.
+8. Respect domain-specific terminology and conventions that may appear non-standard in general language.
+9. When multiple interpretations are possible, select the most charitable interpretation that makes sense in context.
+10. Evaluate the translation based on its communicative purpose, not just literal accuracy.
 
 Source language: ${sourceLang}
 Target language: ${targetLang}
@@ -949,7 +983,7 @@ Target text:
 ${targetText}
 """
 
-Perform a detailed MQM analysis using the following error categories, but only if you find actual errors in the text:
+Perform a detailed MQM analysis using the following error categories, but only if you find actual errors with concrete evidence:
 1. Accuracy
    - Mistranslation: Content in target language that misrepresents source content
    - Omission: Content missing from translation that is present in source

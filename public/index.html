@@ -3919,6 +3919,9 @@ correctedText.removeAttribute('readonly');
               <div class="issue-explanation">${issue.explanation}</div>
               <div class="issue-location">Location: ${issue.location || 'Unknown'}</div>
               <div class="issue-suggestion">${issue.suggestion || 'No suggestion provided'}</div>
+              <div class="issue-corrected-segment" style="background-color: var(--bg-success); border: 1px solid rgba(40, 167, 69, 0.3); color: var(--severity-success); padding: 14px; border-radius: 8px; font-size: 13px; margin-top: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);">
+                <strong>Corrected segment:</strong> ${issue.correctedSegment || 'No corrected version provided'}
+              </div>
               <div class="issue-actions">
                 <button class="action-btn btn-primary" id="accept-btn-${index}" onclick="acceptSuggestion(${index})">Accept</button>
                 <button class="action-btn btn-secondary" id="reject-btn-${index}" onclick="rejectSuggestion(${index})" disabled>Reject</button>
