@@ -1,123 +1,191 @@
-// auth-components.js
-// Contains functions for authentication, account management, and assessment history
+// auth-components.js - Authentication and user management system
 
-// Global state
-const authState = {
-  isAuthenticated: false,
-  user: null,
-  usageCount: 0,
-  usageLimit: 5, // Default for anonymous users
-  anonymousSessionId: null,
-  savedRuns: []
-};
-
-// DOM Elements - to be initialized after page load
-let loginModal;
-let registerModal;
-let accountModal;
-let dashboardModal;
-let subscriptionModal;
-let adminModal;
-
-// Initialize authentication on page load
 document.addEventListener('DOMContentLoaded', () => {
-  // Check if user is already logged in
+  // Initialize authentication UI elements
+  initAuthUIElements();
+  
+  // Check for existing auth token
   checkAuthStatus();
 
-  // Initialize modal references
-  loginModal = document.getElementById('login-modal');
-  registerModal = document.getElementById('register-modal');
-  accountModal = document.getElementById('account-modal');
-  dashboardModal = document.getElementById('dashboard-modal');
-  subscriptionModal = document.getElementById('subscription-modal');
-  adminModal = document.getElementById('admin-modal');
+  // Set up event listeners for authentication actions
+  setupAuthEventListeners();
+});
 
-  // Initialize anonymous session if not already set
-  initAnonymousSession();
+// Get all the UI elements we need to manipulate
+function initAuthUIElements() {
+  // Modal elements
+  window.loginModal = document.getElementById('login-modal');
+  window.registerModal = document.getElementById('register-modal');
+  window.accountModal = document.getElementById('account-modal');
+  window.dashboardModal = document.getElementById('dashboard-modal');
+  window.subscriptionModal = document.getElementById('subscription-modal');
+  window.adminModal = document.getElementById('admin-modal');
 
-  // Add event listeners for auth buttons
-  const loginBtn = document.getElementById('login-btn');
-  const registerBtn = document.getElementById('register-btn');
-  const logoutBtn = document.getElementById('logout-btn');
-  const accountBtn = document.getElementById('account-btn');
-  const dashboardBtn = document.getElementById('dashboard-btn');
-  const closeModalBtns = document.querySelectorAll('.close-modal');
+  // Auth buttons
+  window.loginBtn = document.getElementById('login-btn');
+  window.registerBtn = document.getElementById('register-btn');
+  window.logoutLink = document.getElementById('logout-link');
+  window.accountLink = document.getElementById('account-link');
+  window.dashboardLink = document.getElementById('dashboard-link');
+  window.adminLink = document.getElementById('admin-link');
 
-  if (loginBtn) loginBtn.addEventListener('click', showLoginModal);
-  if (registerBtn) registerBtn.addEventListener('click', showRegisterModal);
-  if (logoutBtn) logoutBtn.addEventListener('click', logout);
-  if (accountBtn) accountBtn.addEventListener('click', showAccountModal);
-  if (dashboardBtn) dashboardBtn.addEventListener('click', showDashboardModal);
+  // Usage info
+  window.usageInfo = document.getElementById('usage-info');
+  window.usageProgress = document.getElementById('usage-progress');
+  
+  // Auth containers
+  window.authButtons = document.getElementById('auth-buttons');
+  window.userInfo = document.getElementById('user-info');
+  window.userAvatar = document.getElementById('user-avatar');
+  window.userName = document.getElementById('user-name');
+}
 
-  // Setup modal close buttons
-  closeModalBtns.forEach(btn => {
+// Setup event listeners for auth-related actions
+function setupAuthEventListeners() {
+  // Modal open buttons
+  if (loginBtn) loginBtn.addEventListener('click', () => showModal(loginModal));
+  if (registerBtn) registerBtn.addEventListener('click', () => showModal(registerModal));
+  if (accountLink) accountLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    showAccountModal();
+  });
+  if (dashboardLink) dashboardLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    showDashboardModal();
+  });
+  if (adminLink) adminLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    showAdminModal();
+  });
+  if (logoutLink) logoutLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    logout();
+  });
+
+  // Modal close buttons
+  document.querySelectorAll('.close-modal').forEach(btn => {
     btn.addEventListener('click', () => {
       const modal = btn.closest('.modal-overlay');
       if (modal) hideModal(modal);
     });
   });
 
-  // Setup form submission handlers
+  // Form submissions
   const loginForm = document.getElementById('login-form');
-  const registerForm = document.getElementById('register-form');
-  const subscriptionForm = document.getElementById('subscription-form');
-
   if (loginForm) loginForm.addEventListener('submit', handleLogin);
+
+  const registerForm = document.getElementById('register-form');
   if (registerForm) registerForm.addEventListener('submit', handleRegister);
+
+  const subscriptionForm = document.getElementById('subscription-form');
   if (subscriptionForm) subscriptionForm.addEventListener('submit', handleSubscription);
 
-  // Initialize Stripe if the element exists
-  const stripeElements = document.getElementById('stripe-elements');
-  if (stripeElements) initializeStripe();
-
-  // Update UI based on auth state
-  updateAuthUI();
-});
-
-// Check if user is already logged in
-async function checkAuthStatus() {
-  try {
-    const response = await fetch('/api/auth/status', {
-      method: 'GET',
-      credentials: 'include' // Important for cookies
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      if (data.isAuthenticated) {
-        authState.isAuthenticated = true;
-        authState.user = data.user;
-        authState.usageCount = data.usageCount || 0;
-        authState.usageLimit = getUserLimit(data.user.accountType);
-        fetchSavedRuns();
-      } else {
-        authState.isAuthenticated = false;
-        authState.user = null;
+  // Plan selection in subscription modal
+  document.querySelectorAll('.plan-option').forEach(plan => {
+    plan.addEventListener('click', () => {
+      // First deselect all plans
+      document.querySelectorAll('.plan-option').forEach(p => {
+        p.classList.remove('selected');
+      });
+      
+      // Select the clicked plan
+      plan.classList.add('selected');
+      
+      // Set the radio button
+      const radio = plan.querySelector('input[type="radio"]');
+      if (radio) radio.checked = true;
+      
+      // Show card section if premium plan is selected
+      const cardSection = document.getElementById('card-section');
+      if (cardSection) {
+        cardSection.style.display = radio.value === 'premium' ? 'block' : 'none';
       }
-    }
-  } catch (error) {
-    console.error('Error checking authentication status:', error);
-  }
+    });
+  });
 
-  updateAuthUI();
+  // Dashboard tabs
+  document.querySelectorAll('.dashboard-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      // Update active tab
+      document.querySelectorAll('.dashboard-tab').forEach(t => {
+        t.classList.remove('active');
+      });
+      tab.classList.add('active');
+      
+      // Load appropriate content
+      const tabType = tab.getAttribute('data-tab');
+      if (tabType === 'saved') {
+        loadSavedAssessments();
+      } else if (tabType === 'recent') {
+        loadRecentActivity();
+      }
+    });
+  });
 }
 
-// Initialize anonymous session for tracking usage
-function initAnonymousSession() {
-  let sessionId = localStorage.getItem('anonymousSessionId');
-  if (!sessionId) {
-    // Generate a random session ID
-    sessionId = 'anon_' + Math.random().toString(36).substring(2, 15);
-    localStorage.setItem('anonymousSessionId', sessionId);
+// Check if user is already authenticated
+function checkAuthStatus() {
+  const token = localStorage.getItem('authToken');
+  
+  if (token) {
+    // Validate token with server
+    fetch('/api/auth/verify', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.valid) {
+        // Token is valid
+        window.authState = {
+          isAuthenticated: true,
+          user: data.user,
+          token: token,
+          accountType: data.user.accountType,
+          runsUsed: data.runsUsed || 0,
+          runLimit: getRunLimit(data.user.accountType)
+        };
+      } else {
+        // Token is invalid, reset auth state
+        resetAuthState();
+        localStorage.removeItem('authToken');
+      }
+      updateAuthUI();
+    })
+    .catch(error => {
+      console.error('Error verifying auth token:', error);
+      resetAuthState();
+      localStorage.removeItem('authToken');
+      updateAuthUI();
+    });
+  } else {
+    // No token, user is not authenticated
+    resetAuthState();
+    updateAuthUI();
   }
-  authState.anonymousSessionId = sessionId;
-
-  // Set a cookie for the backend to identify anonymous users
-  document.cookie = `anonymousSessionId=${sessionId}; path=/; max-age=2592000`; // 30 days
 }
 
-// Determine usage limit based on account type
-function getUserLimit(accountType) {
+// Reset authentication state
+function resetAuthState() {
+  window.authState = {
+    isAuthenticated: false,
+    user: null,
+    token: null,
+    accountType: 'anonymous',
+    runsUsed: 0,
+    runLimit: 5 // Default for anonymous users
+  };
+}
+
+// Initialize authState if not already defined
+if (!window.authState) {
+  resetAuthState();
+}
+
+// Get run limit based on account type
+function getRunLimit(accountType) {
   switch (accountType) {
     case 'free':
       return 25;
@@ -125,665 +193,1103 @@ function getUserLimit(accountType) {
     case 'admin':
       return Infinity;
     default:
-      return 5; // Anonymous
+      return 5; // Anonymous users
   }
 }
 
 // Update UI based on authentication state
 function updateAuthUI() {
-  const authButtonsContainer = document.getElementById('auth-buttons');
-  const userInfoContainer = document.getElementById('user-info');
-  const usageContainer = document.getElementById('usage-info');
+  if (!authButtons || !userInfo || !usageInfo) return;
   
-  if (!authButtonsContainer || !userInfoContainer || !usageContainer) return;
-
-  if (authState.isAuthenticated && authState.user) {
-    // User is logged in
-    authButtonsContainer.style.display = 'none';
-    userInfoContainer.style.display = 'flex';
+  if (window.authState.isAuthenticated) {
+    // User is authenticated - show user info
+    authButtons.style.display = 'none';
+    userInfo.style.display = 'flex';
     
     // Update user info
-    const userNameElement = document.getElementById('user-name');
-    if (userNameElement) {
-      userNameElement.textContent = authState.user.email;
+    if (userName && userAvatar) {
+      userName.textContent = window.authState.user.email;
+      userAvatar.textContent = window.authState.user.email.charAt(0).toUpperCase();
     }
     
     // Show admin link if user is admin
-    const adminLinkElement = document.getElementById('admin-link');
-    if (adminLinkElement) {
-      adminLinkElement.style.display = authState.user.accountType === 'admin' ? 'block' : 'none';
+    if (adminLink) {
+      adminLink.style.display = window.authState.accountType === 'admin' ? 'inline' : 'none';
     }
   } else {
-    // User is not logged in
-    authButtonsContainer.style.display = 'flex';
-    userInfoContainer.style.display = 'none';
+    // User is not authenticated - show login/register buttons
+    authButtons.style.display = 'flex';
+    userInfo.style.display = 'none';
   }
   
   // Update usage info
-  updateUsageDisplay();
-}
-
-// Update usage display
-function updateUsageDisplay() {
-  const usageInfoElement = document.getElementById('usage-info');
-  if (!usageInfoElement) return;
+  const accountTypeEl = usageInfo.querySelector('.account-type');
+  const usageCountEl = usageInfo.querySelector('.usage-count');
   
-  const limit = authState.usageLimit;
-  const used = authState.usageCount;
-  
-  // Create appropriate message based on account type
-  let usageMessage = '';
-  let accountTypeLabel = '';
-  
-  if (authState.isAuthenticated && authState.user) {
-    switch (authState.user.accountType) {
-      case 'free':
-        accountTypeLabel = 'Free Account';
-        usageMessage = `${used} of ${limit} runs used`;
-        break;
-      case 'paid':
-        accountTypeLabel = 'Paid Account';
-        usageMessage = 'Unlimited runs';
-        break;
-      case 'admin':
-        accountTypeLabel = 'Admin Account';
-        usageMessage = 'Unlimited runs';
-        break;
-    }
-  } else {
-    accountTypeLabel = 'Anonymous User';
-    usageMessage = `${used} of ${limit} runs used`;
-  }
-  
-  // Update the display
-  usageInfoElement.innerHTML = `
-    <div class="account-type">${accountTypeLabel}</div>
-    <div class="usage-count">${usageMessage}</div>
-  `;
-  
-  // Update progress bar if it exists
-  const progressBar = document.getElementById('usage-progress');
-  if (progressBar && limit !== Infinity) {
-    const percentage = Math.min(100, (used / limit) * 100);
-    progressBar.style.width = `${percentage}%`;
-    
-    // Change color based on usage level
-    if (percentage > 90) {
-      progressBar.style.backgroundColor = '#dc3545'; // Red
-    } else if (percentage > 70) {
-      progressBar.style.backgroundColor = '#ffc107'; // Yellow
+  if (accountTypeEl) {
+    if (window.authState.isAuthenticated) {
+      const accountTypeText = window.authState.accountType.charAt(0).toUpperCase() + window.authState.accountType.slice(1);
+      accountTypeEl.textContent = `${accountTypeText} Account`;
     } else {
-      progressBar.style.backgroundColor = '#28a745'; // Green
+      accountTypeEl.textContent = 'Anonymous User';
     }
   }
-}
-
-// Show login modal
-function showLoginModal() {
-  if (loginModal) {
-    loginModal.style.display = 'flex';
-    // Focus on email input
-    const emailInput = document.getElementById('login-email');
-    if (emailInput) emailInput.focus();
-  }
-}
-
-// Show register modal
-function showRegisterModal() {
-  if (registerModal) {
-    registerModal.style.display = 'flex';
-    // Focus on email input
-    const emailInput = document.getElementById('register-email');
-    if (emailInput) emailInput.focus();
-  }
-}
-
-// Show account modal
-function showAccountModal() {
-  if (accountModal) {
-    // Update account info with latest user data
-    const accountTypeElement = document.getElementById('account-type');
-    const emailElement = document.getElementById('account-email');
-    
-    if (accountTypeElement && emailElement && authState.user) {
-      accountTypeElement.textContent = authState.user.accountType.charAt(0).toUpperCase() + authState.user.accountType.slice(1);
-      emailElement.textContent = authState.user.email;
+  
+  if (usageCountEl) {
+    if (window.authState.accountType === 'admin' || window.authState.accountType === 'paid') {
+      usageCountEl.textContent = `${window.authState.runsUsed} runs (Unlimited)`;
+    } else {
+      usageCountEl.textContent = `${window.authState.runsUsed} of ${window.authState.runLimit} runs used`;
     }
-    
-    accountModal.style.display = 'flex';
   }
-}
-
-// Show dashboard modal
-function showDashboardModal() {
-  if (dashboardModal) {
-    // Refresh saved runs before showing
-    fetchSavedRuns().then(() => {
-      dashboardModal.style.display = 'flex';
-    });
+  
+  // Update progress bar
+  if (usageProgress) {
+    if (window.authState.accountType === 'admin' || window.authState.accountType === 'paid') {
+      usageProgress.style.width = '100%';
+      usageProgress.style.backgroundColor = 'var(--severity-success)';
+    } else {
+      const percentage = Math.min(100, (window.authState.runsUsed / window.authState.runLimit) * 100);
+      usageProgress.style.width = `${percentage}%`;
+      
+      // Color based on usage
+      if (percentage > 90) {
+        usageProgress.style.backgroundColor = 'var(--severity-critical)';
+      } else if (percentage > 70) {
+        usageProgress.style.backgroundColor = 'var(--severity-major)';
+      } else {
+        usageProgress.style.backgroundColor = 'var(--brand-teal)';
+      }
+    }
   }
-}
-
-// Hide a modal
-function hideModal(modal) {
-  if (modal) modal.style.display = 'none';
+  
+  // Update save button display (if it exists and we have a current run)
+  const saveRunBtn = document.getElementById('save-run-btn');
+  if (saveRunBtn && window.currentRunId) {
+    saveRunBtn.style.display = window.authState.isAuthenticated ? 'block' : 'none';
+  }
 }
 
 // Handle login form submission
-async function handleLogin(e) {
-  e.preventDefault();
+async function handleLogin(event) {
+  event.preventDefault();
   
-  // Get form data
-  const email = document.getElementById('login-email').value;
-  const password = document.getElementById('login-password').value;
+  const emailInput = document.getElementById('login-email');
+  const passwordInput = document.getElementById('login-password');
+  const errorEl = document.getElementById('login-error');
   
-  // Reset error message
-  const errorElement = document.getElementById('login-error');
-  if (errorElement) errorElement.textContent = '';
+  // Validate inputs
+  if (!emailInput.value || !passwordInput.value) {
+    errorEl.textContent = 'Please enter both email and password';
+    return;
+  }
+  
+  // Clear previous errors
+  errorEl.textContent = '';
+  
+  // Show loading state
+  const submitButton = event.target.querySelector('button[type="submit"]');
+  submitButton.disabled = true;
+  submitButton.innerHTML = '<span class="spinner">⟳</span> Logging in...';
   
   try {
-    // Show loading state
-    const submitButton = document.querySelector('#login-form button[type="submit"]');
-    const originalButtonText = submitButton.textContent;
-    submitButton.disabled = true;
-    submitButton.innerHTML = '<span class="animate-spin">⟳</span> Logging in...';
-    
-    // Call API
     const response = await fetch('/api/auth/login', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-      credentials: 'include' // Important for cookies
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        email: emailInput.value,
+        password: passwordInput.value
+      })
     });
     
     const data = await response.json();
     
     if (response.ok) {
-      // Login successful
-      authState.isAuthenticated = true;
-      authState.user = data.user;
-      authState.usageCount = data.usageCount || 0;
-      authState.usageLimit = getUserLimit(data.user.accountType);
+      // Store token in localStorage
+      localStorage.setItem('authToken', data.token);
       
-      // Hide modal
-      hideModal(loginModal);
+      // Update auth state
+      window.authState = {
+        isAuthenticated: true,
+        user: data.user,
+        token: data.token,
+        accountType: data.user.accountType,
+        runsUsed: data.runsUsed || 0,
+        runLimit: getRunLimit(data.user.accountType)
+      };
       
       // Update UI
       updateAuthUI();
       
-      // Fetch saved runs
-      fetchSavedRuns();
+      // Hide login modal
+      hideModal(loginModal);
+      
+      // Reset form
+      event.target.reset();
     } else {
       // Login failed
-      if (errorElement) errorElement.textContent = data.error || 'Login failed';
+      errorEl.textContent = data.message || 'Login failed. Please check your credentials.';
     }
   } catch (error) {
     console.error('Login error:', error);
-    if (errorElement) errorElement.textContent = 'An error occurred. Please try again.';
+    errorEl.textContent = 'An error occurred. Please try again.';
   } finally {
     // Reset button state
-    const submitButton = document.querySelector('#login-form button[type="submit"]');
     submitButton.disabled = false;
     submitButton.textContent = 'Log In';
   }
 }
 
 // Handle registration form submission
-async function handleRegister(e) {
-  e.preventDefault();
+async function handleRegister(event) {
+  event.preventDefault();
   
-  // Get form data
-  const email = document.getElementById('register-email').value;
-  const password = document.getElementById('register-password').value;
-  const confirmPassword = document.getElementById('register-confirm-password').value;
+  const emailInput = document.getElementById('register-email');
+  const passwordInput = document.getElementById('register-password');
+  const confirmInput = document.getElementById('register-confirm-password');
+  const errorEl = document.getElementById('register-error');
   
-  // Reset error message
-  const errorElement = document.getElementById('register-error');
-  if (errorElement) errorElement.textContent = '';
-  
-  // Validate passwords match
-  if (password !== confirmPassword) {
-    if (errorElement) errorElement.textContent = 'Passwords do not match';
+  // Validate inputs
+  if (!emailInput.value || !passwordInput.value || !confirmInput.value) {
+    errorEl.textContent = 'Please fill in all fields';
     return;
   }
   
+  if (passwordInput.value !== confirmInput.value) {
+    errorEl.textContent = 'Passwords do not match';
+    return;
+  }
+  
+  // Clear previous errors
+  errorEl.textContent = '';
+  
+  // Show loading state
+  const submitButton = event.target.querySelector('button[type="submit"]');
+  submitButton.disabled = true;
+  submitButton.innerHTML = '<span class="spinner">⟳</span> Registering...';
+  
   try {
-    // Show loading state
-    const submitButton = document.querySelector('#register-form button[type="submit"]');
-    const originalButtonText = submitButton.textContent;
-    submitButton.disabled = true;
-    submitButton.innerHTML = '<span class="animate-spin">⟳</span> Registering...';
-    
-    // Call API
     const response = await fetch('/api/auth/register', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-      credentials: 'include' // Important for cookies
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        email: emailInput.value,
+        password: passwordInput.value
+      })
     });
     
     const data = await response.json();
     
     if (response.ok) {
-      // Registration successful
-      authState.isAuthenticated = true;
-      authState.user = data.user;
-      authState.usageLimit = getUserLimit(data.user.accountType);
+      // Store token in localStorage
+      localStorage.setItem('authToken', data.token);
       
-      // Hide modal
-      hideModal(registerModal);
-      
-      // Show subscription modal for new users
-      showSubscriptionModal();
+      // Update auth state
+      window.authState = {
+        isAuthenticated: true,
+        user: data.user,
+        token: data.token,
+        accountType: 'free', // New users start with free account
+        runsUsed: 0,
+        runLimit: 25 // Free users get 25 runs
+      };
       
       // Update UI
       updateAuthUI();
+      
+      // Hide register modal
+      hideModal(registerModal);
+      
+      // Reset form
+      event.target.reset();
+      
+      // Show welcome message
+      alert('Registration successful! Welcome to MQM Analysis Tool.');
     } else {
       // Registration failed
-      if (errorElement) errorElement.textContent = data.error || 'Registration failed';
+      errorEl.textContent = data.message || 'Registration failed. Please try again.';
     }
   } catch (error) {
     console.error('Registration error:', error);
-    if (errorElement) errorElement.textContent = 'An error occurred. Please try again.';
+    errorEl.textContent = 'An error occurred. Please try again.';
   } finally {
     // Reset button state
-    const submitButton = document.querySelector('#register-form button[type="submit"]');
     submitButton.disabled = false;
     submitButton.textContent = 'Register';
   }
 }
 
-// Show subscription options modal
-function showSubscriptionModal() {
-  if (subscriptionModal) {
-    subscriptionModal.style.display = 'flex';
-  }
-}
-
-// Initialize Stripe elements
-let stripe;
-let card;
-function initializeStripe() {
-  try {
-    // Get Stripe public key from meta tag
-    const stripeKey = document.querySelector('meta[name="stripe-public-key"]').getAttribute('content');
-    if (!stripeKey) {
-      console.error('Stripe public key not found');
-      return;
-    }
-    
-    // Initialize Stripe
-    stripe = Stripe(stripeKey);
-    
-    // Create card element
-    const elements = stripe.elements();
-    card = elements.create('card', {
-      style: {
-        base: {
-          color: '#32325d',
-          fontFamily: '"Inter", sans-serif',
-          fontSmoothing: 'antialiased',
-          fontSize: '16px',
-          '::placeholder': {
-            color: '#aab7c4'
-          }
-        },
-        invalid: {
-          color: '#dc3545',
-          iconColor: '#dc3545'
-        }
-      }
-    });
-    
-    // Mount card element
-    const cardElement = document.getElementById('card-element');
-    if (cardElement) card.mount('#card-element');
-    
-    // Handle card validation errors
-    card.addEventListener('change', event => {
-      const displayError = document.getElementById('card-errors');
-      if (displayError) {
-        displayError.textContent = event.error ? event.error.message : '';
-      }
-    });
-  } catch (error) {
-    console.error('Error initializing Stripe:', error);
-  }
-}
-
 // Handle subscription form submission
-async function handleSubscription(e) {
-  e.preventDefault();
+async function handleSubscription(event) {
+  event.preventDefault();
   
-  if (!stripe || !card) {
-    console.error('Stripe not initialized');
+  if (!window.authState.isAuthenticated) {
+    showModal(loginModal);
     return;
   }
   
-  // Get selected plan
-  const selectedPlan = document.querySelector('input[name="subscription-plan"]:checked');
-  if (!selectedPlan) {
-    const errorElement = document.getElementById('subscription-error');
-    if (errorElement) errorElement.textContent = 'Please select a plan';
-    return;
-  }
+  const planRadios = document.getElementsByName('subscription-plan');
+  let selectedPlan = null;
   
-  const planId = selectedPlan.value;
-  
-  // Show loading state
-  const submitButton = document.querySelector('#subscription-form button[type="submit"]');
-  submitButton.disabled = true;
-  submitButton.innerHTML = '<span class="animate-spin">⟳</span> Processing...';
-  
-  try {
-    // Create payment method
-    const result = await stripe.createPaymentMethod({
-      type: 'card',
-      card: card
-    });
-    
-    if (result.error) {
-      // Show error
-      const errorElement = document.getElementById('card-errors');
-      if (errorElement) errorElement.textContent = result.error.message;
-      return;
+  for (const radio of planRadios) {
+    if (radio.checked) {
+      selectedPlan = radio.value;
+      break;
     }
-    
-    // Send to server
-    const response = await fetch('/api/stripe/create-subscription', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        paymentMethodId: result.paymentMethod.id,
-        planId: planId
-      }),
-      credentials: 'include'
-    });
-    
-    const subscription = await response.json();
-    
-    if (response.ok) {
-      // Subscription created successfully
-      // Hide modal
-      hideModal(subscriptionModal);
+  }
+  
+  if (!selectedPlan) {
+    return; // No plan selected
+  }
+  
+  if (selectedPlan === 'free') {
+    // Downgrading to free plan - just update account
+    try {
+      const response = await fetch('/api/subscriptions/downgrade', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${window.authState.token}`,
+          'Content-Type': 'application/json'
+        }
+      });
       
-      // Update user info
-      authState.user.accountType = 'paid';
-      authState.usageLimit = Infinity;
+      if (!response.ok) {
+        throw new Error('Failed to downgrade subscription');
+      }
+      
+      // Update auth state
+      window.authState.accountType = 'free';
+      window.authState.runLimit = 25;
       
       // Update UI
       updateAuthUI();
       
-      // Show success message
-      alert('Subscription created successfully! You now have unlimited access.');
-    } else {
-      // Show error
-      const errorElement = document.getElementById('subscription-error');
-      if (errorElement) errorElement.textContent = subscription.error || 'Subscription failed';
+      // Hide modal
+      hideModal(subscriptionModal);
+      
+      alert('Your account has been updated to the Free plan.');
+    } catch (error) {
+      console.error('Downgrade error:', error);
+      alert('Failed to update subscription. Please try again.');
     }
+    
+    return;
+  }
+  
+  // For premium plan, use Stripe
+  const stripePublicKey = document.querySelector('meta[name="stripe-public-key"]').content;
+  if (!stripePublicKey) {
+    alert('Stripe configuration is missing. Please contact support.');
+    return;
+  }
+  
+  try {
+    const stripe = Stripe(stripePublicKey);
+    
+    // If we don't have card element yet, create it
+    if (!window.cardElement) {
+      const elements = stripe.elements();
+      const cardElement = elements.create('card');
+      cardElement.mount('#card-element');
+      window.cardElement = cardElement;
+    }
+    
+    // Show card section
+    document.getElementById('card-section').style.display = 'block';
+    
+    // Disable submit button during processing
+    const submitButton = event.target.querySelector('button[type="submit"]');
+    submitButton.disabled = true;
+    submitButton.textContent = 'Processing...';
+    
+    // Create payment method
+    const {error, paymentMethod} = await stripe.createPaymentMethod({
+      type: 'card',
+      card: window.cardElement
+    });
+    
+    if (error) {
+      throw new Error(error.message);
+    }
+    
+    // Send payment method to server
+    const response = await fetch('/api/subscriptions/create', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${window.authState.token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        paymentMethodId: paymentMethod.id,
+        plan: selectedPlan
+      })
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Subscription failed');
+    }
+    
+    const data = await response.json();
+    
+    // Update auth state
+    window.authState.accountType = 'paid';
+    window.authState.runLimit = Infinity;
+    
+    // Update UI
+    updateAuthUI();
+    
+    // Hide modal
+    hideModal(subscriptionModal);
+    
+    alert('Subscription successful! You now have unlimited access.');
   } catch (error) {
     console.error('Subscription error:', error);
-    const errorElement = document.getElementById('subscription-error');
-    if (errorElement) errorElement.textContent = 'An error occurred. Please try again.';
+    const errorEl = document.getElementById('subscription-error');
+    errorEl.textContent = error.message || 'Subscription failed. Please try again.';
   } finally {
-    // Reset button state
+    const submitButton = event.target.querySelector('button[type="submit"]');
     submitButton.disabled = false;
     submitButton.textContent = 'Subscribe';
   }
 }
 
-// Log out
-async function logout() {
-  try {
-    await fetch('/api/auth/logout', {
-      method: 'POST',
-      credentials: 'include'
-    });
-    
-    // Clear auth state
-    authState.isAuthenticated = false;
-    authState.user = null;
-    authState.usageLimit = 5; // Reset to anonymous limit
-    
-    // Update UI
-    updateAuthUI();
-  } catch (error) {
-    console.error('Logout error:', error);
-  }
-}
-
-// Fetch saved runs for the user
-async function fetchSavedRuns() {
-  if (!authState.isAuthenticated) return;
+// Log out user
+function logout() {
+  // Clear auth token
+  localStorage.removeItem('authToken');
   
-  try {
-    const response = await fetch('/api/runs/saved', {
-      method: 'GET',
-      credentials: 'include'
-    });
-    
-    if (response.ok) {
-      const data = await response.json();
-      authState.savedRuns = data.runs || [];
-      
-      // Update saved runs display
-      updateSavedRunsDisplay();
-    }
-  } catch (error) {
-    console.error('Error fetching saved runs:', error);
-  }
-}
-
-// Update saved runs display
-function updateSavedRunsDisplay() {
-  const savedRunsContainer = document.getElementById('saved-runs-container');
-  if (!savedRunsContainer) return;
+  // Reset auth state
+  resetAuthState();
   
-  if (authState.savedRuns.length === 0) {
-    savedRunsContainer.innerHTML = '<p class="text-center mt-4">No saved assessments yet.</p>';
-    return;
-  }
+  // Update UI
+  updateAuthUI();
   
-  // Create HTML for saved runs
-  let html = '<div class="divide-y">';
-  
-  authState.savedRuns.forEach(run => {
-    const date = new Date(run.createdAt).toLocaleDateString();
-    const time = new Date(run.createdAt).toLocaleTimeString();
-    
-    html += `
-      <div class="p-4 result-item">
-        <div class="flex flex-col w-full">
-          <div class="flex justify-between">
-            <h3 class="font-medium">${run.sourceLang} → ${run.targetLang}</h3>
-            <span class="text-sm">${date} ${time}</span>
-          </div>
-          <div class="mt-2 flex justify-between">
-            <div>
-              <p class="text-sm">Score: <span class="font-semibold">${run.mqmScore.toFixed(1)}</span></p>
-              <p class="text-sm">Issues: ${run.issues?.length || 0}</p>
-            </div>
-            <div>
-              <button class="btn-secondary text-sm" onclick="viewRun('${run._id}')">View</button>
-              <button class="btn-secondary text-sm ml-2" onclick="downloadReport('${run._id}', 'excel')">Excel</button>
-              <button class="btn-secondary text-sm ml-2" onclick="downloadReport('${run._id}', 'pdf')">PDF</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
+  // Hide any open modals
+  document.querySelectorAll('.modal-overlay').forEach(modal => {
+    hideModal(modal);
   });
+}
+
+// Show login modal
+function showLoginModal() {
+  showModal(loginModal);
   
-  html += '</div>';
-  savedRunsContainer.innerHTML = html;
+  // Focus on email input
+  const emailInput = document.getElementById('login-email');
+  if (emailInput) emailInput.focus();
 }
 
-// View a saved run
-function viewRun(runId) {
-  // Navigate to the run page or load the run data
-  window.location.href = `/run/${runId}`;
+// Show register modal
+function showRegisterModal() {
+  showModal(registerModal);
+  
+  // Focus on email input
+  const emailInput = document.getElementById('register-email');
+  if (emailInput) emailInput.focus();
 }
 
-// Download a report
-function downloadReport(runId, format) {
-  window.open(`/api/download-report/${runId}/${format}`, '_blank');
-}
-
-// Save the current run
-async function saveCurrentRun(runId) {
-  if (!authState.isAuthenticated) {
+// Show account modal
+function showAccountModal() {
+  if (!window.authState.isAuthenticated) {
     showLoginModal();
     return;
   }
   
-  try {
-    const response = await fetch(`/api/runs/save/${runId}`, {
-      method: 'POST',
-      credentials: 'include'
-    });
-    
-    if (response.ok) {
-      // Add to saved runs
-      fetchSavedRuns();
-      
-      // Show success message
-      alert('Assessment saved successfully!');
-    } else {
-      const data = await response.json();
-      alert(data.error || 'Failed to save assessment');
-    }
-  } catch (error) {
-    console.error('Error saving run:', error);
-    alert('An error occurred. Please try again.');
+  // Update account info with latest data
+  document.getElementById('account-email').textContent = window.authState.user.email;
+  document.getElementById('account-type').textContent = window.authState.accountType.charAt(0).toUpperCase() + window.authState.accountType.slice(1);
+  
+  if (window.authState.accountType === 'admin' || window.authState.accountType === 'paid') {
+    document.getElementById('account-usage').textContent = `${window.authState.runsUsed} runs (Unlimited)`;
+  } else {
+    document.getElementById('account-usage').textContent = `${window.authState.runsUsed} of ${window.authState.runLimit} runs`;
   }
+  
+  // Show/hide upgrade button
+  const upgradeBtn = document.getElementById('upgrade-btn');
+  if (upgradeBtn) {
+    upgradeBtn.style.display = (window.authState.accountType === 'paid' || window.authState.accountType === 'admin') ? 'none' : 'block';
+  }
+  
+  showModal(accountModal);
 }
 
-// Initialize admin functionality if user is admin
-function initAdminPanel() {
-  if (!authState.isAuthenticated || authState.user?.accountType !== 'admin') return;
-  
-  // Fetch users for admin panel
-  fetchUsers();
-  
-  // Add event listeners for admin actions
-  const userListElement = document.getElementById('admin-user-list');
-  if (userListElement) {
-    userListElement.addEventListener('click', handleAdminAction);
-  }
-}
-
-// Fetch users for admin panel
-async function fetchUsers() {
-  if (!authState.isAuthenticated || authState.user?.accountType !== 'admin') return;
-  
-  try {
-    const response = await fetch('/api/auth/users', {
-      method: 'GET',
-      credentials: 'include'
-    });
-    
-    if (response.ok) {
-      const data = await response.json();
-      
-      // Update users display
-      updateUsersDisplay(data.users);
-    }
-  } catch (error) {
-    console.error('Error fetching users:', error);
-  }
-}
-
-// Update users display in admin panel
-function updateUsersDisplay(users) {
-  const userListElement = document.getElementById('admin-user-list');
-  if (!userListElement) return;
-  
-  if (!users || users.length === 0) {
-    userListElement.innerHTML = '<p class="text-center mt-4">No users found.</p>';
+// Show dashboard modal
+function showDashboardModal() {
+  if (!window.authState.isAuthenticated) {
+    showLoginModal();
     return;
   }
   
-  // Create HTML for users
-  let html = '<div class="divide-y">';
+  showModal(dashboardModal);
   
-  users.forEach(user => {
-    const createdDate = new Date(user.createdAt).toLocaleDateString();
-    
-    html += `
-      <div class="p-4 flex justify-between items-center" data-user-id="${user._id}">
-        <div>
-          <p class="font-medium">${user.email}</p>
-          <p class="text-sm">Account: ${user.accountType}</p>
-          <p class="text-sm">Created: ${createdDate}</p>
-        </div>
-        <div>
-          <button class="btn-secondary text-sm" data-action="edit">Edit</button>
-          ${user.accountType !== 'admin' ? `<button class="btn-secondary text-sm ml-2" data-action="delete">Delete</button>` : ''}
-        </div>
-      </div>
-    `;
+  // Load saved assessments by default
+  loadSavedAssessments();
+}
+
+// Show admin modal
+function showAdminModal() {
+  if (!window.authState.isAuthenticated || window.authState.accountType !== 'admin') {
+    return;
+  }
+  
+  showModal(adminModal);
+  
+  // Load admin data
+  loadAdminData();
+}
+
+// Show modal and hide others
+function showModal(modal) {
+  if (!modal) return;
+  
+  // Hide all other modals
+  document.querySelectorAll('.modal-overlay').forEach(m => {
+    if (m !== modal) {
+      m.style.display = 'none';
+    }
   });
   
-  html += '</div>';
-  userListElement.innerHTML = html;
+  // Show selected modal
+  modal.style.display = 'flex';
 }
 
-// Handle admin actions
-function handleAdminAction(e) {
-  const target = e.target;
-  if (!target.matches('button[data-action]')) return;
-  
-  const action = target.getAttribute('data-action');
-  const userElement = target.closest('[data-user-id]');
-  const userId = userElement?.getAttribute('data-user-id');
-  
-  if (!userId) return;
-  
-  if (action === 'edit') {
-    showEditUserModal(userId);
-  } else if (action === 'delete') {
-    if (confirm('Are you sure you want to delete this user?')) {
-      deleteUser(userId);
-    }
-  }
+// Hide modal
+function hideModal(modal) {
+  if (!modal) return;
+  modal.style.display = 'none';
 }
 
-// Show edit user modal
-function showEditUserModal(userId) {
-  // Implement user editing logic
-  console.log('Edit user:', userId);
-}
-
-// Delete a user (admin only)
-async function deleteUser(userId) {
-  if (!authState.isAuthenticated || authState.user?.accountType !== 'admin') return;
+// Load saved assessments for dashboard
+async function loadSavedAssessments() {
+  if (!window.authState.isAuthenticated) return;
+  
+  const container = document.getElementById('saved-runs-container');
+  if (!container) return;
+  
+  // Show loading state
+  container.innerHTML = '<p class="text-center mt-4">Loading your assessments...</p>';
   
   try {
-    const response = await fetch(`/api/auth/users/${userId}`, {
-      method: 'DELETE',
-      credentials: 'include'
+    const response = await fetch('/api/runs/saved', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${window.authState.token}`
+      }
     });
     
-    if (response.ok) {
-      // Refresh users list
-      fetchUsers();
-    } else {
-      const data = await response.json();
-      alert(data.error || 'Failed to delete user');
+    if (!response.ok) {
+      throw new Error('Failed to load saved assessments');
     }
+    
+    const data = await response.json();
+    const runs = data.runs || [];
+    
+    if (runs.length === 0) {
+      container.innerHTML = '<div class="run-list-empty">You haven\'t saved any assessments yet.</div>';
+      return;
+    }
+    
+    // Build HTML for saved runs
+    let html = '';
+    
+    runs.forEach(run => {
+      const date = new Date(run.timestamp).toLocaleDateString();
+      const time = new Date(run.timestamp).toLocaleTimeString();
+      const languages = `${run.sourceLang || '?'} → ${run.targetLang || '?'}`;
+      const wordCount = run.wordCount || 0;
+      
+      html += `
+        <div class="run-item" data-run-id="${run._id}">
+          <div class="run-header">
+            <div class="run-title">${languages} (${wordCount} words)</div>
+            <div class="run-date">${date} ${time}</div>
+          </div>
+          <div class="run-details">
+            <div class="run-score">
+              Score: <strong>${run.mqmScore.toFixed(1)}</strong>
+            </div>
+            <div class="run-actions">
+              <button class="run-action-btn" onclick="viewRun('${run._id}')">View</button>
+              <button class="run-action-btn" onclick="deleteRun('${run._id}')">Delete</button>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+    
+    container.innerHTML = html;
   } catch (error) {
-    console.error('Error deleting user:', error);
-    alert('An error occurred. Please try again.');
+    console.error('Error loading saved assessments:', error);
+    container.innerHTML = '<div class="run-list-empty">Error loading assessments. Please try again.</div>';
   }
 }
 
-// Export functions for use in other scripts
+// Load recent activity for dashboard
+async function loadRecentActivity() {
+  if (!window.authState.isAuthenticated) return;
+  
+  const container = document.getElementById('saved-runs-container');
+  if (!container) return;
+  
+  // Show loading state
+  container.innerHTML = '<p class="text-center mt-4">Loading recent activity...</p>';
+  
+  try {
+    const response = await fetch('/api/runs/recent', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${window.authState.token}`
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to load recent activity');
+    }
+    
+    const data = await response.json();
+    const runs = data.runs || [];
+    
+    if (runs.length === 0) {
+      container.innerHTML = '<div class="run-list-empty">No recent activity found.</div>';
+      return;
+    }
+    
+    // Build HTML for recent runs
+    let html = '';
+    
+    runs.forEach(run => {
+      const date = new Date(run.timestamp).toLocaleDateString();
+      const time = new Date(run.timestamp).toLocaleTimeString();
+      const languages = `${run.sourceLang || '?'} → ${run.targetLang || '?'}`;
+      const wordCount = run.wordCount || 0;
+      const saved = run.saved ? '(Saved)' : '';
+      
+      html += `
+        <div class="run-item" data-run-id="${run._id}">
+          <div class="run-header">
+            <div class="run-title">${languages} (${wordCount} words) ${saved}</div>
+            <div class="run-date">${date} ${time}</div>
+          </div>
+          <div class="run-details">
+            <div class="run-score">
+              Score: <strong>${run.mqmScore.toFixed(1)}</strong>
+            </div>
+            <div class="run-actions">
+              <button class="run-action-btn" onclick="viewRun('${run._id}')">View</button>
+              ${!run.saved ? `<button class="run-action-btn" onclick="saveRun('${run._id}')">Save</button>` : ''}
+            </div>
+          </div>
+        </div>
+      `;
+    });
+    
+    container.innerHTML = html;
+  } catch (error) {
+    console.error('Error loading recent activity:', error);
+    container.innerHTML = '<div class="run-list-empty">Error loading activity. Please try again.</div>';
+  }
+}
+
+// Save the current run
+async function saveCurrentRun(runId) {
+  if (!window.authState.isAuthenticated || !runId) {
+    showLoginModal();
+    return;
+  }
+  
+  const saveBtn = document.getElementById('save-run-btn');
+  try {
+    // Show loading state
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Saving...';
+    }
+    
+    const response = await fetch(`/api/runs/${runId}/save`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${window.authState.token}`
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to save assessment');
+    }
+    
+    // Update button state
+    if (saveBtn) {
+      saveBtn.textContent = 'Saved!';
+      setTimeout(() => {
+        saveBtn.textContent = 'Save Assessment';
+        saveBtn.disabled = false;
+      }, 2000);
+    }
+  } catch (error) {
+    console.error('Error saving assessment:', error);
+    
+    // Update button state
+    if (saveBtn) {
+      saveBtn.textContent = 'Save Failed';
+      setTimeout(() => {
+        saveBtn.textContent = 'Save Assessment';
+        saveBtn.disabled = false;
+      }, 2000);
+    }
+  }
+}
+
+// Delete a saved run
+async function deleteRun(runId) {
+  if (!window.authState.isAuthenticated || !runId) {
+    return;
+  }
+  
+  // Confirm deletion
+  if (!confirm('Are you sure you want to delete this assessment?')) {
+    return;
+  }
+  
+  try {
+    const response = await fetch(`/api/runs/${runId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${window.authState.token}`
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to delete assessment');
+    }
+    
+    // Refresh the dashboard
+    loadSavedAssessments();
+  } catch (error) {
+    console.error('Error deleting assessment:', error);
+    alert('Failed to delete assessment. Please try again.');
+  }
+}
+
+// View a run from dashboard
+async function viewRun(runId) {
+  if (!window.authState.isAuthenticated || !runId) {
+    return;
+  }
+  
+  try {
+    const response = await fetch(`/api/runs/${runId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${window.authState.token}`
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to load assessment');
+    }
+    
+    const run = await response.json();
+    
+    // Populate form with run data
+    const sourceText = document.getElementById('source-text');
+    const targetText = document.getElementById('target-text');
+    const sourceLang = document.getElementById('source-lang');
+    const targetLang = document.getElementById('target-lang');
+    
+    if (sourceText) sourceText.value = run.sourceText || '';
+    if (targetText) targetText.value = run.targetText || '';
+    
+    if (sourceLang && run.sourceLang) {
+      sourceLang.value = run.sourceLang;
+      
+      // Update language detection display
+      const sourceLangDetected = document.getElementById('source-lang-detected');
+      if (sourceLangDetected) {
+        const flag = getLanguageFlag(run.sourceLang);
+        const name = getLanguageName(run.sourceLang);
+        sourceLangDetected.textContent = `Selected: ${flag} ${name}`;
+      }
+    }
+    
+    if (targetLang && run.targetLang) {
+      targetLang.value = run.targetLang;
+      
+      // Update language detection display
+      const targetLangDetected = document.getElementById('target-lang-detected');
+      if (targetLangDetected) {
+        const flag = getLanguageFlag(run.targetLang);
+        const name = getLanguageName(run.targetLang);
+        targetLangDetected.textContent = `Selected: ${flag} ${name}`;
+      }
+    }
+    
+    // Update word count
+    const updateWordCount = window.updateWordCountDisplay;
+    if (typeof updateWordCount === 'function') {
+      updateWordCount();
+    }
+    
+    // Display results
+    const displayResults = window.displayResults;
+    if (typeof displayResults === 'function') {
+      displayResults({
+        mqmIssues: run.issues || [],
+        categories: run.categories || {},
+        wordCount: run.wordCount || 0,
+        overallScore: run.mqmScore || 100,
+        summary: run.summary || 'Assessment loaded from saved run.',
+        _id: run._id
+      });
+    }
+    
+    // Highlight issues in text
+    const highlightIssues = window.highlightIssuesInText;
+    if (typeof highlightIssues === 'function' && run.targetText && run.issues) {
+      highlightIssues(run.targetText, run.issues);
+    }
+    
+    // Store current run data
+    window.currentIssues = run.issues || [];
+    window.currentTargetText = run.targetText || '';
+    window.currentRunId = run._id;
+    
+    // Show apply all button and undo button if there are issues
+    const applyAllBtn = document.getElementById('apply-all-btn');
+    const undoBtn = document.getElementById('undo-btn');
+    
+    if (applyAllBtn && undoBtn && run.issues && run.issues.length > 0) {
+      applyAllBtn.style.display = 'block';
+      undoBtn.style.display = 'block';
+      undoBtn.disabled = true; // Initially disabled until changes are made
+    }
+    
+    // Hide the dashboard modal
+    hideModal(dashboardModal);
+    
+    // Scroll to results
+    const resultsContainer = document.getElementById('results-container');
+    if (resultsContainer) {
+      resultsContainer.scrollIntoView({ behavior: 'smooth' });
+    }
+  } catch (error) {
+    console.error('Error loading assessment:', error);
+    alert('Failed to load assessment. Please try again.');
+  }
+}
+
+// Save a run from the recent list
+async function saveRun(runId) {
+  if (!window.authState.isAuthenticated || !runId) {
+    return;
+  }
+  
+  try {
+    const response = await fetch(`/api/runs/${runId}/save`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${window.authState.token}`
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to save assessment');
+    }
+    
+    // Refresh the dashboard
+    const activeTab = document.querySelector('.dashboard-tab.active');
+    if (activeTab) {
+      const tabType = activeTab.getAttribute('data-tab');
+      if (tabType === 'recent') {
+        loadRecentActivity();
+      } else {
+        loadSavedAssessments();
+      }
+    }
+  } catch (error) {
+    console.error('Error saving assessment:', error);
+    alert('Failed to save assessment. Please try again.');
+  }
+}
+
+// Load admin dashboard data
+async function loadAdminData() {
+  if (!window.authState.isAuthenticated || window.authState.accountType !== 'admin') {
+    return;
+  }
+  
+  const container = document.getElementById('admin-user-list');
+  if (!container) return;
+  
+  // Show loading state
+  container.innerHTML = '<p class="text-center mt-4">Loading users...</p>';
+  
+  try {
+    const response = await fetch('/api/admin/users', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${window.authState.token}`
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to load user data');
+    }
+    
+    const data = await response.json();
+    const users = data.users || [];
+    
+    if (users.length === 0) {
+      container.innerHTML = '<div class="run-list-empty">No users found.</div>';
+      return;
+    }
+    
+    // Build HTML for users
+    let html = '<table style="width: 100%; border-collapse: collapse;">';
+    html += '<tr style="border-bottom: 1px solid var(--border-light); font-weight: 500;">';
+    html += '<th style="text-align: left; padding: 10px;">Email</th>';
+    html += '<th style="text-align: left; padding: 10px;">Account Type</th>';
+    html += '<th style="text-align: left; padding: 10px;">Runs Used</th>';
+    html += '<th style="text-align: left; padding: 10px;">Actions</th>';
+    html += '</tr>';
+    
+    users.forEach(user => {
+      html += '<tr style="border-bottom: 1px solid var(--border-light);">';
+      html += `<td style="padding: 10px;">${user.email}</td>`;
+      html += `<td style="padding: 10px;">${user.accountType}</td>`;
+      html += `<td style="padding: 10px;">${user.runsUsed || 0}</td>`;
+      html += '<td style="padding: 10px;">';
+      html += `<button class="run-action-btn" onclick="changeUserType('${user._id}', 'free')">Set Free</button>`;
+      html += `<button class="run-action-btn" onclick="changeUserType('${user._id}', 'paid')">Set Paid</button>`;
+      html += `<button class="run-action-btn" onclick="changeUserType('${user._id}', 'admin')">Set Admin</button>`;
+      html += '</td>';
+      html += '</tr>';
+    });
+    
+    html += '</table>';
+    container.innerHTML = html;
+  } catch (error) {
+    console.error('Error loading admin data:', error);
+    container.innerHTML = '<div class="run-list-empty">Error loading user data. Please try again.</div>';
+  }
+}
+
+// Change user account type (admin function)
+async function changeUserType(userId, accountType) {
+  if (!window.authState.isAuthenticated || window.authState.accountType !== 'admin') {
+    return;
+  }
+  
+  try {
+    const response = await fetch(`/api/admin/users/${userId}/account-type`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${window.authState.token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ accountType })
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to update user account type');
+    }
+    
+    // Refresh admin data
+    loadAdminData();
+  } catch (error) {
+    console.error('Error updating user account type:', error);
+    alert('Failed to update user account type. Please try again.');
+  }
+}
+
+// Helper functions for language display
+function getLanguageFlag(code) {
+  // Extract main language code for regional variants
+  const mainCode = code.split('-')[0];
+  
+  // Define flags for all language codes
+  const flags = {
+    en: '🇬🇧', // Default English flag
+    'en-US': '🇺🇸',
+    'en-GB': '🇬🇧',
+    'en-CA': '🇨🇦',
+    'en-AU': '🇦🇺',
+    
+    es: '🇪🇸',
+    'es-ES': '🇪🇸',
+    'es-MX': '🇲🇽',
+    'es-CO': '🇨🇴',
+    'es-AR': '🇦🇷',
+    
+    fr: '🇫🇷',
+    'fr-FR': '🇫🇷',
+    'fr-CA': '🇨🇦',
+    'fr-BE': '🇧🇪',
+    'fr-CH': '🇨🇭',
+    
+    pt: '🇵🇹',
+    'pt-PT': '🇵🇹',
+    'pt-BR': '🇧🇷',
+    
+    zh: '🇨🇳',
+    'zh-CN': '🇨🇳',
+    'zh-TW': '🇹🇼',
+    'zh-HK': '🇭🇰',
+    'zh-SG': '🇸🇬',
+    
+    ar: '🇸🇦',
+    'ar-SA': '🇸🇦',
+    'ar-EG': '🇪🇬',
+    'ar-AE': '🇦🇪',
+    'ar-MA': '🇲🇦',
+    
+    de: '🇩🇪',
+    'de-DE': '🇩🇪',
+    'de-AT': '🇦🇹',
+    'de-CH': '🇨🇭',
+    
+    it: '🇮🇹',
+    ja: '🇯🇵',
+    ko: '🇰🇷',
+    ru: '🇷🇺',
+    hi: '🇮🇳',
+    bn: '🇧🇩',
+    tr: '🇹🇷',
+    vi: '🇻🇳',
+    pl: '🇵🇱',
+    uk: '🇺🇦',
+    fa: '🇮🇷',
+    nl: '🇳🇱',
+    ta: '🇮🇳',
+    ur: '🇵🇰',
+    th: '🇹🇭',
+    ms: '🇲🇾',
+    sw: '🇰🇪',
+    tl: '🇵🇭',
+    he: '🇮🇱',
+    ro: '🇷🇴',
+    hu: '🇭🇺',
+    el: '🇬🇷',
+    cs: '🇨🇿',
+    sv: '🇸🇪',
+    da: '🇩🇰',
+    fi: '🇫🇮',
+    no: '🇳🇴',
+    id: '🇮🇩',
+    sr: '🇷🇸',
+    sk: '🇸🇰',
+    bg: '🇧🇬',
+    hr: '🇭🇷',
+    sl: '🇸🇮',
+    et: '🇪🇪',
+    lv: '🇱🇻',
+    lt: '🇱🇹'
+  };
+  
+  return flags[code] || flags[mainCode] || '🏳️';
+}
+
+function getLanguageName(code) {
+  // Fallback language names
+  const names = {
+    en: 'English',
+    'en-US': 'English (US)',
+    'en-GB': 'English (UK)',
+    'en-CA': 'English (Canada)',
+    'en-AU': 'English (Australia)',
+    
+    es: 'Spanish',
+    'es-ES': 'Spanish (Spain)',
+    'es-MX': 'Spanish (Mexico)',
+    'es-CO': 'Spanish (Colombia)',
+    'es-AR': 'Spanish (Argentina)',
+    
+    fr: 'French',
+    'fr-FR': 'French (France)',
+    'fr-CA': 'French (Canada)',
+    'fr-BE': 'French (Belgium)',
+    'fr-CH': 'French (Switzerland)',
+    
+    pt: 'Portuguese',
+    'pt-PT': 'Portuguese (Portugal)',
+    'pt-BR': 'Portuguese (Brazil)',
+    
+    zh: 'Chinese',
+    'zh-CN': 'Chinese (Simplified)',
+    'zh-TW': 'Chinese (Traditional, Taiwan)',
+    'zh-HK': 'Chinese (Hong Kong)',
+    'zh-SG': 'Chinese (Singapore)',
+    
+    ar: 'Arabic',
+    'ar-SA': 'Arabic (Saudi Arabia)',
+    'ar-EG': 'Arabic (Egypt)',
+    'ar-AE': 'Arabic (UAE)',
+    'ar-MA': 'Arabic (Morocco)',
+    
+    de: 'German',
+    'de-DE': 'German (Germany)',
+    'de-AT': 'German (Austria)',
+    'de-CH': 'German (Switzerland)',
+    
+    it: 'Italian',
+    ja: 'Japanese',
+    ko: 'Korean',
+    ru: 'Russian',
+    hi: 'Hindi',
+    bn: 'Bengali',
+    tr: 'Turkish',
+    vi: 'Vietnamese',
+    pl: 'Polish',
+    uk: 'Ukrainian',
+    fa: 'Persian',
+    nl: 'Dutch',
+    ta: 'Tamil',
+    ur: 'Urdu',
+    th: 'Thai',
+    ms: 'Malay',
+    sw: 'Swahili',
+    tl: 'Tagalog',
+    he: 'Hebrew',
+    ro: 'Romanian',
+    hu: 'Hungarian',
+    el: 'Greek',
+    cs: 'Czech',
+    sv: 'Swedish',
+    da: 'Danish',
+    fi: 'Finnish',
+    no: 'Norwegian',
+    id: 'Indonesian',
+    sr: 'Serbian',
+    sk: 'Slovak',
+    bg: 'Bulgarian',
+    hr: 'Croatian',
+    sl: 'Slovenian',
+    et: 'Estonian',
+    lv: 'Latvian',
+    lt: 'Lithuanian'
+  };
+  
+  // Extract main language code for regional variants
+  const mainCode = code.split('-')[0];
+  
+  return names[code] || names[mainCode] || 'Unknown';
+}
+
+// Expose global functions
 window.showLoginModal = showLoginModal;
 window.showRegisterModal = showRegisterModal;
 window.showAccountModal = showAccountModal;
 window.showDashboardModal = showDashboardModal;
 window.showSubscriptionModal = showSubscriptionModal;
+window.showAdminModal = showAdminModal;
 window.hideModal = hideModal;
+window.logout = logout;
 window.saveCurrentRun = saveCurrentRun;
+window.saveRun = saveRun;
 window.viewRun = viewRun;
-window.downloadReport = downloadReport;
+window.deleteRun = deleteRun;
+window.changeUserType = changeUserType;
