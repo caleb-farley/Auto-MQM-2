@@ -439,17 +439,66 @@
       border: 1px solid rgba(244, 96, 54, 0.3);
     }
 
-    .critical {
-      background-color: var(--bg-critical);
-      color: var(--severity-critical);
-      border: 1px solid rgba(255, 107, 107, 0.3);
-    }
+  .critical {
+    background-color: var(--bg-critical);
+    color: var(--severity-critical);
+    border: 1px solid rgba(255, 107, 107, 0.3);
+  }
 
-    .success {
-      background-color: var(--bg-success);
-      color: var(--severity-success);
-      border: 1px solid rgba(40, 167, 69, 0.3);
-    }
+  .success {
+    background-color: var(--bg-success);
+    color: var(--severity-success);
+    border: 1px solid rgba(40, 167, 69, 0.3);
+  }
+  
+  /* Styles for rejected issues */
+  .rejected-issue {
+    display: none; /* Hidden by default */
+    opacity: 0.7;
+    border-left: 3px solid #ff6c36;
+    position: relative;
+  }
+
+  .rejected-issue::before {
+    content: "Rejected";
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background-color: var(--bg-minor);
+    color: var(--severity-minor);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  /* Restore button for rejected issues */
+  .restore-btn {
+    background-color: var(--bg-info);
+    color: var(--brand-teal);
+    border: 1px solid rgba(0, 179, 214, 0.3);
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    margin-left: 10px;
+  }
+
+  .restore-btn:hover {
+    background-color: var(--brand-teal);
+    color: white;
+  }
+  
+  /* Radio button styles for review mode */
+  .radio-container {
+    display: inline-flex;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .radio-container input[type="radio"] {
+    margin-right: 5px;
+  }
 
     /* Highlighted text handling - improved for mobile */
     #target-display {
@@ -745,6 +794,21 @@
         </div>
         <div id="excel-upload-status" style="margin-top: 15px; display: none;"></div>
       </div>
+      
+    <!-- Review Mode Selection -->
+    <div class="review-mode" style="margin-bottom: 20px; background-color: var(--bg-accent); padding: 15px; border-radius: 8px; border: 1px solid var(--border-light);">
+      <label style="font-weight: 500; color: var(--text-primary); margin-right: 10px;">Review Mode:</label>
+      <div class="mode-toggle" style="display: inline-block;">
+        <label class="radio-container" style="margin-right: 15px; cursor: pointer;">
+          <input type="radio" name="review-mode" value="bilingual" checked id="bilingual-mode">
+          <span style="margin-left: 5px;">Bilingual (Source + Target)</span>
+        </label>
+        <label class="radio-container" style="cursor: pointer;">
+          <input type="radio" name="review-mode" value="monolingual" id="monolingual-mode">
+          <span style="margin-left: 5px;">Monolingual (Target Only)</span>
+        </label>
+      </div>
+    </div>
         
     <!-- Text areas -->
     <div class="text-areas">
@@ -954,6 +1018,7 @@
     <button id="reset-btn" class="btn btn-secondary">Reset</button>
     <button id="apply-all-btn" class="btn btn-primary" style="display: none;">Apply All</button>
     <button id="undo-btn" class="btn btn-secondary" style="display: none;" disabled>Undo Last</button>
+    <button id="toggle-rejected-btn" class="btn btn-secondary" style="display: none;">Show Rejected Issues</button>
   </div>
 
   <div class="buttons" id="download-buttons" style="display: none;">
@@ -2090,9 +2155,56 @@ correctedText.removeAttribute('readonly');
       }
     });
 
+    // Track rejected issues
+    let rejectedIssues = [];
+    let showingRejectedIssues = false;
+
+    // Setup Review Mode Toggle
+    document.addEventListener('DOMContentLoaded', function() {
+      // Get the mode toggle elements
+      const bilingualMode = document.getElementById('bilingual-mode');
+      const monolingualMode = document.getElementById('monolingual-mode');
+      const sourceContainer = document.querySelector('.text-areas .text-area-container:first-child');
+      
+      // Initial setup (show all by default)
+      if (sourceContainer) {
+        sourceContainer.style.display = 'flex';
+      }
+      
+      // Toggle review mode
+      if (bilingualMode && monolingualMode) {
+        // Handle bilingual mode selection
+        bilingualMode.addEventListener('change', function() {
+          if (this.checked && sourceContainer) {
+            sourceContainer.style.display = 'flex';
+            
+            // If we're in grid layout, reset to 1fr 1fr
+            const textAreas = document.querySelector('.text-areas');
+            if (window.innerWidth >= 768 && textAreas) {
+              textAreas.style.gridTemplateColumns = '1fr 1fr';
+            }
+          }
+        });
+        
+        // Handle monolingual mode selection
+        monolingualMode.addEventListener('change', function() {
+          if (this.checked && sourceContainer) {
+            sourceContainer.style.display = 'none';
+            
+            // If we're in grid layout, make target text take full width
+            const textAreas = document.querySelector('.text-areas');
+            if (window.innerWidth >= 768 && textAreas) {
+              textAreas.style.gridTemplateColumns = '1fr';
+            }
+          }
+        });
+      }
+    });
+
     // Reject a suggestion for an issue
     window.rejectSuggestion = function(issueId) {
       const issue = currentIssues[issueId];
+      const issueElement = document.getElementById(`issue-${issueId}`);
       
       // Find the history entry where this correction was applied
       const historyIndex = changeHistory.findIndex(entry => entry.issueId === issueId);
@@ -2136,26 +2248,96 @@ correctedText.removeAttribute('readonly');
         correctedTextContainer.style.display = 'none';
       }
       
-      // Update UI of the issue
-      const acceptBtn = document.getElementById(`accept-btn-${issueId}`);
-      const rejectBtn = document.getElementById(`reject-btn-${issueId}`);
-      
-      if (acceptBtn) acceptBtn.disabled = false;
-      if (rejectBtn) rejectBtn.disabled = true;
-      
-      // Show status in the issue
-      const statusEl = document.getElementById(`issue-status-${issueId}`);
-      if (statusEl) {
-        statusEl.textContent = 'Correction rejected';
-        statusEl.className = 'issue-status minor';
-        statusEl.style.display = 'block';
+      // Hide the issue and add it to rejected issues
+      if (issueElement) {
+        // Add to rejected issues list if not already there
+        if (!rejectedIssues.includes(issueId)) {
+          rejectedIssues.push(issueId);
+        }
         
-        // Hide the status after 2 seconds
-        setTimeout(() => {
-          statusEl.style.display = 'none';
-        }, 2000);
+        // Add rejected-issue class to enable styling and hide it
+        issueElement.classList.add('rejected-issue');
+        
+        // Only actually hide it if we're not showing rejected issues
+        if (!showingRejectedIssues) {
+          issueElement.style.display = 'none';
+        }
+        
+        // Add restore button if it doesn't exist
+        if (!document.getElementById(`restore-btn-${issueId}`)) {
+          const restoreBtn = document.createElement('button');
+          restoreBtn.id = `restore-btn-${issueId}`;
+          restoreBtn.className = 'restore-btn';
+          restoreBtn.textContent = 'Undo Reject';
+          restoreBtn.onclick = function() { restoreIssue(issueId); };
+          
+          // Add restore button to issue actions
+          const actionsDiv = issueElement.querySelector('.issue-actions');
+          if (actionsDiv) {
+            actionsDiv.appendChild(restoreBtn);
+          }
+        }
+      }
+      
+      // Update "Toggle Rejected Issues" button visibility
+      const toggleBtn = document.getElementById('toggle-rejected-btn');
+      if (toggleBtn && rejectedIssues.length > 0) {
+        toggleBtn.style.display = 'block';
       }
     };
+    
+    // Restore a rejected issue
+    window.restoreIssue = function(issueId) {
+      const issueElement = document.getElementById(`issue-${issueId}`);
+      if (issueElement) {
+        // Remove from rejected issues list
+        rejectedIssues = rejectedIssues.filter(id => id !== issueId);
+        
+        // Restore visibility
+        issueElement.classList.remove('rejected-issue');
+        issueElement.style.display = 'block';
+        
+        // Remove restore button
+        const restoreBtn = document.getElementById(`restore-btn-${issueId}`);
+        if (restoreBtn) {
+          restoreBtn.remove();
+        }
+        
+        // Enable accept button again
+        const acceptBtn = document.getElementById(`accept-btn-${issueId}`);
+        if (acceptBtn) {
+          acceptBtn.disabled = false;
+        }
+        
+        // Update "Toggle Rejected Issues" button visibility
+        const toggleBtn = document.getElementById('toggle-rejected-btn');
+        if (toggleBtn && rejectedIssues.length === 0) {
+          toggleBtn.style.display = 'none';
+        }
+      }
+    };
+    
+    // Toggle showing/hiding rejected issues
+    document.addEventListener('DOMContentLoaded', function() {
+      const toggleRejectedBtn = document.getElementById('toggle-rejected-btn');
+      
+      if (toggleRejectedBtn) {
+        toggleRejectedBtn.addEventListener('click', function() {
+          showingRejectedIssues = !showingRejectedIssues;
+          
+          // Update button text
+          this.textContent = showingRejectedIssues ? 'Hide Rejected Issues' : 'Show Rejected Issues';
+          
+          // Show/hide rejected issues
+          rejectedIssues.forEach(issueId => {
+            const issueElement = document.getElementById(`issue-${issueId}`);
+            if (issueElement) {
+              issueElement.style.display = showingRejectedIssues ? 'block' : 'none';
+            }
+          });
+        });
+      }
+    });
 
     // Apply all suggestions at once
     applyAllBtn.addEventListener('click', () => {
