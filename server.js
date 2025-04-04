@@ -677,16 +677,15 @@ app.post('/api/upload-excel', upload.single('excelFile'), async (req, res) => {
       return res.status(400).json({ error: `Source text exceeds the ${WORD_COUNT_LIMIT} word limit` });
     }
 
-    // Extract issues
+    // Extract issues from Excel file (if any)
     const issuesSheet = workbook.getWorksheet('Issues');
     if (!issuesSheet) {
       return res.status(400).json({ error: 'Invalid template: Issues sheet not found' });
     }
 
-    const issues = [];
-    let totalPoints = 0;
+    const userProvidedIssues = [];
 
-    // Extract issue details
+    // Extract issue details from Excel
     issuesSheet.eachRow((row, rowNumber) => {
       if (rowNumber > 1) { // Skip header row
         const segment = row.getCell(1).value || '';
@@ -699,30 +698,23 @@ app.post('/api/upload-excel', upload.single('excelFile'), async (req, res) => {
         if (segment && category && subcategory && severityText) {
           // Map severity text to severity level
           let severity;
-          let points = 0;
           
           switch (severityText.trim().toLowerCase()) {
             case 'minor':
               severity = 'MINOR';
-              points = 1;
               break;
             case 'major':
               severity = 'MAJOR';
-              points = 5;
               break;
             case 'critical':
               severity = 'CRITICAL';
-              points = 10;
               break;
             default:
               severity = 'MINOR'; // Default to minor if not specified correctly
-              points = 1;
           }
 
-          totalPoints += points;
-
           // Create issue object
-          issues.push({
+          userProvidedIssues.push({
             category,
             subcategory,
             severity,
@@ -735,83 +727,234 @@ app.post('/api/upload-excel', upload.single('excelFile'), async (req, res) => {
       }
     });
 
-    // Calculate MQM score
-    const overallScore = Math.max(0, Math.min(100, 100 - (totalPoints / wordCount * 100)));
-
-    // Group issues by category for summary
-    const categories = {
-      "Accuracy": { count: 0, points: 0 },
-      "Fluency": { count: 0, points: 0 },
-      "Terminology": { count: 0, points: 0 },
-      "Style": { count: 0, points: 0 },
-      "Design": { count: 0, points: 0 }
-    };
+    // Run Claude MQM analysis on the extracted text, just like /api/mqm-analysis endpoint
+    const claudeApiKey = process.env.CLAUDE_API_KEY;
     
-    // Count issues and points by category
-    issues.forEach(issue => {
-      if (categories[issue.category]) {
-        categories[issue.category].count++;
-        
-        let points = 0;
-        if (issue.severity === 'MINOR') points = 1;
-        else if (issue.severity === 'MAJOR') points = 5;
-        else if (issue.severity === 'CRITICAL') points = 10;
-        
-        categories[issue.category].points += points;
+    if (!claudeApiKey) {
+      return res.status(500).json({ error: 'API key not configured' });
+    }
+    
+    // Construct prompt for Claude using MQM framework (same as in /api/mqm-analysis)
+    const prompt = `
+You are a localization QA expert using the MQM (Multidimensional Quality Metrics) framework to evaluate translations. Please analyze the following source and target text pair and provide a detailed quality assessment.
+
+Source language: ${sourceLang}
+Target language: ${targetLang}
+
+Source text:
+"""
+${sourceText}
+"""
+
+Target text:
+"""
+${targetText}
+"""
+
+Perform a detailed MQM analysis using the following error categories:
+1. Accuracy
+   - Mistranslation: Content in target language that misrepresents source content
+   - Omission: Content missing from translation that is present in source
+   - Addition: Content added to translation that is not present in source
+   - Untranslated: Source content not translated that should be
+
+2. Fluency
+   - Grammar: Issues related to grammar, syntax, or morphology
+   - Spelling: Spelling errors or typos
+   - Punctuation: Incorrect or inconsistent punctuation
+   - Typography: Issues with formatting, capitalization, or other typographical elements
+   
+3. Terminology
+   - Inconsistent: Terminology used inconsistently within the text
+   - Inappropriate: Wrong terms used for the context or domain
+
+4. Style
+   - Awkward: Translation sounds unnatural or awkward
+   - Cultural: Cultural references incorrectly adapted
+
+5. Design
+   - Length: Target text is too long or too short relative to space constraints
+   - Markup/Code: Issues with tags, placeholders, or code elements
+
+For each issue found, provide:
+- Category and subcategory
+- Severity (Minor=1, Major=5, Critical=10)
+- Explanation
+- Location (if possible, provide specific information like character positions or word indices)
+- The exact problematic text segment from the target translation
+- A suggested fix (textual description of what needs to be changed)
+- A fully corrected version of the entire segment with the fix applied
+- Provide the exact **start and end character positions** of the segment in the target text.
+
+Also provide an MQM score calculated as:
+MQM Score = 100 - (sum of error points / word count * 100)
+Where:
+- Minor issues = 1 point
+- Major issues = 5 points
+- Critical issues = 10 points
+
+Return ONLY valid JSON without any other text. Use this exact structure:
+{
+  "mqmIssues": [
+    {
+      "category": "Accuracy",
+      "subcategory": "Mistranslation",
+      "severity": "MAJOR",
+      "explanation": "...",
+      "location": "...",
+      "segment": "...",
+      "suggestion": "...",
+      "correctedSegment": "..."
+      "startIndex": 45,
+      "endIndex": 68
+    },
+    ...
+  ],
+  "categories": {
+    "Accuracy": { "count": 0, "points": 0 },
+    "Fluency": { "count": 0, "points": 0 },
+    "Terminology": { "count": 0, "points": 0 },
+    "Style": { "count": 0, "points": 0 },
+    "Design": { "count": 0, "points": 0 }
+  },
+  "wordCount": 120,
+  "overallScore": 95,
+  "summary": "..."
+}
+
+For the location field, try to be as specific as possible. Preferred format is:
+- For specific words: "Word 5-7 in sentence 2" or "Characters 120-135"
+- For sentences: "Sentence 3 in paragraph 2"
+- For paragraphs: "Paragraph 4"
+
+For the segment field, include ONLY the exact problematic text from the target translation.
+For the correctedSegment field, provide the complete fixed version of the segment with all corrections applied.
+
+For example, if the segment is "The internationale women day" and the issue is terminology inconsistency, then correctedSegment might be "La journée internationale des femmes".
+`;
+
+    // Call Claude API
+    const response = await axios.post(
+      'https://api.anthropic.com/v1/messages',
+      {
+        model: "claude-3-sonnet-20240229",
+        max_tokens: 4000,
+        messages: [
+          {
+            role: "user",
+            content: prompt
+          }
+        ]
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': claudeApiKey,
+          'anthropic-version': '2023-06-01'
+        }
       }
-    });
+    );
 
-    // Generate summary based on score
-    let summary;
-    if (overallScore >= 90) {
-      summary = "The translation is generally good with only minor issues. It accurately conveys the source content with a few small improvements possible.";
-    } else if (overallScore >= 70) {
-      summary = "The translation has a few issues that should be addressed, but is generally acceptable. Some accuracy and fluency improvements would enhance quality.";
-    } else {
-      summary = "The translation has several significant issues that need addressing. Major improvements in accuracy and fluency are recommended.";
-    }
-
-    // Prepare result object
-    const mqmResults = {
-      mqmIssues: issues,
-      categories,
-      wordCount,
-      overallScore,
-      summary
-    };
-
-    // Save to database
-    const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress;
-    let location = {};
+    // Extract the content from Claude's response
+    const content = response.data.content[0].text;
+    console.log('🧠 Claude response for Excel upload:', content);
     
-    try {
-      const geoResponse = await axios.get(`https://ipapi.co/${ip}/json/`);
-      location = {
-        ip,
-        city: geoResponse.data.city,
-        region: geoResponse.data.region,
-        country: geoResponse.data.country_name,
-        org: geoResponse.data.org
-      };
-    } catch (err) {
-      console.warn('🌐 Could not fetch geolocation:', err.message);
+    // Find and parse the JSON in the response
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.error('❌ No JSON match found in Claude response');
+      return res.status(500).json({ error: 'Could not parse analysis results' });
     }
+    
+    let mqmResults;
+    try {
+      mqmResults = JSON.parse(jsonMatch[0]);
+      
+      // Merge Claude's issues with user-provided issues from Excel (if any)
+      if (userProvidedIssues.length > 0) {
+        mqmResults.mqmIssues = [...mqmResults.mqmIssues, ...userProvidedIssues];
+        
+        // Recalculate category counts and points
+        mqmResults.categories = {
+          "Accuracy": { count: 0, points: 0 },
+          "Fluency": { count: 0, points: 0 },
+          "Terminology": { count: 0, points: 0 },
+          "Style": { count: 0, points: 0 },
+          "Design": { count: 0, points: 0 }
+        };
+        
+        let totalPoints = 0;
+        mqmResults.mqmIssues.forEach(issue => {
+          if (mqmResults.categories[issue.category]) {
+            mqmResults.categories[issue.category].count++;
+            
+            let points = 0;
+            if (issue.severity === 'MINOR') points = 1;
+            else if (issue.severity === 'MAJOR') points = 5;
+            else if (issue.severity === 'CRITICAL') points = 10;
+            
+            mqmResults.categories[issue.category].points += points;
+            totalPoints += points;
+          }
+        });
+        
+        // Recalculate overall score
+        mqmResults.overallScore = Math.max(0, Math.min(100, 100 - (totalPoints / wordCount * 100)));
+        
+        // Update summary based on new score
+        if (mqmResults.overallScore >= 90) {
+          mqmResults.summary = "The translation is generally good with only minor issues. It accurately conveys the source content with a few small improvements possible.";
+        } else if (mqmResults.overallScore >= 70) {
+          mqmResults.summary = "The translation has a few issues that should be addressed, but is generally acceptable. Some accuracy and fluency improvements would enhance quality.";
+        } else {
+          mqmResults.summary = "The translation has several significant issues that need addressing. Major improvements in accuracy and fluency are recommended.";
+        }
+      }
+      
+      // Save to database
+      const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress;
+      let location = {};
+      
+      try {
+        const geoResponse = await axios.get(`https://ipapi.co/${ip}/json/`);
+        location = {
+          ip,
+          city: geoResponse.data.city,
+          region: geoResponse.data.region,
+          country: geoResponse.data.country_name,
+          org: geoResponse.data.org
+        };
+      } catch (err) {
+        console.warn('🌐 Could not fetch geolocation:', err.message);
+      }
 
-    const runDoc = await Run.create({
-      sourceText,
-      targetText,
-      sourceLang,
-      targetLang,
-      mqmScore: overallScore,
-      issues,
-      ip: location.ip,
-      location,
-      summary,
-      wordCount
-    });
+      const runDoc = await Run.create({
+        sourceText,
+        targetText,
+        sourceLang,
+        targetLang,
+        mqmScore: mqmResults.overallScore,
+        issues: mqmResults.mqmIssues,
+        ip: location.ip,
+        location,
+        summary: mqmResults.summary,
+        wordCount: mqmResults.wordCount || wordCount
+      });
 
-    // Return the results with the database ID
-    return res.json({ ...mqmResults, _id: runDoc._id });
+      // Return the results with the database ID
+      return res.json({ 
+        ...mqmResults, 
+        _id: runDoc._id,
+        sourceText,  // Include source and target text in response
+        targetText,
+        sourceLang,
+        targetLang
+      });
+      
+    } catch (error) {
+      console.error('Error parsing JSON or processing Claude response:', error);
+      return res.status(500).json({ error: 'Could not parse analysis results' });
+    }
 
   } catch (error) {
     console.error('Excel upload error:', error);
