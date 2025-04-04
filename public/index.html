@@ -1152,27 +1152,99 @@
     color: white;
   }
   
-  /* Radio button styles for review mode */
-  .radio-container {
-    display: inline-flex;
-    align-items: center;
-    margin-bottom: 14px;
-    margin-right: 18px;
-    padding: 10px 16px;
+  /* Review Mode Toggle Switch Styles */
+  .review-mode-toggle {
+    background-color: var(--bg-accent);
     border-radius: 12px;
-    transition: all 0.2s ease;
-    border: 1px solid transparent;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border-light);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+    transition: all var(--transition-normal);
   }
-
-  .radio-container:hover {
-    background-color: rgba(255, 255, 255, 0.08);
-    border: 1px solid var(--border-input);
-    transform: translateY(-1px);
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+  
+  .review-mode-label {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+    font-size: 15px;
   }
-
-  .radio-container input[type="radio"] {
-    margin-right: 10px;
+  
+  .toggle-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+  }
+  
+  .toggle-option {
+    font-size: 14px;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    padding: 5px 8px;
+  }
+  
+  .toggle-option.active {
+    color: var(--brand-teal);
+    font-weight: 500;
+  }
+  
+  .toggle-description {
+    font-size: 13px;
+    color: var(--text-muted);
+    text-align: center;
+    margin-top: 8px;
+  }
+  
+  /* Toggle Switch */
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 24px;
+  }
+  
+  .switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--border-light);
+    transition: .4s;
+    border-radius: 24px;
+  }
+  
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+  }
+  
+  input:checked + .slider {
+    background-color: var(--brand-orange);
+  }
+  
+  input:focus + .slider {
+    box-shadow: 0 0 1px var(--brand-orange);
+  }
+  
+  input:checked + .slider:before {
+    transform: translateX(26px);
   }
 
     /* Highlighted text handling - improved for mobile */
@@ -1461,18 +1533,19 @@
         </p>
       </div>
       
-    <!-- Review Mode Selection -->
-    <div class="review-mode" style="margin-bottom: 20px; background-color: var(--bg-accent); padding: 15px; border-radius: 8px; border: 1px solid var(--border-light);">
-      <label style="font-weight: 500; color: var(--text-primary); margin-right: 10px;">Review Mode:</label>
-      <div class="mode-toggle" style="display: inline-block;">
-        <label class="radio-container" style="margin-right: 15px; cursor: pointer;">
-          <input type="radio" name="review-mode" value="bilingual" checked id="bilingual-mode">
-          <span style="margin-left: 5px;">Bilingual (Source + Target)</span>
+    <!-- Review Mode Selection - Improved Design -->
+    <div class="review-mode-toggle">
+      <div class="review-mode-label">Review Mode</div>
+      <div class="toggle-container">
+        <div class="toggle-option toggle-option-left active" id="bilingual-label">Bilingual</div>
+        <label class="switch">
+          <input type="checkbox" id="review-mode-toggle">
+          <span class="slider"></span>
         </label>
-        <label class="radio-container" style="cursor: pointer;">
-          <input type="radio" name="review-mode" value="monolingual" id="monolingual-mode">
-          <span style="margin-left: 5px;">Monolingual (Target Only)</span>
-        </label>
+        <div class="toggle-option toggle-option-right" id="monolingual-label">Monolingual</div>
+      </div>
+      <div class="toggle-description">
+        <span id="mode-description">Source + Target</span>
       </div>
     </div>
         

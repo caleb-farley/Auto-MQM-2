@@ -494,17 +494,17 @@ try {
     const prompt = `
 You are a localization QA expert using the MQM (Multidimensional Quality Metrics) framework to evaluate translations. Please analyze the following source and target text pair and provide a detailed quality assessment.
 
-IMPORTANT GUIDELINES FOR OBJECTIVE ASSESSMENT:
-1. ONLY analyze the EXACT text provided in the submission. Do NOT invent or hallucinate errors that don't actually exist in the text.
-2. If you don't find any genuine errors, return an empty mqmIssues array. Never fabricate issues.
+IMPORTANT GUIDELINES FOR EFFECTIVE ASSESSMENT:
+1. ONLY analyze the EXACT text provided in the submission. Do NOT invent or hallucinate errors that don't appear in the text.
+2. Be thorough in your analysis - even small or subtle issues can be important for quality assessment.
 3. For each issue identified, provide SPECIFIC EVIDENCE from the text - quote the exact problematic section.
-4. Distinguish between objective errors and subjective stylistic preferences. Focus primarily on clear errors.
+4. Include both objective errors and potentially problematic stylistic issues that may affect readability.
 5. Consider language-specific conventions and cultural context when evaluating translations.
-6. For each issue, assign a confidence level (HIGH, MEDIUM, LOW) based on how certain you are about the error.
-7. Compare corresponding sections of source and target to verify actual translation issues.
-8. Respect domain-specific terminology and conventions that may appear non-standard in general language.
-9. When multiple interpretations are possible, select the most charitable interpretation that makes sense in context.
-10. Evaluate the translation based on its communicative purpose, not just literal accuracy.
+6. For each issue, indicate your confidence level (HIGH, MEDIUM, LOW).
+7. Compare corresponding sections of source and target to identify translation issues.
+8. Be aware of domain-specific terminology, but flag terms that seem inconsistent or incorrectly translated.
+9. When multiple interpretations are possible, note this and explain the potential issue.
+10. Evaluate for both accuracy and fluency - both are important components of translation quality.
 
 Source language: ${sourceLang}
 Target language: ${targetLang}
