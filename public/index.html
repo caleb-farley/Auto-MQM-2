@@ -895,6 +895,83 @@
 
 // Initialize when DOM is fully loaded
 document.addEventListener('DOMContentLoaded', function() {
+  console.log('DOM fully loaded');
+  
+  // Get DOM elements (define them locally to ensure they're found after DOM is loaded)
+  const sourceText = document.getElementById('source-text');
+  const targetText = document.getElementById('target-text');
+  const sourceLang = document.getElementById('source-lang');
+  const targetLang = document.getElementById('target-lang');
+  
+  // Attach event listeners for source text input
+  if (sourceText) {
+    console.log('Source text found, attaching listeners');
+    sourceText.addEventListener('input', function() {
+      console.log('Source text input detected');
+      updateWordCountDisplay();
+      handleSourceLanguageDetection();
+    });
+    
+    sourceText.addEventListener('paste', function() {
+      console.log('Source text paste detected');
+      setTimeout(function() {
+        updateWordCountDisplay();
+        handleSourceLanguageDetection();
+      }, 10);
+    });
+  } else {
+    console.error('Source text element not found');
+  }
+  
+  // Attach event listeners for target text input
+  if (targetText) {
+    console.log('Target text found, attaching listeners');
+    targetText.addEventListener('input', function() {
+      console.log('Target text input detected');
+      handleTargetLanguageDetection();
+      updateAnalyzeButton();
+    });
+    
+    targetText.addEventListener('paste', function() {
+      console.log('Target text paste detected');
+      setTimeout(function() {
+        handleTargetLanguageDetection();
+        updateAnalyzeButton();
+      }, 10);
+    });
+  } else {
+    console.error('Target text element not found');
+  }
+  
+  // Attach event listeners for language selectors
+  if (sourceLang) {
+    sourceLang.addEventListener('change', function() {
+      console.log('Source language changed');
+      if (sourceLang.value) {
+        const flag = getLanguageFlag(sourceLang.value);
+        const name = getLanguageName(sourceLang.value);
+        sourceLangDetected.textContent = `Selected: ${flag} ${name}`;
+      } else {
+        sourceLangDetected.textContent = '';
+      }
+      updateAnalyzeButton();
+    });
+  }
+  
+  if (targetLang) {
+    targetLang.addEventListener('change', function() {
+      console.log('Target language changed');
+      if (targetLang.value) {
+        const flag = getLanguageFlag(targetLang.value);
+        const name = getLanguageName(targetLang.value);
+        targetLangDetected.textContent = `Selected: ${flag} ${name}`;
+      } else {
+        targetLangDetected.textContent = '';
+      }
+      updateAnalyzeButton();
+    });
+  }
+  
   // Initialize word count and update button state
   updateWordCountDisplay();
   updateAnalyzeButton();
@@ -1034,27 +1111,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
  // Add this right after all your DOM element declarations
-if (sourceText) {
-  sourceText.addEventListener('input', function() {
-    setTimeout(function() {
-      updateWordCountDisplay();
-      handleSourceLanguageDetection();
-    }, 0);
-  });
-} else {
-  console.error('Source text element not found');
-}
-
-if (targetText) {
-  targetText.addEventListener('input', function() {
-    setTimeout(function() {
-      handleTargetLanguageDetection();
-      updateAnalyzeButton();
-    }, 0);
-  });
-} else {
-  console.error('Target text element not found');
-}
 
     // Update target language detection
     function handleTargetLanguageDetection() {
@@ -1072,31 +1128,6 @@ if (targetText) {
       }
       updateAnalyzeButton();
     }
-
-    // Update language display when selected manually
-    sourceLang.addEventListener('change', () => {
-      if (sourceLang.value) {
-        const flag = getLanguageFlag(sourceLang.value);
-        const name = getLanguageName(sourceLang.value);
-        sourceLangDetected.textContent = `Selected: ${flag} ${name}`;
-      } else {
-        sourceLangDetected.textContent = '';
-      }
-      
-      updateAnalyzeButton();
-    });
-
-    targetLang.addEventListener('change', () => {
-      if (targetLang.value) {
-        const flag = getLanguageFlag(targetLang.value);
-        const name = getLanguageName(targetLang.value);
-        targetLangDetected.textContent = `Selected: ${flag} ${name}`;
-      } else {
-        targetLangDetected.textContent = '';
-      }
-      
-      updateAnalyzeButton();
-    });
 
     // Update analyze button state
     function updateAnalyzeButton() {
