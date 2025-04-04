@@ -4,13 +4,24 @@ const cors = require('cors');
 const axios = require('axios');
 const dotenv = require('dotenv');
 const path = require('path');
-const Run = require('./models/Run');
+const cookieParser = require('cookie-parser');
+const mongoose = require('mongoose');
 const PDFDocument = require('pdfkit');
+
+// Import models
+const Run = require('./models/Run');
+const User = require('./models/User');
+
+// Import routes
+const authRoutes = require('./routes/authRoutes');
+const stripeRoutes = require('./routes/stripeRoutes');
+const runRoutes = require('./routes/runRoutes');
+
+// Import middleware
+const authMiddleware = require('./middleware/authMiddleware');
 
 // Load environment variables
 dotenv.config();
-
-const mongoose = require('mongoose');
 
 mongoose.connection.on('connected', () => {
   console.log('🔌 Mongoose connected to DB');
@@ -30,10 +41,27 @@ mongoose.connect(process.env.MONGODB_URI, {
   console.error('❌ MongoDB connection error:', err);
 });
 
+// Initialize Express app
 const app = express();
-app.use(cors());
-app.use(express.json());
 
+// CORS setup
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' 
+    ? process.env.FRONTEND_URL || true
+    : true,
+  credentials: true // Allow cookies to be sent with requests
+}));
+
+// Special middleware for Stripe webhook (must be before express.json())
+app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));
+
+// Regular middleware
+app.use(express.json());
+app.use(cookieParser());
+// Mount route handlers
+app.use('/api/auth', authRoutes);
+app.use('/api/stripe', stripeRoutes);
+app.use('/api/runs', runRoutes);
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.status(200).send('OK');
@@ -88,7 +116,7 @@ app.post('/api/detect-language', async (req, res) => {
 });
 
 // Source/Target Alignment Check Endpoint
-app.post('/api/check-alignment', async (req, res) => {
+app.post('/api/check-alignment', authMiddleware.optionalAuth, async (req, res) => {
   try {
     const { sourceText, targetText, sourceLang, targetLang } = req.body;
 
@@ -179,7 +207,7 @@ Please respond in **valid JSON** format like this:
 });
 
 // Excel template download endpoint
-app.get('/api/download-template', async (req, res) => {
+app.get('/api/download-template', authMiddleware.optionalAuth, async (req, res) => {
   try {
     const workbook = new ExcelJS.Workbook();
     
@@ -333,7 +361,11 @@ app.get('/api/download-template', async (req, res) => {
 });
 
 // MQM analysis endpoint using Claude API
-app.post('/api/mqm-analysis', async (req, res) => {
+app.post('/api/mqm-analysis', 
+  authMiddleware.optionalAuth, 
+  authMiddleware.checkUsageLimit,
+  authMiddleware.trackUsage,
+  async (req, res) => {
   try {
     const { sourceText, targetText, sourceLang, targetLang } = req.body;
     const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress;
@@ -509,7 +541,8 @@ For example, if the segment is "The internationale women day" and the issue is t
     try {
       const mqmResults = JSON.parse(jsonMatch[0]);
 
-      const runDoc = await Run.create({
+      // Prepare run document with user info if authenticated
+      const runData = {
         sourceText,
         targetText,
         sourceLang,
@@ -519,8 +552,18 @@ For example, if the segment is "The internationale women day" and the issue is t
         mqmScore: mqmResults.overallScore,
         issues: mqmResults.mqmIssues,
         ip: location.ip,
-        location
-      });
+        location,
+        wordCount: mqmResults.wordCount
+      };
+
+      // Add user association if authenticated
+      if (req.user) {
+        runData.user = req.user.id;
+      } else if (req.cookies.anonymousSessionId) {
+        runData.anonymousSessionId = req.cookies.anonymousSessionId;
+      }
+
+      const runDoc = await Run.create(runData);
 
       // ✅ Include _id in the response
       return res.json({ ...mqmResults, _id: runDoc._id });
@@ -541,10 +584,17 @@ For example, if the segment is "The internationale women day" and the issue is t
 
 const { Readable } = require('stream');
 
-app.get('/api/download-report/:id/pdf', async (req, res) => {
+app.get('/api/download-report/:id/pdf', authMiddleware.optionalAuth, async (req, res) => {
   try {
     const run = await Run.findById(req.params.id);
+    // Check authorization
+    if (run.user && req.user && (run.user.toString() !== req.user.id && req.user.accountType !== 'admin')) {
+      return res.status(403).json({ error: 'You do not have permission to access this report' });
+    }
 
+    if (!run.user && run.anonymousSessionId && run.anonymousSessionId !== req.cookies.anonymousSessionId) {
+      return res.status(403).json({ error: 'You do not have permission to access this report' });
+    }
     if (!run) {
       return res.status(404).json({ error: 'Report not found' });
     }
@@ -605,7 +655,12 @@ const upload = multer({
 });
 
 // Upload and process Excel template
-app.post('/api/upload-excel', upload.single('excelFile'), async (req, res) => {
+app.post('/api/upload-excel', 
+  upload.single('excelFile'),
+  authMiddleware.optionalAuth,
+  authMiddleware.checkUsageLimit,
+  authMiddleware.trackUsage,
+  async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
@@ -928,7 +983,8 @@ For example, if the segment is "The internationale women day" and the issue is t
         console.warn('🌐 Could not fetch geolocation:', err.message);
       }
 
-      const runDoc = await Run.create({
+      // Prepare run document
+      const runData = {
         sourceText,
         targetText,
         sourceLang,
@@ -939,7 +995,16 @@ For example, if the segment is "The internationale women day" and the issue is t
         location,
         summary: mqmResults.summary,
         wordCount: mqmResults.wordCount || wordCount
-      });
+      };
+
+      // Add user association if authenticated
+      if (req.user) {
+        runData.user = req.user.id;
+      } else if (req.cookies.anonymousSessionId) {
+        runData.anonymousSessionId = req.cookies.anonymousSessionId;
+      }
+
+      const runDoc = await Run.create(runData);
 
       // Return the results with the database ID
       return res.json({ 
@@ -967,10 +1032,17 @@ For example, if the segment is "The internationale women day" and the issue is t
 
 const ExcelJS = require('exceljs');
 
-app.get('/api/download-report/:id/excel', async (req, res) => {
+app.get('/api/download-report/:id/excel', authMiddleware.optionalAuth, async (req, res) => {
   try {
     const run = await Run.findById(req.params.id);
+    // Check authorization
+    if (run.user && req.user && (run.user.toString() !== req.user.id && req.user.accountType !== 'admin')) {
+      return res.status(403).json({ error: 'You do not have permission to access this report' });
+    }
 
+    if (!run.user && run.anonymousSessionId && run.anonymousSessionId !== req.cookies.anonymousSessionId) {
+      return res.status(403).json({ error: 'You do not have permission to access this report' });
+    }
     if (!run) {
       return res.status(404).json({ error: 'Report not found' });
     }
@@ -1013,7 +1085,7 @@ app.get('/api/download-report/:id/excel', async (req, res) => {
   }
 });
 
-// Add this at the top of your routes in server.js
+// Serve index.html for all routes
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
