@@ -1267,26 +1267,11 @@ app.get('/api/download-report/:id/excel', authMiddleware.optionalAuth, async (re
       fgColor: { argb: '4F81BD' }
     };
     headerRow.font = { bold: true, color: { argb: 'FFFFFF' } };
-
-    // Add content sheet with full text
-    const contentSheet = workbook.addWorksheet('Content');
-    contentSheet.columns = [
-      { header: 'Source Text', key: 'source', width: 50 },
-      { header: 'Target Text', key: 'target', width: 50 }
-    ];
     
-    // Format the header row
-    const contentHeaderRow = contentSheet.getRow(1);
-    contentHeaderRow.font = { bold: true };
-    contentHeaderRow.fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: '4F81BD' }
-    };
-    contentHeaderRow.font = { bold: true, color: { argb: 'FFFFFF' } };
-    
-    // Add the full text content
-    contentSheet.addRow({ source: run.sourceText, target: run.targetText });
+    // Apply wrap text to value column
+    for (let i = 2; i <= summarySheet.rowCount; i++) {
+      summarySheet.getRow(i).getCell('value').alignment = { wrapText: true };
+    }
     
     // Add issues sheet
     const issuesSheet = workbook.addWorksheet('Issues');
@@ -1323,6 +1308,15 @@ app.get('/api/download-report/:id/excel', authMiddleware.optionalAuth, async (re
         location: issue.location || `${issue.startIndex}-${issue.endIndex}`
       });
     });
+    
+    // Apply wrap text to all text cells in the issues sheet
+    for (let i = 2; i <= issuesSheet.rowCount; i++) {
+      const row = issuesSheet.getRow(i);
+      row.getCell('explanation').alignment = { wrapText: true };
+      row.getCell('segment').alignment = { wrapText: true };
+      row.getCell('suggestion').alignment = { wrapText: true };
+      row.getCell('correctedSegment').alignment = { wrapText: true };
+    }
     
     // Segment the source and target text
     const sourceSegments = segmentText(run.sourceText);
@@ -1457,6 +1451,11 @@ app.get('/api/download-report/:id/excel', authMiddleware.optionalAuth, async (re
           fgColor: { argb: 'CCFFCC' } // Light green
         };
       }
+      
+      // Apply wrap text to text cells
+      row.getCell('source').alignment = { wrapText: true };
+      row.getCell('target').alignment = { wrapText: true };
+      row.getCell('feedback').alignment = { wrapText: true };
     }
     
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
