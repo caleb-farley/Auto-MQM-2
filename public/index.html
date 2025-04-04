@@ -957,10 +957,6 @@
       updateAnalyzeButton();
     }
 
-    sourceText.addEventListener('input', () => {
-      setTimeout(updateWordCountDisplay, 10); // Helps with paste event catching
-    });
-
     // Language detection API function
     async function detectLanguage(text) {
       try {
@@ -1030,11 +1026,32 @@
     }
 
     sourceText.addEventListener('input', () => {
-      setTimeout(handleSourceLanguageDetection, 10);
-    });
-    sourceText.addEventListener('paste', () => {
-      setTimeout(handleSourceLanguageDetection, 10);
-    });
+  setTimeout(() => {
+    updateWordCountDisplay();
+    handleSourceLanguageDetection();
+  }, 10);
+});
+
+    targetText.addEventListener('input', () => {
+  setTimeout(() => {
+    handleTargetLanguageDetection();
+    updateAnalyzeButton(); // Optional, but ensures analyze button updates
+  }, 10);
+});
+
+sourceText.addEventListener('paste', () => {
+  setTimeout(() => {
+    updateWordCountDisplay();
+    handleSourceLanguageDetection();
+  }, 10);
+});
+
+targetText.addEventListener('paste', () => {
+  setTimeout(() => {
+    handleTargetLanguageDetection();
+    updateAnalyzeButton();
+  }, 10);
+});
 
     // Update target language detection
     function handleTargetLanguageDetection() {
