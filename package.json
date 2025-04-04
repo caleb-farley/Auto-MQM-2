@@ -4,20 +4,22 @@
     "description": "Backend for Localization QA Tool",
     "main": "server.js",
     "scripts": {
-      "start": "node server.js",
-      "dev": "nodemon server.js"
+        "start": "node server.js",
+        "dev": "nodemon server.js"
     },
     "dependencies": {
-      "axios": "^1.6.2",
-      "cors": "^2.8.5",
-      "dotenv": "^16.3.1",
-      "express": "^4.18.2",
-    "mongoose": "^7.6.1"
+        "axios": "^1.6.2",
+        "cors": "^2.8.5",
+        "dotenv": "^16.3.1",
+        "exceljs": "^4.4.0",
+        "express": "^4.18.2",
+        "mongoose": "^7.6.1",
+        "pdfkit": "^0.16.0"
     },
     "devDependencies": {
-      "nodemon": "^3.0.1"
+        "nodemon": "^3.0.1"
     },
     "engines": {
-      "node": ">=16.0.0"
+        "node": ">=16.0.0"
     }
-  }
+}
