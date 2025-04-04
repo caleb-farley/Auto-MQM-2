@@ -332,12 +332,16 @@ For example, if the segment is "The internationale women day" and the issue is t
 
     // Extract the content from Claude's response
     const content = response.data.content[0].text;
+    console.log('🧠 Claude response:', content);
     
     // Find and parse the JSON in the response
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
+      console.error('❌ No JSON match found in Claude response');
       return res.status(500).json({ error: 'Could not parse analysis results' });
     }
+    
+    console.log('📦 Parsed JSON string:', jsonMatch[0]);    
     
     try {
       const mqmResults = JSON.parse(jsonMatch[0]);
@@ -347,10 +351,8 @@ await Run.create({
   targetText,
   sourceLang,
   targetLang,
-  alignmentConfidence: req.body.matchConfidence || 100, // optional, can be passed from previous endpoint
+  alignmentConfidence: req.body.matchConfidence || 100,
   alignmentReason: req.body.reason || 'N/A',
-  mqmScore: mqmResults.overallScore,
-  issues: mqmResults.mqmIssues,
   mqmScore: mqmResults.overallScore,
   issues: mqmResults.mqmIssues,
   ip: location.ip,
