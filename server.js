@@ -4,9 +4,22 @@ const cors = require('cors');
 const axios = require('axios');
 const dotenv = require('dotenv');
 const path = require('path');
+const Run = require('./models/Run');
 
 // Load environment variables
 dotenv.config();
+
+const mongoose = require('mongoose');
+
+// 🔥 MongoDB connection
+mongoose.connect(process.env.MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+}).then(() => {
+  console.log('✅ Connected to MongoDB');
+}).catch((err) => {
+  console.error('❌ MongoDB connection error:', err);
+});
 
 const app = express();
 app.use(cors());
@@ -160,6 +173,21 @@ Please respond in **valid JSON** format like this:
 app.post('/api/mqm-analysis', async (req, res) => {
   try {
     const { sourceText, targetText, sourceLang, targetLang } = req.body;
+    const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress;
+
+let location = {};
+try {
+  const geoResponse = await axios.get(`https://ipapi.co/${ip}/json/`);
+  location = {
+    ip,
+    city: geoResponse.data.city,
+    region: geoResponse.data.region,
+    country: geoResponse.data.country_name,
+    org: geoResponse.data.org
+  };
+} catch (err) {
+  console.warn('🌐 Could not fetch geolocation:', err.message);
+}
     
     if (!sourceText || !targetText || !sourceLang || !targetLang) {
       return res.status(400).json({ error: 'Missing required parameters' });
@@ -231,6 +259,7 @@ For each issue found, provide:
 - The exact problematic text segment from the target translation
 - A suggested fix (textual description of what needs to be changed)
 - A fully corrected version of the entire segment with the fix applied
+- Provide the exact **start and end character positions** of the segment in the target text.
 
 Also provide an MQM score calculated as:
 MQM Score = 100 - (sum of error points / word count * 100)
@@ -251,6 +280,8 @@ Return ONLY valid JSON without any other text. Use this exact structure:
       "segment": "...",
       "suggestion": "...",
       "correctedSegment": "..."
+      "startIndex": 45,
+      "endIndex": 68
     },
     ...
   ],
@@ -310,6 +341,21 @@ For example, if the segment is "The internationale women day" and the issue is t
     
     try {
       const mqmResults = JSON.parse(jsonMatch[0]);
+
+await Run.create({
+  sourceText,
+  targetText,
+  sourceLang,
+  targetLang,
+  alignmentConfidence: req.body.matchConfidence || 100, // optional, can be passed from previous endpoint
+  alignmentReason: req.body.reason || 'N/A',
+  mqmScore: mqmResults.overallScore,
+  issues: mqmResults.mqmIssues,
+  mqmScore: mqmResults.overallScore,
+  issues: mqmResults.mqmIssues,
+  ip: location.ip,
+  location
+});
       return res.json(mqmResults);
     } catch (error) {
       console.error('Error parsing JSON:', error);
