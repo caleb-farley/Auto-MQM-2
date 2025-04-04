@@ -233,9 +233,23 @@ app.get('/api/download-template', authMiddleware.optionalAuth, async (req, res) 
     instructionsSheet.addRow(['']);
     instructionsSheet.addRow(['1. Fill in source and target language information in the Settings sheet']);
     instructionsSheet.addRow(['2. Enter your source text and target text in the Content sheet']);
-    instructionsSheet.addRow(['3. For each segment that has quality issues, add entries in the Issues sheet']);
-    instructionsSheet.addRow(['4. Use the categories and severity levels as defined in the MQM framework']);
-    instructionsSheet.addRow(['5. Save the file and upload it through the web interface for automated processing']);
+    instructionsSheet.addRow(['3. For whole text assessment, use the Content sheet']);
+    instructionsSheet.addRow(['4. For sentence-level assessment, use the Segments sheet']);
+    instructionsSheet.addRow(['5. For identified issues, add entries in the Issues sheet']);
+    instructionsSheet.addRow(['6. Use the categories and severity levels as defined in the MQM framework']);
+    instructionsSheet.addRow(['7. Save the file and upload it through the web interface for automated processing']);
+    instructionsSheet.addRow(['']);
+    
+    instructionsSheet.addRow(['NEW SEGMENT-LEVEL ASSESSMENT']);
+    const segmentRow = instructionsSheet.lastRow;
+    segmentRow.font = { bold: true, size: 14 };
+    
+    instructionsSheet.addRow(['']);
+    instructionsSheet.addRow(['The Segments sheet allows you to work with sentence-level segmentation:']);
+    instructionsSheet.addRow(['- Enter source and target text for each segment']);
+    instructionsSheet.addRow(['- Add feedback for each segment, even those without issues']);
+    instructionsSheet.addRow(['- Identify segment status (No Issues, Minor, Major, Critical)']);
+    instructionsSheet.addRow(['- This enables more precise, context-aware quality assessment']);
     instructionsSheet.addRow(['']);
     
     instructionsSheet.addRow(['MQM CATEGORIES AND DEFINITIONS']);
@@ -299,7 +313,7 @@ app.get('/api/download-template', authMiddleware.optionalAuth, async (req, res) 
     settingsSheet.addRow(['Source Language', '']);
     settingsSheet.addRow(['Target Language', '']);
     
-    // Add content sheet for source and target content
+    // Add content sheet for whole source and target content
     const contentSheet = workbook.addWorksheet('Content');
     contentSheet.columns = [
       { header: 'Source Text', key: 'source', width: 50 },
@@ -314,6 +328,64 @@ app.get('/api/download-template', authMiddleware.optionalAuth, async (req, res) 
       fgColor: { argb: '4F81BD' }
     };
     contentHeaderRow.font = { bold: true, color: { argb: 'FFFFFF' } };
+    
+    // Add segments sheet for sentence-level assessment
+    const segmentsSheet = workbook.addWorksheet('Segments');
+    segmentsSheet.columns = [
+      { header: 'Segment #', key: 'number', width: 10 },
+      { header: 'Source Text', key: 'source', width: 40 },
+      { header: 'Target Text', key: 'target', width: 40 },
+      { header: 'Feedback', key: 'feedback', width: 50 },
+      { header: 'Status', key: 'status', width: 15 }
+    ];
+    
+    const segmentsHeaderRow = segmentsSheet.getRow(1);
+    segmentsHeaderRow.font = { bold: true };
+    segmentsHeaderRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: '4F81BD' }
+    };
+    segmentsHeaderRow.font = { bold: true, color: { argb: 'FFFFFF' } };
+    
+    // Add example rows
+    segmentsSheet.addRow({
+      number: 1,
+      source: 'Example source sentence 1.',
+      target: 'Example target sentence 1.',
+      feedback: 'No issues found in this segment.',
+      status: 'No Issues'
+    });
+    
+    segmentsSheet.addRow({
+      number: 2,
+      source: 'Example source sentence 2 with technical term.',
+      target: 'Example target sentence 2 with incorrect term.',
+      feedback: 'Terminology>Inappropriate (MINOR): The technical term was translated incorrectly.',
+      status: 'Minor'
+    });
+    
+    // Add validation for Status column
+    segmentsSheet.getCell('E3').dataValidation = {
+      type: 'list',
+      allowBlank: false,
+      formulae: ['"No Issues,Minor,Major,Critical"']
+    };
+    
+    // Format example rows
+    const noIssuesRow = segmentsSheet.getRow(2);
+    noIssuesRow.getCell('status').fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'CCFFCC' } // Light green
+    };
+    
+    const minorIssueRow = segmentsSheet.getRow(3);
+    minorIssueRow.getCell('status').fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFFFCC' } // Light yellow
+    };
     
     // Add assessment sheet for issues
     const issuesSheet = workbook.addWorksheet('Issues');
@@ -740,7 +812,7 @@ app.post('/api/upload-excel',
 
     const userProvidedIssues = [];
 
-    // Extract issue details from Excel
+    // Extract issue details from Issues sheet
     issuesSheet.eachRow((row, rowNumber) => {
       if (rowNumber > 1) { // Skip header row
         const segment = row.getCell(1).value || '';
@@ -781,6 +853,73 @@ app.post('/api/upload-excel',
         }
       }
     });
+
+    // Look for Segments sheet to extract segment-level feedback
+    const segmentsSheet = workbook.getWorksheet('Segments');
+    if (segmentsSheet) {
+      // Process segment-level feedback from the Segments sheet
+      segmentsSheet.eachRow((row, rowNumber) => {
+        if (rowNumber > 1) { // Skip header row
+          const segmentNumber = row.getCell(1).value;
+          const sourceSegment = row.getCell(2).value || '';
+          const targetSegment = row.getCell(3).value || '';
+          const feedback = row.getCell(4).value || '';
+          const status = row.getCell(5).value || '';
+          
+          // Only process rows with actual feedback and not the default "No issues found"
+          if (targetSegment && feedback && status && 
+              feedback.trim() !== 'No issues found in this segment.' && 
+              status.trim() !== 'No Issues') {
+            
+            // Parse the feedback to extract MQM details
+            // Format is expected to be like: "Category>Subcategory (SEVERITY): Explanation"
+            const feedbackLines = feedback.split('\n\n');
+            
+            for (const line of feedbackLines) {
+              const categoryMatch = line.match(/(.*?)>(.*?)\s+\((.*?)\):(.*)/);
+              
+              if (categoryMatch) {
+                const [_, category, subcategory, severityText, explanationText] = categoryMatch;
+                
+                // Get suggestion if present (typically follows "Suggestion: " on a new line)
+                let suggestion = '';
+                const suggestionMatch = line.match(/Suggestion:\s*(.*)/);
+                if (suggestionMatch) {
+                  suggestion = suggestionMatch[1].trim();
+                }
+                
+                // Map severity text to severity level
+                let severity;
+                switch (severityText.trim().toUpperCase()) {
+                  case 'MINOR':
+                    severity = 'MINOR';
+                    break;
+                  case 'MAJOR':
+                    severity = 'MAJOR';
+                    break;
+                  case 'CRITICAL':
+                    severity = 'CRITICAL';
+                    break;
+                  default:
+                    severity = 'MINOR'; // Default to minor if not specified correctly
+                }
+                
+                // Create issue object from segment feedback
+                userProvidedIssues.push({
+                  category: category.trim(),
+                  subcategory: subcategory.trim(),
+                  severity,
+                  explanation: explanationText.trim(),
+                  segment: targetSegment, // Use the entire segment
+                  suggestion,
+                  correctedSegment: suggestion || targetSegment // Use suggestion or original if not provided
+                });
+              }
+            }
+          }
+        }
+      });
+    }
 
     // Run Claude MQM analysis on the extracted text, just like /api/mqm-analysis endpoint
     const claudeApiKey = process.env.CLAUDE_API_KEY;
@@ -1032,6 +1171,60 @@ For example, if the segment is "The internationale women day" and the issue is t
 
 const ExcelJS = require('exceljs');
 
+// Helper function to segment text into sentences while preserving code elements
+function segmentText(text) {
+  if (!text) return [];
+  
+  // This regex splits on sentence boundaries while trying to preserve code elements
+  // It looks for: 
+  // - periods, question marks, exclamation points followed by space or end of string
+  // - but ignores these when inside quotes, brackets, or code blocks
+  const sentenceRegex = /(?<![A-Z][a-z]\.)(?<=\.|\?|\!|\;\n|\:\n)(?:\s+|$)/g;
+  
+  // Split the text by sentence boundaries
+  let segments = text.split(sentenceRegex).filter(s => s.trim());
+  
+  // Further processing to handle edge cases like code blocks, variables, etc.
+  const processedSegments = [];
+  let currentSegment = '';
+  let inCodeBlock = false;
+  let bracketCount = 0;
+  
+  for (const segment of segments) {
+    // Count opening and closing brackets/braces to detect code elements
+    const openBrackets = (segment.match(/[\(\{\[<]/g) || []).length;
+    const closeBrackets = (segment.match(/[\)\}\]>]/g) || []).length;
+    
+    bracketCount += openBrackets - closeBrackets;
+    
+    // Check for code block indicators
+    if (segment.includes('```') || segment.includes('~~~')) {
+      inCodeBlock = !inCodeBlock;
+    }
+    
+    // If we're in a code block or have unclosed brackets, append to current segment
+    if (inCodeBlock || bracketCount > 0) {
+      currentSegment += segment + ' ';
+    } else {
+      // Add the completed segment
+      if (currentSegment) {
+        currentSegment += segment;
+        processedSegments.push(currentSegment.trim());
+        currentSegment = '';
+      } else {
+        processedSegments.push(segment.trim());
+      }
+    }
+  }
+  
+  // Add any remaining segment
+  if (currentSegment) {
+    processedSegments.push(currentSegment.trim());
+  }
+  
+  return processedSegments;
+}
+
 app.get('/api/download-report/:id/excel', authMiddleware.optionalAuth, async (req, res) => {
   try {
     const run = await Run.findById(req.params.id);
@@ -1048,9 +1241,56 @@ app.get('/api/download-report/:id/excel', authMiddleware.optionalAuth, async (re
     }
 
     const workbook = new ExcelJS.Workbook();
-    const sheet = workbook.addWorksheet('MQM Report');
+    
+    // Add summary sheet
+    const summarySheet = workbook.addWorksheet('Summary');
+    summarySheet.columns = [
+      { header: 'Metric', key: 'metric', width: 30 },
+      { header: 'Value', key: 'value', width: 50 }
+    ];
+    
+    // Add summary information
+    summarySheet.addRow({ metric: 'Source Language', value: run.sourceLang });
+    summarySheet.addRow({ metric: 'Target Language', value: run.targetLang });
+    summarySheet.addRow({ metric: 'Overall Score', value: run.mqmScore });
+    summarySheet.addRow({ metric: 'Word Count', value: run.wordCount });
+    summarySheet.addRow({ metric: 'Total Issues', value: run.issues.length });
+    summarySheet.addRow({ metric: 'Summary', value: run.summary || 'N/A' });
+    summarySheet.addRow({ metric: 'Assessment Date', value: new Date(run.timestamp).toLocaleString() });
+    
+    // Format the header row
+    const headerRow = summarySheet.getRow(1);
+    headerRow.font = { bold: true };
+    headerRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: '4F81BD' }
+    };
+    headerRow.font = { bold: true, color: { argb: 'FFFFFF' } };
 
-    sheet.columns = [
+    // Add content sheet with full text
+    const contentSheet = workbook.addWorksheet('Content');
+    contentSheet.columns = [
+      { header: 'Source Text', key: 'source', width: 50 },
+      { header: 'Target Text', key: 'target', width: 50 }
+    ];
+    
+    // Format the header row
+    const contentHeaderRow = contentSheet.getRow(1);
+    contentHeaderRow.font = { bold: true };
+    contentHeaderRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: '4F81BD' }
+    };
+    contentHeaderRow.font = { bold: true, color: { argb: 'FFFFFF' } };
+    
+    // Add the full text content
+    contentSheet.addRow({ source: run.sourceText, target: run.targetText });
+    
+    // Add issues sheet
+    const issuesSheet = workbook.addWorksheet('Issues');
+    issuesSheet.columns = [
       { header: 'Category', key: 'category', width: 15 },
       { header: 'Subcategory', key: 'subcategory', width: 20 },
       { header: 'Severity', key: 'severity', width: 10 },
@@ -1060,9 +1300,19 @@ app.get('/api/download-report/:id/excel', authMiddleware.optionalAuth, async (re
       { header: 'Corrected', key: 'correctedSegment', width: 40 },
       { header: 'Location', key: 'location', width: 20 },
     ];
-
+    
+    // Format the header row
+    const issuesHeaderRow = issuesSheet.getRow(1);
+    issuesHeaderRow.font = { bold: true };
+    issuesHeaderRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: '4F81BD' }
+    };
+    issuesHeaderRow.font = { bold: true, color: { argb: 'FFFFFF' } };
+    
     run.issues.forEach((issue) => {
-      sheet.addRow({
+      issuesSheet.addRow({
         category: issue.category,
         subcategory: issue.subcategory,
         severity: issue.severity,
@@ -1073,7 +1323,142 @@ app.get('/api/download-report/:id/excel', authMiddleware.optionalAuth, async (re
         location: issue.location || `${issue.startIndex}-${issue.endIndex}`
       });
     });
-
+    
+    // Segment the source and target text
+    const sourceSegments = segmentText(run.sourceText);
+    const targetSegments = segmentText(run.targetText);
+    
+    // Create a map of segments to issues
+    const segmentIssues = new Map();
+    
+    // Add segments worksheet with sentence-level feedback
+    const segmentsSheet = workbook.addWorksheet('Segments');
+    segmentsSheet.columns = [
+      { header: 'Segment #', key: 'number', width: 10 },
+      { header: 'Source Text', key: 'source', width: 40 },
+      { header: 'Target Text', key: 'target', width: 40 },
+      { header: 'Feedback', key: 'feedback', width: 50 },
+      { header: 'Status', key: 'status', width: 15 }
+    ];
+    
+    // Format the header row
+    const segmentsHeaderRow = segmentsSheet.getRow(1);
+    segmentsHeaderRow.font = { bold: true };
+    segmentsHeaderRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: '4F81BD' }
+    };
+    segmentsHeaderRow.font = { bold: true, color: { argb: 'FFFFFF' } };
+    
+    // Match issues to segments based on character positions or content similarity
+    run.issues.forEach(issue => {
+      // Try to find which segment contains this issue
+      let foundSegmentIndex = -1;
+      
+      // First try using startIndex/endIndex if available
+      if (issue.startIndex !== undefined && issue.endIndex !== undefined) {
+        // Find which segment contains these indices
+        let currentPos = 0;
+        for (let i = 0; i < targetSegments.length; i++) {
+          const segmentLength = targetSegments[i].length;
+          const segmentEnd = currentPos + segmentLength;
+          
+          if (issue.startIndex >= currentPos && issue.startIndex < segmentEnd) {
+            foundSegmentIndex = i;
+            break;
+          }
+          
+          currentPos += segmentLength + 1; // +1 for the separator
+        }
+      }
+      
+      // If we couldn't find by position, try by content
+      if (foundSegmentIndex === -1 && issue.segment) {
+        for (let i = 0; i < targetSegments.length; i++) {
+          if (targetSegments[i].includes(issue.segment)) {
+            foundSegmentIndex = i;
+            break;
+          }
+        }
+      }
+      
+      // If we found a segment, add this issue to its feedback
+      if (foundSegmentIndex !== -1) {
+        if (!segmentIssues.has(foundSegmentIndex)) {
+          segmentIssues.set(foundSegmentIndex, []);
+        }
+        segmentIssues.get(foundSegmentIndex).push(issue);
+      }
+    });
+    
+    // Add all segments to the sheet with their corresponding feedback
+    const maxSegments = Math.max(sourceSegments.length, targetSegments.length);
+    for (let i = 0; i < maxSegments; i++) {
+      const source = i < sourceSegments.length ? sourceSegments[i] : '';
+      const target = i < targetSegments.length ? targetSegments[i] : '';
+      
+      // Get issues for this segment
+      const issues = segmentIssues.get(i) || [];
+      let feedback = '';
+      let status = 'No Issues';
+      
+      if (issues.length > 0) {
+        // Format feedback for this segment's issues
+        feedback = issues.map(issue => {
+          return `${issue.category}>${issue.subcategory} (${issue.severity}): ${issue.explanation}\nSuggestion: ${issue.suggestion || 'N/A'}`;
+        }).join('\n\n');
+        
+        // Determine status based on highest severity
+        if (issues.some(issue => issue.severity === 'CRITICAL')) {
+          status = 'Critical';
+        } else if (issues.some(issue => issue.severity === 'MAJOR')) {
+          status = 'Major';
+        } else if (issues.some(issue => issue.severity === 'MINOR')) {
+          status = 'Minor';
+        }
+      } else {
+        feedback = 'No issues found in this segment.';
+      }
+      
+      // Add row with segment information
+      segmentsSheet.addRow({
+        number: i + 1,
+        source,
+        target,
+        feedback,
+        status
+      });
+      
+      // Apply conditional formatting based on status
+      const row = segmentsSheet.lastRow;
+      if (status === 'Critical') {
+        row.getCell('status').fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFCCCC' } // Light red
+        };
+      } else if (status === 'Major') {
+        row.getCell('status').fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFEECC' } // Light orange
+        };
+      } else if (status === 'Minor') {
+        row.getCell('status').fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFFFCC' } // Light yellow
+        };
+      } else {
+        row.getCell('status').fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'CCFFCC' } // Light green
+        };
+      }
+    }
+    
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="mqm_report_${run._id}.xlsx"`);
 
