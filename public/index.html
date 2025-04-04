@@ -1155,19 +1155,23 @@
   .radio-container {
     display: inline-flex;
     align-items: center;
-    margin-bottom: 12px;
-    margin-right: 15px;
-    padding: 8px 12px;
-    border-radius: 8px;
-    transition: background-color 0.2s ease;
+    margin-bottom: 14px;
+    margin-right: 18px;
+    padding: 10px 16px;
+    border-radius: 12px;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
   }
 
   .radio-container:hover {
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--border-input);
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
   }
 
   .radio-container input[type="radio"] {
-    margin-right: 8px;
+    margin-right: 10px;
   }
 
     /* Highlighted text handling - improved for mobile */
