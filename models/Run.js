@@ -9,6 +9,8 @@ const runSchema = new mongoose.Schema({
   mqmScore: Number,
   issues: Array,
   ip: String,
+  summary: String,
+    wordCount: Number,
   location: {
     city: String,
     region: String,

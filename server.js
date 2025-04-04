@@ -5,11 +5,20 @@ const axios = require('axios');
 const dotenv = require('dotenv');
 const path = require('path');
 const Run = require('./models/Run');
+const PDFDocument = require('pdfkit');
 
 // Load environment variables
 dotenv.config();
 
 const mongoose = require('mongoose');
+
+mongoose.connection.on('connected', () => {
+  console.log('🔌 Mongoose connected to DB');
+});
+
+mongoose.connection.on('error', (err) => {
+  console.error('❌ Mongoose connection error:', err);
+});
 
 // 🔥 MongoDB connection
 mongoose.connect(process.env.MONGODB_URI, {
@@ -346,19 +355,21 @@ For example, if the segment is "The internationale women day" and the issue is t
     try {
       const mqmResults = JSON.parse(jsonMatch[0]);
 
-await Run.create({
-  sourceText,
-  targetText,
-  sourceLang,
-  targetLang,
-  alignmentConfidence: req.body.matchConfidence || 100,
-  alignmentReason: req.body.reason || 'N/A',
-  mqmScore: mqmResults.overallScore,
-  issues: mqmResults.mqmIssues,
-  ip: location.ip,
-  location
-});
-      return res.json(mqmResults);
+    await Run.create({
+    sourceText,
+    targetText,
+    sourceLang,
+    targetLang,
+    alignmentConfidence: req.body.matchConfidence || 100,
+    alignmentReason: req.body.reason || 'N/A',
+    mqmScore: mqmResults.overallScore,
+    issues: mqmResults.mqmIssues,
+    ip: location.ip,
+    location
+    });
+
+      // ✅ Include _id in the response
+      return res.json({ ...mqmResults, _id: runDoc._id });
     } catch (error) {
       console.error('Error parsing JSON:', error);
       return res.status(500).json({ error: 'Could not parse analysis results' });
@@ -370,6 +381,103 @@ await Run.create({
       error: 'Analysis failed',
       message: error.message
     });
+  }
+});
+
+const { Readable } = require('stream');
+
+app.get('/api/download-report/:id/pdf', async (req, res) => {
+  try {
+    const run = await Run.findById(req.params.id);
+
+    if (!run) {
+      return res.status(404).json({ error: 'Report not found' });
+    }
+
+    const doc = new PDFDocument();
+    const filename = `mqm_report_${run._id}.pdf`;
+
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Type', 'application/pdf');
+
+    doc.pipe(res);
+
+    doc.fontSize(18).text('MQM Quality Report', { underline: true });
+    doc.moveDown();
+
+    doc.fontSize(12).text(`Source Language: ${run.sourceLang}`);
+    doc.text(`Target Language: ${run.targetLang}`);
+    doc.text(`Word Count: ${run.wordCount || 'N/A'}`);
+    doc.text(`Overall Score: ${run.mqmScore}`);
+    doc.text(`Summary: ${run.summary || 'N/A'}`);
+    doc.moveDown();
+
+    doc.fontSize(14).text('Issues:', { underline: true });
+    doc.moveDown();
+
+    run.issues.forEach((issue, index) => {
+      doc.fontSize(12).text(`${index + 1}. [${issue.category} > ${issue.subcategory}]`);
+      doc.text(`Severity: ${issue.severity}`);
+      doc.text(`Explanation: ${issue.explanation}`);
+      doc.text(`Segment: "${issue.segment}"`);
+      doc.text(`Suggestion: ${issue.suggestion}`);
+      doc.text(`Corrected: ${issue.correctedSegment}`);
+      doc.text(`Location: ${issue.location || `${issue.startIndex}-${issue.endIndex}`}`);
+      doc.moveDown();
+    });
+
+    doc.end();
+  } catch (err) {
+    console.error('PDF download error:', err);
+    res.status(500).json({ error: 'Failed to generate PDF' });
+  }
+});
+
+const ExcelJS = require('exceljs');
+
+app.get('/api/download-report/:id/excel', async (req, res) => {
+  try {
+    const run = await Run.findById(req.params.id);
+
+    if (!run) {
+      return res.status(404).json({ error: 'Report not found' });
+    }
+
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet('MQM Report');
+
+    sheet.columns = [
+      { header: 'Category', key: 'category', width: 15 },
+      { header: 'Subcategory', key: 'subcategory', width: 20 },
+      { header: 'Severity', key: 'severity', width: 10 },
+      { header: 'Explanation', key: 'explanation', width: 40 },
+      { header: 'Segment', key: 'segment', width: 40 },
+      { header: 'Suggestion', key: 'suggestion', width: 40 },
+      { header: 'Corrected', key: 'correctedSegment', width: 40 },
+      { header: 'Location', key: 'location', width: 20 },
+    ];
+
+    run.issues.forEach((issue) => {
+      sheet.addRow({
+        category: issue.category,
+        subcategory: issue.subcategory,
+        severity: issue.severity,
+        explanation: issue.explanation,
+        segment: issue.segment,
+        suggestion: issue.suggestion,
+        correctedSegment: issue.correctedSegment,
+        location: issue.location || `${issue.startIndex}-${issue.endIndex}`
+      });
+    });
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="mqm_report_${run._id}.xlsx"`);
+
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (err) {
+    console.error('Excel download error:', err);
+    res.status(500).json({ error: 'Failed to generate Excel report' });
   }
 });
 

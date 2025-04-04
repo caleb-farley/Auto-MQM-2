@@ -873,6 +873,11 @@ select:focus {
     <button id="undo-btn" class="btn btn-secondary" style="display: none;" disabled>Undo Last</button>
   </div>
 
+  <div class="buttons" id="download-buttons" style="display: none;">
+    <button id="download-pdf-btn" class="btn btn-secondary">Download PDF</button>
+    <button id="download-excel-btn" class="btn btn-secondary">Download Excel</button>
+  </div>
+  
   <!-- Error message (initially hidden) -->
   <div id="error-message" class="error-message" style="display: none;"></div>
 
@@ -1330,6 +1335,21 @@ select:focus {
       
       // Show the target display with highlighted issues
       highlightIssuesInText(targetText.value, results.mqmIssues);
+
+        // ✅ Add this to enable PDF/Excel download buttons
+        const runId = results._id;
+        if (runId) {
+        const downloadBtns = document.getElementById('download-buttons');
+        downloadBtns.style.display = 'flex';
+
+        document.getElementById('download-pdf-btn').onclick = () => {
+        window.open(`/api/download-report/${runId}/pdf`, '_blank');
+        };
+
+        document.getElementById('download-excel-btn').onclick = () => {
+        window.open(`/api/download-report/${runId}/excel`, '_blank');
+         };
+        }
       
       // Show apply all button and undo button if there are issues
       if (results.mqmIssues && results.mqmIssues.length > 0) {
