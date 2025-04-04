@@ -2272,44 +2272,71 @@
       };
     }
 
-    // Display results
-    function displayResults(results) {
-      // Show results container
-      resultsContainer.style.display = 'block';
-      
-      // Update score
-      score.textContent = results.overallScore.toFixed(1);
-      
-      // Update score indicator
-      if (results.overallScore >= 90) {
-        scoreIndicator.className = 'score-indicator success';
-        scoreIndicator.textContent = '✓';
-      } else if (results.overallScore >= 70) {
-        scoreIndicator.className = 'score-indicator minor';
-        scoreIndicator.textContent = '!';
-      } else {
-        scoreIndicator.className = 'score-indicator critical';
-        scoreIndicator.textContent = '✕';
-      }
-      
-      // Update summary
-      summary.textContent = results.summary;
-      
-      // Update categories
-      categories.innerHTML = '';
-      Object.entries(results.categories).forEach(([category, data]) => {
-        const categoryEl = document.createElement('div');
-        categoryEl.className = 'category';
-        categoryEl.innerHTML = `
-          <div class="category-title">${category}</div>
-          <div class="category-stats">
-            <span>Issues: ${data.count}</span>
-            <span>Points: ${data.points}</span>
+ // Display results
+function displayResults(results) {
+  // Show results container
+  resultsContainer.style.display = 'block';
+
+  // Update score
+  score.textContent = results.overallScore.toFixed(1);
+
+  // Update score indicator
+  if (results.overallScore >= 90) {
+    scoreIndicator.className = 'score-indicator success';
+    scoreIndicator.textContent = '✓';
+  } else if (results.overallScore >= 70) {
+    scoreIndicator.className = 'score-indicator minor';
+    scoreIndicator.textContent = '!';
+  } else {
+    scoreIndicator.className = 'score-indicator critical';
+    scoreIndicator.textContent = '✕';
+  }
+
+  // Update summary
+  summary.textContent = results.summary;
+
+  // Update categories
+  categories.innerHTML = '';
+  Object.entries(results.categories).forEach(([category, data]) => {
+    const categoryEl = document.createElement('div');
+    categoryEl.className = 'category';
+    categoryEl.innerHTML = `
+      <div class="category-title">${category}</div>
+      <div class="category-stats">
+        <span>Issues: ${data.count}</span>
+        <span>Points: ${data.points}</span>
+      </div>
+    `;
+    categories.appendChild(categoryEl);
+  });
+
+  // ✅ Add this: Render individual issues
+  issuesContainer.innerHTML = '';
+  results.mqmIssues.forEach((issue, index) => {
+    const issueEl = document.createElement('div');
+    issueEl.className = 'issue';
+    issueEl.id = `issue-${index}`;
+    issueEl.innerHTML = `
+      <div class="issue-container">
+        <div class="issue-indicator ${severityLevels[issue.severity].class}">
+          ${issue.severity === 'MINOR' ? 'i' : issue.severity === 'MAJOR' ? '!' : '✕'}
+        </div>
+        <div class="issue-content">
+          <div class="issue-header">
+            <div class="issue-title">${issue.category}: ${issue.subcategory}</div>
+            <div class="issue-severity ${severityLevels[issue.severity].class}">${severityLevels[issue.severity].label}</div>
           </div>
-        `;
-        categories.appendChild(categoryEl);
-      });
-    }
-  </script>
-</body>
-</html>
+          <div class="issue-explanation">${issue.explanation}</div>
+          <div class="issue-location">Location: ${issue.location || 'Unknown'}</div>
+          <div class="issue-suggestion">${issue.suggestion || 'No suggestion provided'}</div>
+          <div class="issue-actions">
+            <button class="action-btn btn-primary" id="accept-btn-${index}" onclick="acceptSuggestion(${index})">Accept</button>
+            <button class="action-btn btn-secondary" id="reject-btn-${index}" onclick="rejectSuggestion(${index})" disabled>Reject</button>
+          </div>
+          <div class="issue-status" id="issue-status-${index}" style="display: none;"></div>
+        </div>
+      </div>
+    `;
+    issuesContainer.appendChild(issueEl);
+  });
+}
