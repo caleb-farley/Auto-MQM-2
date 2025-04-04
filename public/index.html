@@ -1030,10 +1030,34 @@
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1) inset;
     border: 1px solid var(--border-light);
     transition: all var(--transition-fast);
+    position: relative;
+    cursor: help;
   }
   
   .score-container:hover {
     box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2) inset;
+  }
+  
+  .score-formula {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: #2a2a2a;
+    border: 1px solid var(--border-light);
+    padding: 10px;
+    border-radius: 6px;
+    z-index: 100;
+    width: 300px;
+    font-size: 12px;
+    margin-top: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    color: var(--text-body);
+    line-height: 1.5;
+  }
+  
+  .score-container:hover .score-formula {
+    display: block;
   }
   
   .score {
@@ -1901,6 +1925,11 @@
           <div class="score-container">
             <span id="score" class="score">0.0</span>
             <div id="score-indicator" class="score-indicator success">✓</div>
+            <div class="score-formula">
+              <p><strong>Score Formula:</strong></p>
+              <p>Score = 100 - (Total Error Points / Word Count × 100)</p>
+              <p>Error Points: Minor = 1, Major = 5, Critical = 10</p>
+            </div>
           </div>
         </div>
         <p id="summary" class="summary"></p>
@@ -3076,8 +3105,15 @@ correctedText.removeAttribute('readonly');
 
     // Reject a suggestion for an issue
     window.rejectSuggestion = function(issueId) {
+      console.log("Reject button clicked for issue:", issueId);  // Debug log
+      
       const issue = currentIssues[issueId];
       const issueElement = document.getElementById(`issue-${issueId}`);
+      
+      if (!issue || !issueElement) {
+        console.error("Could not find issue or issue element:", issueId);
+        return;
+      }
       
       // Find the history entry where this correction was applied
       const historyIndex = changeHistory.findIndex(entry => entry.issueId === issueId);
