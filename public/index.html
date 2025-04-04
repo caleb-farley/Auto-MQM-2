@@ -2540,14 +2540,29 @@
     // This function will try to identify text segments based on issue locations
     const segments = [];
     
+    // Keep track of which parts of the text are already covered by segments
+    // to prevent overlapping or duplicate segments
+    const coveredRanges = [];
+    
     issues.forEach((issue, index) => {
+      // Use startIndex and endIndex from the issue if provided
+      if (issue.startIndex !== undefined && issue.endIndex !== undefined &&
+          issue.startIndex >= 0 && issue.endIndex <= text.length) {
+        const segment = {
+          text: text.substring(issue.startIndex, issue.endIndex),
+          start: issue.startIndex,
+          end: issue.endIndex
+        };
+        segments.push(segment);
+        issueToSegmentMap[index] = segment;
+        coveredRanges.push([issue.startIndex, issue.endIndex]);
+        return;
+      }
+      
       // Parse location to identify text segments
       const location = issue.location || '';
       
       // Try to extract segment information from location
-      // This is a simplified approach - in a real implementation,
-      // the backend should provide specific position information
-      
       let segment = null;
       
       // Check for specific location patterns
@@ -2610,11 +2625,21 @@
         }
       }
       
-      // If we couldn't identify a segment, make a simple guess based on the issue
+      // If we couldn't identify a segment based on location, try to use the issue content
+      if (!segment && issue.segment) {
+        const segmentText = issue.segment;
+        const index = text.indexOf(segmentText);
+        if (index !== -1) {
+          segment = {
+            text: segmentText,
+            start: index,
+            end: index + segmentText.length
+          };
+        }
+      }
+      
+      // If we still couldn't identify a segment, try to find key terms
       if (!segment) {
-        // For demonstration purposes, let's use a simple algorithm:
-        // Take words from the suggestion or explanation and try to find them in the text
-        
         // Extract key terms from the issue
         let keyTerms = [];
         
@@ -2659,51 +2684,120 @@
         }
       }
       
-      // If we still couldn't find a segment, use a fallback
-      if (!segment && index === 0) {
-        // For the first issue, highlight the first paragraph or sentence
-        const firstSentence = text.split(/[.!?]+\s+/)[0];
-        if (firstSentence) {
-          segment = {
-            text: firstSentence,
-            start: 0,
-            end: firstSentence.length
-          };
-        }
-      } else if (!segment && index > 0 && segments.length > 0) {
-        // For subsequent issues, try the next sentence after the previous segment
-        const prevSegment = segments[segments.length - 1];
-        const remainingText = text.substring(prevSegment.end);
-        const nextSentence = remainingText.split(/[.!?]+\s+/)[0];
-        if (nextSentence) {
-          segment = {
-            text: nextSentence,
-            start: prevSegment.end,
-            end: prevSegment.end + nextSentence.length
-          };
-        }
-      }
-      
-      // If all else fails, just highlight a random short segment
+      // If we still couldn't find a segment, use fallbacks but avoid duplicating the entire text
       if (!segment) {
-        const words = text.split(/\s+/);
-        if (words.length > 0) {
-          const randomIndex = Math.floor(Math.random() * (words.length - 3));
-          const randomSegment = words.slice(randomIndex, randomIndex + 3).join(' ');
-          const start = text.indexOf(randomSegment);
-          if (start !== -1) {
+        // For the first issue without a segment, highlight a small portion near the beginning
+        if (segments.length === 0) {
+          // Find a suitable short segment (first sentence or first 50 chars if no sentence breaks)
+          const firstSentence = text.split(/[.!?]+\s+/)[0];
+          if (firstSentence && firstSentence.length < text.length / 3) {
             segment = {
-              text: randomSegment,
-              start: start,
-              end: start + randomSegment.length
+              text: firstSentence,
+              start: 0,
+              end: firstSentence.length
             };
+          } else {
+            // Use first 50 chars or 10% of text, whichever is smaller
+            const endPos = Math.min(50, Math.round(text.length * 0.1));
+            segment = {
+              text: text.substring(0, endPos),
+              start: 0,
+              end: endPos
+            };
+          }
+        } else {
+          // For subsequent issues, find a short segment in the middle or end of text
+          const midPoint = Math.floor(text.length / 2);
+          
+          // Look for a sentence break near the middle
+          let start = midPoint;
+          while (start > midPoint - 100 && start > 0) {
+            if ('.!?'.includes(text[start-1]) && text[start] === ' ') {
+              break;
+            }
+            start--;
+          }
+          
+          let end = start + 50; // About 50 chars or to the next sentence break
+          while (end < start + 100 && end < text.length) {
+            if ('.!?'.includes(text[end])) {
+              end++;
+              break;
+            }
+            end++;
+          }
+          
+          // Make sure we don't overlap with existing segments
+          let overlapping = false;
+          for (const [coveredStart, coveredEnd] of coveredRanges) {
+            if ((start <= coveredEnd && end >= coveredStart)) {
+              overlapping = true;
+              break;
+            }
+          }
+          
+          if (!overlapping) {
+            segment = {
+              text: text.substring(start, end),
+              start: start,
+              end: end
+            };
+          } else {
+            // Find any uncovered area of reasonable size
+            const uncoveredRanges = [];
+            let lastEnd = 0;
+            
+            // Sort covered ranges
+            coveredRanges.sort((a, b) => a[0] - b[0]);
+            
+            // Find gaps between covered ranges
+            for (const [coveredStart, coveredEnd] of coveredRanges) {
+              if (coveredStart > lastEnd) {
+                uncoveredRanges.push([lastEnd, coveredStart]);
+              }
+              lastEnd = Math.max(lastEnd, coveredEnd);
+            }
+            
+            // Add the final gap if needed
+            if (lastEnd < text.length) {
+              uncoveredRanges.push([lastEnd, text.length]);
+            }
+            
+            // Find a suitable gap
+            for (const [gapStart, gapEnd] of uncoveredRanges) {
+              if (gapEnd - gapStart > 20) { // Minimum 20 chars for a useful segment
+                // Try to find a natural boundary within the gap
+                let segStart = gapStart;
+                let segEnd = Math.min(gapStart + 50, gapEnd);
+                
+                segment = {
+                  text: text.substring(segStart, segEnd),
+                  start: segStart,
+                  end: segEnd
+                };
+                break;
+              }
+            }
           }
         }
       }
       
-      if (segment) {
-        segments.push(segment);
-        issueToSegmentMap[index] = segment;
+      // If we have a valid segment, add it and track the covered range
+      if (segment && segment.start >= 0 && segment.end <= text.length) {
+        // Check for overlap with existing segments
+        let overlapping = false;
+        for (const [coveredStart, coveredEnd] of coveredRanges) {
+          if ((segment.start <= coveredEnd && segment.end >= coveredStart)) {
+            overlapping = true;
+            break;
+          }
+        }
+        
+        if (!overlapping) {
+          segments.push(segment);
+          issueToSegmentMap[index] = segment;
+          coveredRanges.push([segment.start, segment.end]);
+        }
       }
     });
     
@@ -2720,25 +2814,46 @@
     // Find segments to highlight
     const segments = findSegmentsInText(text, issues);
     
+    // If no segments were found, don't display anything
+    if (segments.length === 0) {
+      targetDisplayContainer.style.display = 'none';
+      return;
+    }
+    
     // Show the target display container
     targetDisplayContainer.style.display = 'block';
+    
+    // Sort segments by start position to ensure proper rendering
+    segments.sort((a, b) => a.start - b.start);
     
     // Create HTML with highlighted segments
     let html = '';
     let lastEnd = 0;
     
     segments.forEach((segment, index) => {
-      // Add text before this segment
-      html += escapeHtml(text.substring(lastEnd, segment.start));
+      // Validate segment boundaries
+      if (segment.start < 0) segment.start = 0;
+      if (segment.end > text.length) segment.end = text.length;
+      if (segment.start > lastEnd) {
+        // Add text before this segment
+        html += escapeHtml(text.substring(lastEnd, segment.start));
+      } else if (segment.start < lastEnd) {
+        // Segments overlap, adjust this segment to start after the last one
+        segment.start = lastEnd;
+      }
       
-      // Add the highlighted segment
-      html += `<span class="highlight" data-issue-id="${index}">${escapeHtml(segment.text)}</span>`;
-      
-      lastEnd = segment.end;
+      // Only add the segment if it's valid
+      if (segment.start < segment.end) {
+        // Add the highlighted segment
+        html += `<span class="highlight" data-issue-id="${index}">${escapeHtml(text.substring(segment.start, segment.end))}</span>`;
+        lastEnd = segment.end;
+      }
     });
     
     // Add any remaining text
-    html += escapeHtml(text.substring(lastEnd));
+    if (lastEnd < text.length) {
+      html += escapeHtml(text.substring(lastEnd));
+    }
     
     // Set the HTML
     targetDisplay.innerHTML = html;
