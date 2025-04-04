@@ -2715,18 +2715,22 @@ correctedText.removeAttribute('readonly');
       // Render individual issues
       issuesContainer.innerHTML = '';
       results.mqmIssues.forEach((issue, index) => {
+        // Safely get severity info with fallback to MINOR if undefined
+        const severityKey = issue.severity || 'MINOR';
+        const severityInfo = severityLevels[severityKey] || severityLevels['MINOR'];
+        
         const issueEl = document.createElement('div');
         issueEl.className = 'issue';
         issueEl.id = `issue-${index}`;
         issueEl.innerHTML = `
           <div class="issue-container">
-            <div class="issue-indicator ${severityLevels[issue.severity].class}">
-              ${issue.severity === 'MINOR' ? 'i' : issue.severity === 'MAJOR' ? '!' : '✕'}
+            <div class="issue-indicator ${severityInfo.class}">
+              ${severityKey === 'MINOR' ? 'i' : severityKey === 'MAJOR' ? '!' : '✕'}
             </div>
             <div class="issue-content">
               <div class="issue-header">
                 <div class="issue-title">${issue.category}: ${issue.subcategory}</div>
-                <div class="issue-severity ${severityLevels[issue.severity].class}">${severityLevels[issue.severity].label}</div>
+                <div class="issue-severity ${severityInfo.class}">${severityInfo.label}</div>
               </div>
               <div class="issue-explanation">${issue.explanation}</div>
               <div class="issue-location">Location: ${issue.location || 'Unknown'}</div>
