@@ -178,6 +178,160 @@ Please respond in **valid JSON** format like this:
   }
 });
 
+// Excel template download endpoint
+app.get('/api/download-template', async (req, res) => {
+  try {
+    const workbook = new ExcelJS.Workbook();
+    
+    // Add an instructions sheet
+    const instructionsSheet = workbook.addWorksheet('Instructions');
+    
+    // Configure columns for instructions
+    instructionsSheet.columns = [
+      { header: '', key: 'instructions', width: 100 }
+    ];
+    
+    // Add instruction content with formatting
+    instructionsSheet.addRow(['Bilingual MQM Assessment Template']);
+    const titleRow = instructionsSheet.lastRow;
+    titleRow.font = { bold: true, size: 16 };
+    titleRow.height = 30;
+    
+    instructionsSheet.addRow(['']);
+    instructionsSheet.addRow(['HOW TO USE THIS TEMPLATE']);
+    const howToUseRow = instructionsSheet.lastRow;
+    howToUseRow.font = { bold: true, size: 14 };
+    
+    instructionsSheet.addRow(['']);
+    instructionsSheet.addRow(['1. Fill in source and target language information in the Settings sheet']);
+    instructionsSheet.addRow(['2. Enter your source text and target text in the Content sheet']);
+    instructionsSheet.addRow(['3. For each segment that has quality issues, add entries in the Issues sheet']);
+    instructionsSheet.addRow(['4. Use the categories and severity levels as defined in the MQM framework']);
+    instructionsSheet.addRow(['5. Save the file and upload it through the web interface for automated processing']);
+    instructionsSheet.addRow(['']);
+    
+    instructionsSheet.addRow(['MQM CATEGORIES AND DEFINITIONS']);
+    const mqmCatRow = instructionsSheet.lastRow;
+    mqmCatRow.font = { bold: true, size: 14 };
+    
+    instructionsSheet.addRow(['']);
+    instructionsSheet.addRow(['Accuracy']);
+    instructionsSheet.lastRow.font = { bold: true };
+    instructionsSheet.addRow(['- Mistranslation: Content in target language that misrepresents source content']);
+    instructionsSheet.addRow(['- Omission: Content missing from translation that is present in source']);
+    instructionsSheet.addRow(['- Addition: Content added to translation that is not present in source']);
+    instructionsSheet.addRow(['- Untranslated: Source content not translated that should be']);
+    
+    instructionsSheet.addRow(['']);
+    instructionsSheet.addRow(['Fluency']);
+    instructionsSheet.lastRow.font = { bold: true };
+    instructionsSheet.addRow(['- Grammar: Issues related to grammar, syntax, or morphology']);
+    instructionsSheet.addRow(['- Spelling: Spelling errors or typos']);
+    instructionsSheet.addRow(['- Punctuation: Incorrect or inconsistent punctuation']);
+    instructionsSheet.addRow(['- Typography: Issues with formatting, capitalization, or other typographical elements']);
+    
+    instructionsSheet.addRow(['']);
+    instructionsSheet.addRow(['Terminology']);
+    instructionsSheet.lastRow.font = { bold: true };
+    instructionsSheet.addRow(['- Inconsistent: Terminology used inconsistently within the text']);
+    instructionsSheet.addRow(['- Inappropriate: Wrong terms used for the context or domain']);
+    
+    instructionsSheet.addRow(['']);
+    instructionsSheet.addRow(['Style']);
+    instructionsSheet.lastRow.font = { bold: true };
+    instructionsSheet.addRow(['- Awkward: Translation sounds unnatural or awkward']);
+    instructionsSheet.addRow(['- Cultural: Cultural references incorrectly adapted']);
+    
+    instructionsSheet.addRow(['']);
+    instructionsSheet.addRow(['SEVERITY LEVELS']);
+    const severityRow = instructionsSheet.lastRow;
+    severityRow.font = { bold: true, size: 14 };
+    
+    instructionsSheet.addRow(['']);
+    instructionsSheet.addRow(['Minor (1 point): Issues that don\'t significantly impact understanding']);
+    instructionsSheet.addRow(['Major (5 points): Issues that significantly impact understanding but don\'t completely change meaning']);
+    instructionsSheet.addRow(['Critical (10 points): Issues that completely change the meaning or could lead to serious consequences']);
+    
+    // Add settings sheet for language selection
+    const settingsSheet = workbook.addWorksheet('Settings');
+    settingsSheet.columns = [
+      { header: 'Setting', key: 'setting', width: 30 },
+      { header: 'Value', key: 'value', width: 30 }
+    ];
+    
+    const headerRow = settingsSheet.getRow(1);
+    headerRow.font = { bold: true };
+    headerRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: '4F81BD' }
+    };
+    headerRow.font = { bold: true, color: { argb: 'FFFFFF' } };
+    
+    settingsSheet.addRow(['Source Language', '']);
+    settingsSheet.addRow(['Target Language', '']);
+    
+    // Add content sheet for source and target content
+    const contentSheet = workbook.addWorksheet('Content');
+    contentSheet.columns = [
+      { header: 'Source Text', key: 'source', width: 50 },
+      { header: 'Target Text', key: 'target', width: 50 }
+    ];
+    
+    const contentHeaderRow = contentSheet.getRow(1);
+    contentHeaderRow.font = { bold: true };
+    contentHeaderRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: '4F81BD' }
+    };
+    contentHeaderRow.font = { bold: true, color: { argb: 'FFFFFF' } };
+    
+    // Add assessment sheet for issues
+    const issuesSheet = workbook.addWorksheet('Issues');
+    issuesSheet.columns = [
+      { header: 'Segment', key: 'segment', width: 40 },
+      { header: 'Category', key: 'category', width: 15 },
+      { header: 'Subcategory', key: 'subcategory', width: 20 },
+      { header: 'Severity', key: 'severity', width: 15 },
+      { header: 'Explanation', key: 'explanation', width: 40 },
+      { header: 'Suggested Fix', key: 'suggestion', width: 40 }
+    ];
+    
+    const issuesHeaderRow = issuesSheet.getRow(1);
+    issuesHeaderRow.font = { bold: true };
+    issuesHeaderRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: '4F81BD' }
+    };
+    issuesHeaderRow.font = { bold: true, color: { argb: 'FFFFFF' } };
+    
+    // Add validation for Category column
+    issuesSheet.getCell('B2').dataValidation = {
+      type: 'list',
+      allowBlank: true,
+      formulae: ['"Accuracy,Fluency,Terminology,Style,Design"']
+    };
+    
+    // Add validation for Severity column
+    issuesSheet.getCell('D2').dataValidation = {
+      type: 'list',
+      allowBlank: true,
+      formulae: ['"Minor,Major,Critical"']
+    };
+    
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="mqm_template.xlsx"');
+    
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (err) {
+    console.error('Excel template generation error:', err);
+    res.status(500).json({ error: 'Failed to generate Excel template' });
+  }
+});
+
 // MQM analysis endpoint using Claude API
 app.post('/api/mqm-analysis', async (req, res) => {
   try {
@@ -431,6 +585,240 @@ app.get('/api/download-report/:id/pdf', async (req, res) => {
   } catch (err) {
     console.error('PDF download error:', err);
     res.status(500).json({ error: 'Failed to generate PDF' });
+  }
+});
+
+// Add multer for file uploads
+const multer = require('multer');
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
+      cb(null, true);
+    } else {
+      cb(new Error('Only Excel files (.xlsx) are allowed'), false);
+    }
+  }
+});
+
+// Upload and process Excel template
+app.post('/api/upload-excel', upload.single('excelFile'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(req.file.buffer);
+
+    // Extract settings
+    const settingsSheet = workbook.getWorksheet('Settings');
+    if (!settingsSheet) {
+      return res.status(400).json({ error: 'Invalid template: Settings sheet not found' });
+    }
+
+    let sourceLang = '';
+    let targetLang = '';
+
+    // Extract source and target languages
+    settingsSheet.eachRow((row, rowNumber) => {
+      if (rowNumber > 1) { // Skip header row
+        const setting = row.getCell(1).value;
+        const value = row.getCell(2).value;
+        
+        if (setting === 'Source Language') {
+          sourceLang = value;
+        } else if (setting === 'Target Language') {
+          targetLang = value;
+        }
+      }
+    });
+
+    if (!sourceLang || !targetLang) {
+      return res.status(400).json({ error: 'Source or target language not specified in the template' });
+    }
+
+    // Extract content
+    const contentSheet = workbook.getWorksheet('Content');
+    if (!contentSheet) {
+      return res.status(400).json({ error: 'Invalid template: Content sheet not found' });
+    }
+
+    let sourceText = '';
+    let targetText = '';
+
+    // Extract source and target text
+    contentSheet.eachRow((row, rowNumber) => {
+      if (rowNumber > 1) { // Skip header row
+        const source = row.getCell(1).value || '';
+        const target = row.getCell(2).value || '';
+        
+        sourceText += source + '\n';
+        targetText += target + '\n';
+      }
+    });
+
+    sourceText = sourceText.trim();
+    targetText = targetText.trim();
+
+    if (!sourceText || !targetText) {
+      return res.status(400).json({ error: 'Source or target text is empty' });
+    }
+
+    // Check word count limit
+    const words = sourceText.trim().split(/\s+/);
+    const wordCount = words.length > 0 && words[0] !== '' ? words.length : 0;
+    const WORD_COUNT_LIMIT = 500;
+    
+    if (wordCount > WORD_COUNT_LIMIT) {
+      return res.status(400).json({ error: `Source text exceeds the ${WORD_COUNT_LIMIT} word limit` });
+    }
+
+    // Extract issues
+    const issuesSheet = workbook.getWorksheet('Issues');
+    if (!issuesSheet) {
+      return res.status(400).json({ error: 'Invalid template: Issues sheet not found' });
+    }
+
+    const issues = [];
+    let totalPoints = 0;
+
+    // Extract issue details
+    issuesSheet.eachRow((row, rowNumber) => {
+      if (rowNumber > 1) { // Skip header row
+        const segment = row.getCell(1).value || '';
+        const category = row.getCell(2).value || '';
+        const subcategory = row.getCell(3).value || '';
+        const severityText = row.getCell(4).value || '';
+        const explanation = row.getCell(5).value || '';
+        const suggestion = row.getCell(6).value || '';
+
+        if (segment && category && subcategory && severityText) {
+          // Map severity text to severity level
+          let severity;
+          let points = 0;
+          
+          switch (severityText.trim().toLowerCase()) {
+            case 'minor':
+              severity = 'MINOR';
+              points = 1;
+              break;
+            case 'major':
+              severity = 'MAJOR';
+              points = 5;
+              break;
+            case 'critical':
+              severity = 'CRITICAL';
+              points = 10;
+              break;
+            default:
+              severity = 'MINOR'; // Default to minor if not specified correctly
+              points = 1;
+          }
+
+          totalPoints += points;
+
+          // Create issue object
+          issues.push({
+            category,
+            subcategory,
+            severity,
+            explanation,
+            segment,
+            suggestion,
+            correctedSegment: suggestion // Use suggestion as corrected segment if provided
+          });
+        }
+      }
+    });
+
+    // Calculate MQM score
+    const overallScore = Math.max(0, Math.min(100, 100 - (totalPoints / wordCount * 100)));
+
+    // Group issues by category for summary
+    const categories = {
+      "Accuracy": { count: 0, points: 0 },
+      "Fluency": { count: 0, points: 0 },
+      "Terminology": { count: 0, points: 0 },
+      "Style": { count: 0, points: 0 },
+      "Design": { count: 0, points: 0 }
+    };
+    
+    // Count issues and points by category
+    issues.forEach(issue => {
+      if (categories[issue.category]) {
+        categories[issue.category].count++;
+        
+        let points = 0;
+        if (issue.severity === 'MINOR') points = 1;
+        else if (issue.severity === 'MAJOR') points = 5;
+        else if (issue.severity === 'CRITICAL') points = 10;
+        
+        categories[issue.category].points += points;
+      }
+    });
+
+    // Generate summary based on score
+    let summary;
+    if (overallScore >= 90) {
+      summary = "The translation is generally good with only minor issues. It accurately conveys the source content with a few small improvements possible.";
+    } else if (overallScore >= 70) {
+      summary = "The translation has a few issues that should be addressed, but is generally acceptable. Some accuracy and fluency improvements would enhance quality.";
+    } else {
+      summary = "The translation has several significant issues that need addressing. Major improvements in accuracy and fluency are recommended.";
+    }
+
+    // Prepare result object
+    const mqmResults = {
+      mqmIssues: issues,
+      categories,
+      wordCount,
+      overallScore,
+      summary
+    };
+
+    // Save to database
+    const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress;
+    let location = {};
+    
+    try {
+      const geoResponse = await axios.get(`https://ipapi.co/${ip}/json/`);
+      location = {
+        ip,
+        city: geoResponse.data.city,
+        region: geoResponse.data.region,
+        country: geoResponse.data.country_name,
+        org: geoResponse.data.org
+      };
+    } catch (err) {
+      console.warn('🌐 Could not fetch geolocation:', err.message);
+    }
+
+    const runDoc = await Run.create({
+      sourceText,
+      targetText,
+      sourceLang,
+      targetLang,
+      mqmScore: overallScore,
+      issues,
+      ip: location.ip,
+      location,
+      summary,
+      wordCount
+    });
+
+    // Return the results with the database ID
+    return res.json({ ...mqmResults, _id: runDoc._id });
+
+  } catch (error) {
+    console.error('Excel upload error:', error);
+    return res.status(500).json({ 
+      error: 'Failed to process Excel file',
+      message: error.message
+    });
   }
 });
 

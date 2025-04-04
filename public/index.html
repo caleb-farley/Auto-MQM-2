@@ -698,6 +698,52 @@
           It checks for issues in accuracy, fluency, and terminology, and helps you fix them interactively.
           <strong>Maximum 500 words.</strong>
         </p>
+        <p style="margin-top: 10px;">
+          <strong>New! </strong>You can now download our bilingual Excel template to perform MQM assessments offline, then upload it for automated processing.
+        </p>
+      </div>
+      
+      <!-- Excel Template Download/Upload Section -->
+      <div class="excel-tools-container" style="margin-bottom: 20px; border: 1px solid var(--border-light); border-radius: 8px; padding: 15px; background-color: var(--bg-accent);">
+        <h3 style="font-size: 16px; margin-bottom: 12px; color: var(--text-primary);">Offline MQM Assessment</h3>
+        <div style="display: flex; flex-wrap: wrap; gap: 15px;">
+          <div style="flex: 1; min-width: 250px;">
+            <p style="font-size: 14px; margin-bottom: 10px; color: var(--text-body);">
+              Download our Excel template to perform MQM assessments offline. Fill it out and upload it to get your results.
+            </p>
+            <button id="download-template-btn" class="btn btn-primary" style="width: 100%; margin-bottom: 10px;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-right: 8px; vertical-align: text-bottom;">
+                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+              </svg>
+              Download Excel Template
+            </button>
+          </div>
+          <div style="flex: 1; min-width: 250px;">
+            <p style="font-size: 14px; margin-bottom: 10px; color: var(--text-body);">
+              Upload your completed template for analysis. Results will be displayed below.
+            </p>
+            <form id="excel-upload-form" enctype="multipart/form-data">
+              <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <input type="file" id="excel-file-input" accept=".xlsx" style="display: none;">
+                <button type="button" id="excel-file-select-btn" class="btn btn-secondary" style="flex: 1;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-right: 8px; vertical-align: text-bottom;">
+                    <path d="M8 0a5.53 5.53 0 0 0-3.594 1.342c-.766.66-1.321 1.52-1.464 2.383C1.266 4.095 0 5.555 0 7.318 0 9.366 1.708 11 3.781 11H7.5V5.707L5.354 7.854a.5.5 0 1 1-.708-.708l3-3a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 5.707V11h4.188C14.502 11 16 9.57 16 7.773c0-1.636-1.242-2.969-2.834-3.194C12.923 1.999 10.69 0 8 0zm-.5 14.5V11h1v3.5a.5.5 0 0 1-1 0z"/>
+                  </svg>
+                  Select Excel File
+                </button>
+                <button type="submit" id="excel-upload-btn" class="btn btn-primary" style="flex: 1;" disabled>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-right: 8px; vertical-align: text-bottom;">
+                    <path d="M.5 3a.5.5 0 0 0-.5.5v9a.5.5 0 0 0 .5.5h15a.5.5 0 0 0 .5-.5v-9a.5.5 0 0 0-.5-.5H.5zm1.5.5A.5.5 0 0 1 2.5 3h11a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-1zm0 3a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-4a.5.5 0 0 1-.5-.5v-1zm0 3a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-9a.5.5 0 0 1-.5-.5v-1z"/>
+                  </svg>
+                  Upload & Analyze
+                </button>
+              </div>
+              <div id="selected-file-info" style="margin-top: 10px; font-size: 13px; color: var(--text-muted);"></div>
+            </form>
+          </div>
+        </div>
+        <div id="excel-upload-status" style="margin-top: 15px; display: none;"></div>
       </div>
         
     <!-- Text areas -->
@@ -1037,6 +1083,13 @@
   const targetText = document.getElementById('target-text');
   const sourceLang = document.getElementById('source-lang');
   const targetLang = document.getElementById('target-lang');
+  const downloadTemplateBtn = document.getElementById('download-template-btn');
+  const excelFileInput = document.getElementById('excel-file-input');
+  const excelFileSelectBtn = document.getElementById('excel-file-select-btn');
+  const excelUploadBtn = document.getElementById('excel-upload-btn');
+  const excelUploadForm = document.getElementById('excel-upload-form');
+  const selectedFileInfo = document.getElementById('selected-file-info');
+  const excelUploadStatus = document.getElementById('excel-upload-status');
   const sourceLangDetected = document.getElementById('source-lang-detected');
   const targetLangDetected = document.getElementById('target-lang-detected');
   const wordCount = document.getElementById('word-count');
@@ -2322,6 +2375,178 @@ correctedText.removeAttribute('readonly');
       return names[code] || names[mainCode] || 'Unknown';
     }
 
+    // Excel template download event handler
+    downloadTemplateBtn.addEventListener('click', async () => {
+      try {
+        // Change button state to indicate loading
+        downloadTemplateBtn.disabled = true;
+        downloadTemplateBtn.innerHTML = '<span class="spinner">⟳</span> Downloading...';
+        
+        // Open the download URL in a new window or tab
+        window.open('/api/download-template', '_blank');
+      } catch (error) {
+        console.error('Template download error:', error);
+        showError('Failed to download template. Please try again.');
+      } finally {
+        // Reset button state
+        setTimeout(() => {
+          downloadTemplateBtn.disabled = false;
+          downloadTemplateBtn.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-right: 8px; vertical-align: text-bottom;">
+              <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+              <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+            </svg>
+            Download Excel Template
+          `;
+        }, 1000);
+      }
+    });
+    
+    // File selection button click handler
+    excelFileSelectBtn.addEventListener('click', () => {
+      excelFileInput.click();
+    });
+    
+    // File input change handler
+    excelFileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      
+      if (file) {
+        // Check if it's an Excel file
+        if (file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
+          // Update UI to show selected file
+          selectedFileInfo.textContent = `Selected: ${file.name} (${formatFileSize(file.size)})`;
+          excelUploadBtn.disabled = false;
+        } else {
+          // Show error for invalid file type
+          selectedFileInfo.textContent = 'Error: Please select a valid Excel (.xlsx) file';
+          excelUploadBtn.disabled = true;
+          excelFileInput.value = '';
+        }
+      } else {
+        // No file selected
+        selectedFileInfo.textContent = '';
+        excelUploadBtn.disabled = true;
+      }
+    });
+    
+    // Helper function to format file size
+    function formatFileSize(bytes) {
+      if (bytes < 1024) return bytes + ' bytes';
+      else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+      else return (bytes / 1048576).toFixed(1) + ' MB';
+    }
+    
+    // Form submission handler
+    excelUploadForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      // Check if file is selected
+      const file = excelFileInput.files[0];
+      if (!file) {
+        showError('Please select an Excel file to upload');
+        return;
+      }
+      
+      // Show loading state
+      excelUploadBtn.disabled = true;
+      excelUploadBtn.innerHTML = '<span class="spinner">⟳</span> Uploading...';
+      errorMessage.style.display = 'none';
+      excelUploadStatus.innerHTML = '<div style="color: var(--brand-teal);">Processing your Excel file, please wait...</div>';
+      excelUploadStatus.style.display = 'block';
+      
+      // Create form data for the file upload
+      const formData = new FormData();
+      formData.append('excelFile', file);
+      
+      try {
+        // Upload the file
+        const response = await fetch('/api/upload-excel', {
+          method: 'POST',
+          body: formData
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Upload failed');
+        }
+        
+        // Process successful response
+        const results = await response.json();
+        
+        // Update upload status message
+        excelUploadStatus.innerHTML = '<div style="color: var(--severity-success);">✓ Excel processed successfully!</div>';
+        
+        // Store current issues and target text from Excel file
+        currentIssues = results.mqmIssues;
+        
+        // Extract and set source and target text from the response
+        if (results.sourceText && results.targetText) {
+          sourceText.value = results.sourceText;
+          targetText.value = results.targetText;
+          updateWordCountDisplay();
+        }
+        
+        // Set language values if provided
+        if (results.sourceLang) {
+          sourceLang.value = results.sourceLang;
+          const flag = getLanguageFlag(results.sourceLang);
+          const name = getLanguageName(results.sourceLang);
+          sourceLangDetected.textContent = `Selected: ${flag} ${name}`;
+        }
+        
+        if (results.targetLang) {
+          targetLang.value = results.targetLang;
+          const flag = getLanguageFlag(results.targetLang);
+          const name = getLanguageName(results.targetLang);
+          targetLangDetected.textContent = `Selected: ${flag} ${name}`;
+        }
+        
+        // Process and display results
+        displayResults(results);
+        
+        // Show the target display with highlighted issues
+        if (results.targetText) {
+          highlightIssuesInText(results.targetText, results.mqmIssues);
+        }
+        
+        // Show apply all button and undo button if there are issues
+        if (results.mqmIssues && results.mqmIssues.length > 0) {
+          applyAllBtn.style.display = 'block';
+          undoBtn.style.display = 'block';
+          undoBtn.disabled = true; // Initially disabled until changes are made
+        }
+        
+        // Enable PDF/Excel report download if we have a run ID
+        const runId = results._id;
+        if (runId) {
+          const downloadBtns = document.getElementById('download-buttons');
+          downloadBtns.style.display = 'flex';
+          
+          document.getElementById('download-excel-btn').onclick = () => {
+            window.open(`/api/download-report/${runId}/excel`, '_blank');
+          };
+        }
+        
+        // Scroll down to results
+        resultsContainer.scrollIntoView({ behavior: 'smooth' });
+        
+      } catch (error) {
+        console.error('Excel upload error:', error);
+        excelUploadStatus.innerHTML = `<div style="color: var(--severity-critical);">❌ Error: ${error.message || 'Failed to process Excel file'}</div>`;
+        showError(error.message || 'An error occurred while processing the Excel file');
+      } finally {
+        // Reset button state
+        excelUploadBtn.disabled = false;
+        excelUploadBtn.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-right: 8px; vertical-align: text-bottom;">
+            <path d="M.5 3a.5.5 0 0 0-.5.5v9a.5.5 0 0 0 .5.5h15a.5.5 0 0 0 .5-.5v-9a.5.5 0 0 0-.5-.5H.5zm1.5.5A.5.5 0 0 1 2.5 3h11a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-1zm0 3a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-4a.5.5 0 0 1-.5-.5v-1zm0 3a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-9a.5.5 0 0 1-.5-.5v-1z"/>
+          </svg>
+          Upload & Analyze
+        `;
+      }
+    });
+    
     // Generate mock MQM results for development/testing
     function generateMockResults(wordCount) {
       // Look at the input to make the simulation more realistic
