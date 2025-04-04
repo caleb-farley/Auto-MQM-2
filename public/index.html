@@ -1338,16 +1338,12 @@ select:focus {
         // ✅ Add this to enable PDF/Excel download buttons
         const runId = results._id;
         if (runId) {
-        const downloadBtns = document.getElementById('download-buttons');
-        downloadBtns.style.display = 'flex';
+          const downloadBtns = document.getElementById('download-buttons');
+          downloadBtns.style.display = 'flex';
 
-        document.getElementById('download-pdf-btn').onclick = () => {
-        window.open(`/api/download-report/${runId}/pdf`, '_blank');
-        };
-
-        document.getElementById('download-excel-btn').onclick = () => {
-        window.open(`/api/download-report/${runId}/excel`, '_blank');
-         };
+          document.getElementById('download-excel-btn').onclick = () => {
+            window.open(`/api/download-report/${runId}/excel`, '_blank');
+          };
         }
       
       // Show apply all button and undo button if there are issues
