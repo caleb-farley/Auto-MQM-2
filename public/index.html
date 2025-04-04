@@ -752,49 +752,6 @@
         </p>
       </div>
       
-      <!-- Excel Template Download/Upload Section -->
-      <div class="excel-tools-container" style="margin-bottom: 20px; border: 1px solid var(--border-light); border-radius: 8px; padding: 15px; background-color: var(--bg-accent);">
-        <h3 style="font-size: 16px; margin-bottom: 12px; color: var(--text-primary);">Offline MQM Assessment</h3>
-        <div style="display: flex; flex-wrap: wrap; gap: 15px;">
-          <div style="flex: 1; min-width: 250px;">
-            <p style="font-size: 14px; margin-bottom: 10px; color: var(--text-body);">
-              Download our Excel template to perform MQM assessments offline. Fill it out and upload it to get your results.
-            </p>
-            <button id="download-template-btn" class="btn btn-primary" style="width: 100%; margin-bottom: 10px;">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-right: 8px; vertical-align: text-bottom;">
-                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
-                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
-              </svg>
-              Download Excel Template
-            </button>
-          </div>
-          <div style="flex: 1; min-width: 250px;">
-            <p style="font-size: 14px; margin-bottom: 10px; color: var(--text-body);">
-              Upload your completed template for analysis. Results will be displayed below.
-            </p>
-            <form id="excel-upload-form" enctype="multipart/form-data">
-              <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                <input type="file" id="excel-file-input" accept=".xlsx" style="display: none;">
-                <button type="button" id="excel-file-select-btn" class="btn btn-secondary" style="flex: 1;">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-right: 8px; vertical-align: text-bottom;">
-                    <path d="M8 0a5.53 5.53 0 0 0-3.594 1.342c-.766.66-1.321 1.52-1.464 2.383C1.266 4.095 0 5.555 0 7.318 0 9.366 1.708 11 3.781 11H7.5V5.707L5.354 7.854a.5.5 0 1 1-.708-.708l3-3a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 5.707V11h4.188C14.502 11 16 9.57 16 7.773c0-1.636-1.242-2.969-2.834-3.194C12.923 1.999 10.69 0 8 0zm-.5 14.5V11h1v3.5a.5.5 0 0 1-1 0z"/>
-                  </svg>
-                  Select Excel File
-                </button>
-                <button type="submit" id="excel-upload-btn" class="btn btn-primary" style="flex: 1;" disabled>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-right: 8px; vertical-align: text-bottom;">
-                    <path d="M.5 3a.5.5 0 0 0-.5.5v9a.5.5 0 0 0 .5.5h15a.5.5 0 0 0 .5-.5v-9a.5.5 0 0 0-.5-.5H.5zm1.5.5A.5.5 0 0 1 2.5 3h11a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-1zm0 3a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-4a.5.5 0 0 1-.5-.5v-1zm0 3a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-9a.5.5 0 0 1-.5-.5v-1z"/>
-                  </svg>
-                  Upload & Analyze
-                </button>
-              </div>
-              <div id="selected-file-info" style="margin-top: 10px; font-size: 13px; color: var(--text-muted);"></div>
-            </form>
-          </div>
-        </div>
-        <div id="excel-upload-status" style="margin-top: 15px; display: none;"></div>
-      </div>
-      
     <!-- Review Mode Selection -->
     <div class="review-mode" style="margin-bottom: 20px; background-color: var(--bg-accent); padding: 15px; border-radius: 8px; border: 1px solid var(--border-light);">
       <label style="font-weight: 500; color: var(--text-primary); margin-right: 10px;">Review Mode:</label>
