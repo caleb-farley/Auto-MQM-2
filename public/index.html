@@ -902,6 +902,81 @@ select:focus {
   <!-- Tooltip element for showing issue details on hover -->
   <div id="tooltip" class="tooltip"></div>
 
+<!-- FAQ Section -->
+<section class="faq-section" style="margin-top: 40px;">
+    <h2 style="font-size: 20px; font-weight: 600; margin-bottom: 16px; color: #ffffff;">Frequently Asked Questions</h2>
+    <div class="faq-item" style="margin-bottom: 20px;">
+      <h3 style="font-size: 16px; font-weight: 500; color: #00B3D6;">What is MQM and how does this tool use it?</h3>
+      <p style="font-size: 14px; color: #a0a0a0;">MQM (Multidimensional Quality Metrics) is an industry-standard framework for evaluating translation quality. This tool automatically detects issues like mistranslations, fluency problems, and terminology errors using MQM categories.</p>
+    </div>
+    <div class="faq-item" style="margin-bottom: 20px;">
+      <h3 style="font-size: 16px; font-weight: 500; color: #00B3D6;">How accurate is the analysis?</h3>
+      <p style="font-size: 14px; color: #a0a0a0;">The tool uses a combination of LLMs and linguistic rules to provide reliable assessments. While it's not a substitute for a human reviewer in critical cases, it's highly effective for scalable QA and triage.</p>
+    </div>
+    <div class="faq-item" style="margin-bottom: 20px;">
+      <h3 style="font-size: 16px; font-weight: 500; color: #00B3D6;">Can I use this for regulatory or medical content?</h3>
+      <p style="font-size: 14px; color: #a0a0a0;">Yes, the tool supports high-stakes content. However, we recommend using it as a pre-QA step before final human validation for regulatory texts.</p>
+    </div>
+    <div class="faq-item" style="margin-bottom: 20px;">
+      <h3 style="font-size: 16px; font-weight: 500; color: #00B3D6;">Does this integrate with my CAT tool or TMS?</h3>
+      <p style="font-size: 14px; color: #a0a0a0;">Not yet, but we’re actively building integrations. Let us know which tools you’d like us to support first.</p>
+    </div>
+    <div class="faq-item" style="margin-bottom: 20px;">
+      <h3 style="font-size: 16px; font-weight: 500; color: #00B3D6;">How do you handle data privacy?</h3>
+      <p style="font-size: 14px; color: #a0a0a0;">Your data is never stored or reused. We process inputs securely and ensure that no text is saved after the session ends.</p>
+    </div>
+  </section>
+  
+  <!-- FAQ Schema Markup -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What is MQM and how does this tool use it?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "MQM (Multidimensional Quality Metrics) is an industry-standard framework for evaluating translation quality. This tool automatically detects issues like mistranslations, fluency problems, and terminology errors using MQM categories."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How accurate is the analysis?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The tool uses a combination of LLMs and linguistic rules to provide reliable assessments. While it's not a substitute for a human reviewer in critical cases, it's highly effective for scalable QA and triage."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can I use this for regulatory or medical content?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, the tool supports high-stakes content. However, we recommend using it as a pre-QA step before final human validation for regulatory texts."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does this integrate with my CAT tool or TMS?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Not yet, but we’re actively building integrations. Let us know which tools you’d like us to support first."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do you handle data privacy?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Your data is never stored or reused. We process inputs securely and ensure that no text is saved after the session ends."
+        }
+      }
+    ]
+  }
+  </script>
+  
   <!-- Footer -->
   <div class="footer">
     © 2025 Orca Language Solutions. All rights reserved.
