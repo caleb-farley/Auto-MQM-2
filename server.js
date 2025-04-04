@@ -480,6 +480,8 @@ try {
     const prompt = `
 You are a localization QA expert using the MQM (Multidimensional Quality Metrics) framework to evaluate translations. Please analyze the following source and target text pair and provide a detailed quality assessment.
 
+IMPORTANT: You must ONLY analyze the EXACT text provided in the submission. Do NOT invent or hallucinate errors that don't actually exist in the text. If you don't find any genuine errors, return an empty mqmIssues array. Never fabricate issues - only report problems that are definitively present in the provided text.
+
 Source language: ${sourceLang}
 Target language: ${targetLang}
 
@@ -493,7 +495,7 @@ Target text:
 ${targetText}
 """
 
-Perform a detailed MQM analysis using the following error categories:
+Perform a detailed MQM analysis using the following error categories, but only if you find actual errors in the text:
 1. Accuracy
    - Mistranslation: Content in target language that misrepresents source content
    - Omission: Content missing from translation that is present in source
@@ -932,6 +934,8 @@ app.post('/api/upload-excel',
     const prompt = `
 You are a localization QA expert using the MQM (Multidimensional Quality Metrics) framework to evaluate translations. Please analyze the following source and target text pair and provide a detailed quality assessment.
 
+IMPORTANT: You must ONLY analyze the EXACT text provided in the submission. Do NOT invent or hallucinate errors that don't actually exist in the text. If you don't find any genuine errors, return an empty mqmIssues array. Never fabricate issues - only report problems that are definitively present in the provided text.
+
 Source language: ${sourceLang}
 Target language: ${targetLang}
 
@@ -945,7 +949,7 @@ Target text:
 ${targetText}
 """
 
-Perform a detailed MQM analysis using the following error categories:
+Perform a detailed MQM analysis using the following error categories, but only if you find actual errors in the text:
 1. Accuracy
    - Mistranslation: Content in target language that misrepresents source content
    - Omission: Content missing from translation that is present in source

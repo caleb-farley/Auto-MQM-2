@@ -1035,7 +1035,7 @@
   }
   
   .issue-status:before {
-    content: "✅";
+    content: "✅ ";
     font-size: 1.1em;
   }
   
@@ -1079,12 +1079,13 @@
     padding: 10px;
     border-radius: 6px;
     z-index: 100;
-    width: 300px;
+    width: 400px;
+    max-width: 90vw;
     font-size: 12px;
     margin-top: 8px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.2);
     color: var(--text-body);
-    line-height: 1.5;
+    line-height: 1.6;
   }
   
   .score-container:hover .score-formula {
@@ -1449,9 +1450,9 @@
       <div class="info-box">
         <p>
           Use this tool to assess the quality of your localization content based on the
-          <a href="https://themqm.org/" target="_blank" rel="noopener noreferrer" style="color: #00B3D6; text-decoration: underline;">
-            Multidimensional Quality Metrics
-          </a>(MQM) framework.
+    <a href="https://themqm.org/" target="_blank" rel="noopener noreferrer" style="color: #00B3D6; text-decoration: none;">
+      Multidimensional Quality Metrics
+    </a>(MQM) framework.
           It checks for issues in accuracy, fluency, and terminology, and helps you fix them interactively.
           <strong>Maximum 500 words.</strong>
         </p>
@@ -1953,7 +1954,7 @@
   </div>
 
   <div class="buttons" id="download-buttons" style="display: none;">
-    <button id="download-excel-btn" class="btn btn-secondary">Download Excel</button>
+    <button id="download-excel-btn" class="btn btn-secondary">Download Quality Report</button>
   </div>
   
   <!-- Error message (initially hidden) -->
