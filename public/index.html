@@ -1534,18 +1534,6 @@
           <strong>New! </strong>You can now download our bilingual Excel template to perform MQM assessments offline, then upload it for automated processing.
         </p>
       </div>
-      
-      <!-- Review Mode Toggle - moved from header -->
-      <div class="review-mode-toggle" style="margin: 20px 0;">
-        <div class="toggle-container">
-          <span class="toggle-option-left active" id="bilingual-label">Bilingual</span>
-          <label class="switch">
-            <input type="checkbox" id="review-mode-toggle">
-            <span class="slider"></span>
-          </label>
-          <span class="toggle-option-right" id="monolingual-label">Monolingual</span>
-        </div>
-      </div>
         
     <!-- Text areas -->
     <div class="text-areas">
@@ -1638,6 +1626,19 @@
           <div id="word-count" class="word-count">0 / 500 words</div>
         </div>
       </div>
+      
+      <!-- Bilingual Switcher - moved from above -->
+      <div class="review-mode-toggle" style="margin: 15px 0; position: relative; right: auto; top: auto; z-index: 1; border-radius: 12px; padding: 16px 20px; background-color: var(--bg-accent); border: 1px solid var(--border-light); box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);">
+        <div class="toggle-container">
+          <span class="toggle-option-left active" id="bilingual-label">Bilingual</span>
+          <label class="switch">
+            <input type="checkbox" id="review-mode-toggle">
+            <span class="slider"></span>
+          </label>
+          <span class="toggle-option-right" id="monolingual-label">Monolingual</span>
+        </div>
+      </div>
+    
     <button id="save-run-btn" class="btn btn-secondary" style="display: none;">Save Assessment</button>
       <!-- Target text -->
       <div class="text-area-container">
