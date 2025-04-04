@@ -2800,10 +2800,62 @@
     // Update the corrected text with Claude's pre-corrected version
     const currentValue = correctedText.value;
     
-  // Apply the corrected version using more accurate indices if available
-  let newText;
-  if (issue.correctedSegment) {
-    // Use the startIndex and endIndex from the server if available
+  // Update the corrected text with the appropriate replacement
+  let newText = currentValue;
+  
+  // For terminology issues, try to do a specific term replacement instead of replacing the whole segment
+  if (issue.category === 'Terminology') {
+    let incorrectTerm = '';
+    let correctTerm = '';
+    
+    // Try to extract the terms from suggestion
+    if (issue.suggestion) {
+      const replaceMatch = issue.suggestion.match(/Replace\s+'([^']+)'\s+with\s+'([^']+)'/i);
+      if (replaceMatch && replaceMatch[1] && replaceMatch[2]) {
+        incorrectTerm = replaceMatch[1];
+        correctTerm = replaceMatch[2];
+      }
+    }
+    
+    // If not found, try to extract from explanation
+    if (!incorrectTerm && !correctTerm && issue.explanation) {
+      const termMatch = issue.explanation.match(/term\s+'([^']+)'.+?uses\s+'([^']+)'/i);
+      if (termMatch && termMatch[1] && termMatch[2]) {
+        incorrectTerm = termMatch[1];
+        correctTerm = termMatch[2];
+      }
+    }
+    
+    // If we have the terms, do a targeted replacement
+    if (incorrectTerm && correctTerm) {
+      // Replace only within the segment
+      const segmentText = currentValue.substring(segment.start, segment.end);
+      const correctedSegmentText = segmentText.replace(
+        new RegExp(escapeRegExp(incorrectTerm), 'g'), 
+        correctTerm
+      );
+      
+      // Construct the new text
+      newText = currentValue.substring(0, segment.start) + 
+                correctedSegmentText + 
+                currentValue.substring(segment.end);
+    } else if (issue.correctedSegment) {
+      // Fall back to the provided corrected segment
+      let start = segment.start;
+      let end = segment.end;
+      
+      // If the server provided indices, use them for more accurate replacement
+      if (issue.startIndex !== undefined && issue.endIndex !== undefined) {
+        start = issue.startIndex;
+        end = issue.endIndex;
+      }
+      
+      newText = currentValue.substring(0, start) + 
+                issue.correctedSegment + 
+                currentValue.substring(end);
+    }
+  } else if (issue.correctedSegment) {
+    // For non-terminology issues, use the provided corrected segment
     let start = segment.start;
     let end = segment.end;
     
@@ -2816,22 +2868,19 @@
     newText = currentValue.substring(0, start) + 
               issue.correctedSegment + 
               currentValue.substring(end);
-              
-    // Update the correction status message
-    const correctionStatus = document.getElementById('correction-status');
-    if (correctionStatus) {
+  }
+  
+  // Update the correction status message
+  const correctionStatus = document.getElementById('correction-status');
+  if (correctionStatus) {
+    if (newText !== currentValue) {
       correctionStatus.textContent = "✨ Correction applied automatically";
       correctionStatus.style.color = '#4cd964'; // Green for automatic correction
-    }
-  } else {
-    // Fallback if no correctedSegment is provided
-    newText = currentValue;
-      const correctionStatus = document.getElementById('correction-status');
-      if (correctionStatus) {
+    } else {
       correctionStatus.textContent = "🖊️ No fixed version available. Please edit manually.";
-        correctionStatus.style.color = '#ff8c00'; // Orange for manual edit required
-      }
+      correctionStatus.style.color = '#ff8c00'; // Orange for manual edit required
     }
+  }
     
     correctedText.value = newText;
     
