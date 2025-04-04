@@ -355,21 +355,22 @@ For example, if the segment is "The internationale women day" and the issue is t
     try {
       const mqmResults = JSON.parse(jsonMatch[0]);
 
-    await Run.create({
-    sourceText,
-    targetText,
-    sourceLang,
-    targetLang,
-    alignmentConfidence: req.body.matchConfidence || 100,
-    alignmentReason: req.body.reason || 'N/A',
-    mqmScore: mqmResults.overallScore,
-    issues: mqmResults.mqmIssues,
-    ip: location.ip,
-    location
-    });
+      const runDoc = await Run.create({
+        sourceText,
+        targetText,
+        sourceLang,
+        targetLang,
+        alignmentConfidence: req.body.matchConfidence || 100,
+        alignmentReason: req.body.reason || 'N/A',
+        mqmScore: mqmResults.overallScore,
+        issues: mqmResults.mqmIssues,
+        ip: location.ip,
+        location
+      });
 
       // ✅ Include _id in the response
       return res.json({ ...mqmResults, _id: runDoc._id });
+      
     } catch (error) {
       console.error('Error parsing JSON:', error);
       return res.status(500).json({ error: 'Could not parse analysis results' });
