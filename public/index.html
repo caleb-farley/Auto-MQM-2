@@ -1630,15 +1630,27 @@
     <button id="save-run-btn" class="btn btn-secondary" style="display: none;">Save Assessment</button>
       <!-- Target text -->
       <div class="text-area-container">
-        <!-- Bilingual Switcher positioned above target language dropdown -->
-        <div class="review-mode-toggle" style="margin: 0 0 10px 0; display: flex; align-items: center; justify-content: space-between; border-radius: 8px; padding: 10px 14px; background-color: var(--bg-accent); border: 1px solid var(--border-input); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) inset; width: 100%; min-height: 41px;">
-          <div class="toggle-container" style="display: flex; align-items: center; gap: 10px; width: 100%; justify-content: center;">
-            <span class="toggle-option-left active" id="bilingual-label" style="font-size: 14px; font-weight: 500;">Bi</span>
-            <label class="switch" style="width: 32px; height: 16px; min-width: 32px; margin: 0;">
-              <input type="checkbox" id="review-mode-toggle">
-              <span class="slider" style="border-radius: 16px;"></span>
-            </label>
-            <span class="toggle-option-right" id="monolingual-label" style="font-size: 14px; font-weight: 500;">Mono</span>
+        <!-- Translation Type Toggle -->
+        <div style="margin-bottom: 10px; width: 100%;">
+          <div style="display: flex; align-items: center; margin-bottom: 5px;">
+            <label style="font-weight: 500; color: var(--text-primary); margin-right: 5px;">Translation Type</label>
+            <span id="translation-type-info" style="cursor: pointer; color: var(--text-muted); position: relative;">
+              <span style="display: inline-block; border: 1px solid var(--text-muted); border-radius: 50%; width: 16px; height: 16px; text-align: center; line-height: 14px; font-size: 12px;">i</span>
+              <div class="tooltip-content" style="position: absolute; top: 20px; left: 0; width: 250px; background-color: var(--bg-card); border: 1px solid var(--border-light); border-radius: 8px; padding: 10px; z-index: 100; display: none; color: var(--text-body); font-size: 12px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);">
+                <p style="margin-bottom: 5px;"><strong>Bilingual:</strong> Requires both source and translated text.</p>
+                <p><strong>Monolingual:</strong> Only translated text is required.</p>
+              </div>
+            </span>
+          </div>
+          <div class="review-mode-toggle" style="display: flex; align-items: center; justify-content: space-between; border-radius: 8px; padding: 10px 14px; background-color: var(--bg-accent); border: 1px solid var(--border-input); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) inset; width: 100%; min-height: 41px;">
+            <div class="toggle-container" style="display: flex; align-items: center; gap: 10px; width: 100%; justify-content: center;">
+              <span class="toggle-option-left active" id="bilingual-label" style="font-size: 14px; font-weight: 500;">Bilingual</span>
+              <label class="switch" style="width: 32px; height: 16px; min-width: 32px; margin: 0;">
+                <input type="checkbox" id="review-mode-toggle">
+                <span class="slider" style="border-radius: 16px;"></span>
+              </label>
+              <span class="toggle-option-right" id="monolingual-label" style="font-size: 14px; font-weight: 500;">Monolingual</span>
+            </div>
           </div>
         </div>
         <div class="text-area-header">
@@ -3341,7 +3353,41 @@ correctedText.removeAttribute('readonly');
     let showingRejectedIssues = false;
 
   // Setup Review Mode Toggle
-  document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function() {
+      // Setup the tooltip for the translation type info icon
+      const infoIcon = document.getElementById('translation-type-info');
+      const tooltipContent = infoIcon.querySelector('.tooltip-content');
+      
+      // Show tooltip on hover
+      infoIcon.addEventListener('mouseenter', function() {
+        tooltipContent.style.display = 'block';
+      });
+      
+      // Hide tooltip when mouse leaves
+      infoIcon.addEventListener('mouseleave', function() {
+        tooltipContent.style.display = 'none';
+      });
+      
+      // Show/hide tooltip on click for mobile users
+      infoIcon.addEventListener('click', function(e) {
+        e.stopPropagation(); // Prevent click from propagating
+        if (tooltipContent.style.display === 'block') {
+          tooltipContent.style.display = 'none';
+        } else {
+          tooltipContent.style.display = 'block';
+          
+          // Hide tooltip when clicking outside
+          const closeTooltip = function() {
+            tooltipContent.style.display = 'none';
+            document.removeEventListener('click', closeTooltip);
+          };
+          
+          setTimeout(() => {
+            document.addEventListener('click', closeTooltip);
+          }, 100);
+        }
+      });
+      
       // Get the mode toggle elements
       const toggleCheckbox = document.getElementById('review-mode-toggle');
       const bilingualLabel = document.getElementById('bilingual-label');
