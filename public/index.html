@@ -1626,22 +1626,21 @@
           <div id="word-count" class="word-count">0 / 500 words</div>
         </div>
       </div>
-      
-      <!-- Bilingual Switcher - dropdown size match -->
-      <div class="review-mode-toggle" style="margin: 10px 0; position: static; display: inline-flex; align-items: center; justify-content: space-between; border-radius: 8px; padding: 10px 14px; background-color: var(--bg-accent); border: 1px solid var(--border-input); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) inset; width: auto; min-height: 41px;">
-        <div class="toggle-container" style="display: flex; align-items: center; gap: 10px; width: 100%; justify-content: center;">
-          <span class="toggle-option-left active" id="bilingual-label" style="font-size: 14px; font-weight: 500;">Bi</span>
-          <label class="switch" style="width: 32px; height: 16px; min-width: 32px; margin: 0;">
-            <input type="checkbox" id="review-mode-toggle">
-            <span class="slider" style="border-radius: 16px;"></span>
-          </label>
-          <span class="toggle-option-right" id="monolingual-label" style="font-size: 14px; font-weight: 500;">Mono</span>
-        </div>
-      </div>
     
     <button id="save-run-btn" class="btn btn-secondary" style="display: none;">Save Assessment</button>
       <!-- Target text -->
       <div class="text-area-container">
+        <!-- Bilingual Switcher positioned above target language dropdown -->
+        <div class="review-mode-toggle" style="margin: 0 0 10px 0; display: flex; align-items: center; justify-content: space-between; border-radius: 8px; padding: 10px 14px; background-color: var(--bg-accent); border: 1px solid var(--border-input); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) inset; width: 100%; min-height: 41px;">
+          <div class="toggle-container" style="display: flex; align-items: center; gap: 10px; width: 100%; justify-content: center;">
+            <span class="toggle-option-left active" id="bilingual-label" style="font-size: 14px; font-weight: 500;">Bi</span>
+            <label class="switch" style="width: 32px; height: 16px; min-width: 32px; margin: 0;">
+              <input type="checkbox" id="review-mode-toggle">
+              <span class="slider" style="border-radius: 16px;"></span>
+            </label>
+            <span class="toggle-option-right" id="monolingual-label" style="font-size: 14px; font-weight: 500;">Mono</span>
+          </div>
+        </div>
         <div class="text-area-header">
           <label class="text-area-label">Target Text:</label>
           <select id="target-lang">
