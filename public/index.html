@@ -1631,26 +1631,20 @@
       <!-- Target text -->
       <div class="text-area-container">
         <!-- Translation Type Toggle -->
-        <div style="margin-bottom: 10px; width: 100%;">
-          <div style="display: flex; align-items: center; margin-bottom: 5px;">
-            <label style="font-weight: 500; color: var(--text-primary); margin-right: 5px;">Translation Type</label>
-            <span id="translation-type-info" style="cursor: pointer; color: var(--text-muted); position: relative;">
-              <span style="display: inline-block; border: 1px solid var(--text-muted); border-radius: 50%; width: 16px; height: 16px; text-align: center; line-height: 14px; font-size: 12px;">i</span>
-              <div class="tooltip-content" style="position: absolute; top: 20px; left: 0; width: 250px; background-color: var(--bg-card); border: 1px solid var(--border-light); border-radius: 8px; padding: 10px; z-index: 100; display: none; color: var(--text-body); font-size: 12px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);">
-                <p style="margin-bottom: 5px;"><strong>Bilingual:</strong> Requires both source and translated text.</p>
-                <p><strong>Monolingual:</strong> Only translated text is required.</p>
-              </div>
-            </span>
-          </div>
-          <div class="review-mode-toggle" style="display: flex; align-items: center; justify-content: space-between; border-radius: 8px; padding: 10px 14px; background-color: var(--bg-accent); border: 1px solid var(--border-input); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) inset; width: 100%; min-height: 41px;">
-            <div class="toggle-container" style="display: flex; align-items: center; gap: 10px; width: 100%; justify-content: center;">
-              <span class="toggle-option-left active" id="bilingual-label" style="font-size: 14px; font-weight: 500;">Bilingual</span>
-              <label class="switch" style="width: 32px; height: 16px; min-width: 32px; margin: 0;">
-                <input type="checkbox" id="review-mode-toggle">
-                <span class="slider" style="border-radius: 16px;"></span>
-              </label>
-              <span class="toggle-option-right" id="monolingual-label" style="font-size: 14px; font-weight: 500;">Monolingual</span>
-            </div>
+        <div class="text-area-header" style="margin-bottom: 12px;">
+          <label class="text-area-label" for="translation-mode">
+            Translation Type
+            <span title="Bilingual: requires source and target text. Monolingual: only target text is required." style="cursor: help; margin-left: 6px;">&#9432;</span>
+          </label>
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <label style="display: flex; align-items: center; gap: 6px;">
+              <input type="radio" name="translation-mode" value="bilingual" checked />
+              Bilingual
+            </label>
+            <label style="display: flex; align-items: center; gap: 6px;">
+              <input type="radio" name="translation-mode" value="monolingual" />
+              Monolingual
+            </label>
           </div>
         </div>
         <div class="text-area-header">
