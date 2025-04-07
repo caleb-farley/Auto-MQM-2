@@ -873,6 +873,42 @@
       opacity: 0.7;
     }
 
+    .language-bubble {
+      position: absolute;
+      top: -40px;
+      left: 0;
+      background-color: var(--brand-orange);
+      color: white;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      z-index: 10;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      display: none;
+    }
+    
+    .language-bubble:after {
+      content: '';
+      position: absolute;
+      bottom: -5px;
+      left: 15px;
+      width: 10px;
+      height: 10px;
+      background-color: var(--brand-orange);
+      transform: rotate(45deg);
+    }
+    
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+    
+    .pulse {
+      animation: pulse 0.5s ease-in-out 2;
+    }
+
     .category-title {
       font-weight: 500;
       color: var(--text-primary);
@@ -2143,7 +2179,7 @@
       <!-- Target text -->
       <div class="text-area-container" id="target-text-container">
         <div class="text-area-header" style="display: flex; justify-content: space-between; align-items: center; position: relative;">
-          <div id="target-lang-bubble" class="language-bubble">Please select a target language</div>
+          <div id="target-lang-bubble" class="language-bubble" style="display: none;">Please select a target language</div>
           <div style="display: flex; align-items: center;">
             <label class="text-area-label" id="target-text-label" style="margin-right: 10px;">Target Text:</label>
           </div>
@@ -3116,6 +3152,17 @@
     }
     
     if (!targetLang.value) {
+      // Show the target language bubble
+      const targetLangBubble = document.getElementById('target-lang-bubble');
+      if (targetLangBubble) {
+        targetLangBubble.style.display = 'block';
+        // Make it pulse to draw attention
+        targetLangBubble.classList.add('pulse');
+        // Remove the pulse class after the animation completes
+        setTimeout(() => {
+          targetLangBubble.classList.remove('pulse');
+        }, 1000);
+      }
       showTargetLangError('Please select a target language');
       return;
     }
