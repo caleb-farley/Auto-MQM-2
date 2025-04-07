@@ -1077,18 +1077,35 @@
   /* Language bubble animation */
   .language-bubble {
     position: absolute;
-    top: -40px;
-    right: 20px;
+    top: -45px;
+    right: 0;
+    left: 0;
+    width: fit-content;
+    margin: 0 auto;
     background-color: #ffcce0;
     color: #ff3366;
-    padding: 8px 12px;
+    padding: 8px 16px;
     border-radius: 20px;
     font-size: 14px;
     font-weight: 500;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    z-index: 10;
-    animation: bounce 2s infinite;
+    box-shadow: 0 4px 12px rgba(255, 51, 102, 0.3);
+    z-index: 100;
+    animation: bounce 1.5s infinite;
     transform-origin: bottom center;
+    pointer-events: none;
+  }
+  
+  .language-bubble:after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 8px solid #ffcce0;
   }
   
   @keyframes bounce {
@@ -1096,10 +1113,10 @@
       transform: translateY(0);
     }
     40% {
-      transform: translateY(-10px);
+      transform: translateY(-12px);
     }
     60% {
-      transform: translateY(-5px);
+      transform: translateY(-6px);
     }
   }
 
@@ -2125,11 +2142,11 @@
     <button id="save-run-btn" class="btn btn-secondary" style="display: none;">Save Assessment</button>
       <!-- Target text -->
       <div class="text-area-container" id="target-text-container">
-        <div class="text-area-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <div class="text-area-header" style="display: flex; justify-content: space-between; align-items: center; position: relative;">
+          <div id="target-lang-bubble" class="language-bubble">Please select a target language</div>
           <div style="display: flex; align-items: center;">
             <label class="text-area-label" id="target-text-label" style="margin-right: 10px;">Target Text:</label>
           </div>
-          <div id="target-lang-bubble" class="language-bubble">Please select a target language</div>
           <select id="target-lang">
             <option value="">-- Select Language --</option>
             <option value="en">🇬🇧 English</option>
@@ -2521,7 +2538,7 @@
 
   <!-- Buttons -->
   <div class="buttons">
-    <button id="analyze-btn" class="btn btn-primary" disabled>🔍 Run MQM Analysis</button>
+    <button id="analyze-btn" class="btn btn-primary" disabled>🔍 Run Quality Check</button>
     <button id="reset-btn" class="btn btn-secondary">🔄 Reset</button>
     <button id="apply-all-btn" class="btn btn-primary" style="display: none;">✨ Apply All</button>
     <button id="undo-btn" class="btn btn-secondary" style="display: none;" disabled>↩️ Undo Last</button>
@@ -2761,7 +2778,7 @@
   
   <!-- Footer -->
   <div class="footer">
-    © 2025 Orca Language Solutions. All rights reserved. | <a href="#" onclick="showLoginModal(); return false;">Log In</a> | <a href="#" onclick="showRegisterModal(); return false;">Register</a>
+    © 2025 Orca Language Solutions. All rights reserved. | <a href="javascript:void(0)" onclick="showLoginModal();">Log In</a> | <a href="javascript:void(0)" onclick="showRegisterModal();">Register</a>
   </div>
 </div>
 
@@ -3365,7 +3382,7 @@
     } catch (error) {
       console.error('MQM analysis error:', error);
       analyzeBtn.disabled = false;
-      analyzeBtn.textContent = 'Run MQM Analysis';
+      analyzeBtn.textContent = 'Run Quality Check';
       showError(error.message || 'Analysis failed');
     } finally {
       // Always clean up the loading indicator
@@ -5218,6 +5235,15 @@ correctedText.removeAttribute('readonly');
           hideModal(modal);
         });
       });
+      
+      // Setup login and register buttons
+      document.getElementById('login-btn').addEventListener('click', function() {
+        showLoginModal();
+      });
+      
+      document.getElementById('register-btn').addEventListener('click', function() {
+        showRegisterModal();
+      });
 
       // Setup login form
       const loginForm = document.getElementById('login-form');
@@ -5255,6 +5281,53 @@ correctedText.removeAttribute('readonly');
         });
       });
     });
+    
+    // Modal display functions
+    function showLoginModal() {
+      const modal = document.getElementById('login-modal');
+      showModal(modal);
+    }
+    
+    function showRegisterModal() {
+      const modal = document.getElementById('register-modal');
+      showModal(modal);
+    }
+    
+    function showDashboardModal() {
+      const modal = document.getElementById('dashboard-modal');
+      showModal(modal);
+      // Load saved assessments by default
+      loadSavedAssessments();
+    }
+    
+    function showAccountModal() {
+      const modal = document.getElementById('account-modal');
+      showModal(modal);
+    }
+    
+    function showAdminModal() {
+      const modal = document.getElementById('admin-modal');
+      showModal(modal);
+    }
+    
+    function showSubscriptionModal() {
+      const modal = document.getElementById('subscription-modal');
+      showModal(modal);
+    }
+    
+    function showModal(modal) {
+      if (modal) {
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden'; // Prevent scrolling when modal is open
+      }
+    }
+    
+    function hideModal(modal) {
+      if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = ''; // Restore scrolling
+      }
+    }
 
     // Verify token with server
     async function verifyToken(token) {
@@ -6262,7 +6335,7 @@ correctedText.removeAttribute('readonly');
             
             // Reset button state
             analyzeBtn.disabled = false;
-            analyzeBtn.textContent = 'Run MQM Analysis';
+            analyzeBtn.textContent = 'Run Quality Check';
             
             // Show apply all button and undo button if there are issues
             if (mockResults.mqmIssues && mockResults.mqmIssues.length > 0) {
@@ -6369,7 +6442,7 @@ correctedText.removeAttribute('readonly');
       } finally {
         // Reset button state
         analyzeBtn.disabled = false;
-        analyzeBtn.textContent = 'Run MQM Analysis';
+        analyzeBtn.textContent = 'Run Quality Check';
       }
     };
 
