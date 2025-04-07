@@ -202,6 +202,24 @@
       border: 1px solid rgba(52, 152, 219, 0.3);
     }
     
+    .text-preview {
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    
+    .text-content {
+      max-height: 150px;
+      overflow-y: auto;
+      background-color: var(--bg-secondary);
+      padding: 10px;
+      border-radius: 5px;
+      white-space: pre-wrap;
+      font-family: monospace;
+      font-size: 13px;
+    }
+    
     .badge-monolingual {
       background-color: rgba(155, 89, 182, 0.2);
       color: #9b59b6;
@@ -535,6 +553,10 @@
             <th>Words</th>
             <th>Score</th>
             <th>Issues</th>
+            <th>IP Address</th>
+            <th>Anonymous ID</th>
+            <th>Source Text</th>
+            <th>Target Text</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -756,6 +778,24 @@
         <div class="detail-row">
           <div class="detail-label">Location</div>
           <div class="detail-value" id="detail-location"></div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">IP Address</div>
+          <div class="detail-value" id="detail-ip"></div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Anonymous ID</div>
+          <div class="detail-value" id="detail-anonymous-id"></div>
+        </div>
+        
+        <h3 style="margin-top: 30px; margin-bottom: 15px; font-family: 'Gothic A1', sans-serif;">Text Content</h3>
+        <div class="detail-row">
+          <div class="detail-label">Source Text</div>
+          <div class="detail-value text-content" id="detail-source-text"></div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Target Text</div>
+          <div class="detail-value text-content" id="detail-target-text"></div>
         </div>
         
         <h3 style="margin-top: 30px; margin-bottom: 15px; font-family: 'Gothic A1', sans-serif;">Issues</h3>
@@ -1041,6 +1081,10 @@
           <td>${run.wordCount || 0}</td>
           <td class="score-cell ${scoreClass}">${run.mqmScore ? run.mqmScore.toFixed(1) : 'N/A'}</td>
           <td>${run.issues ? run.issues.length : 0}</td>
+          <td>${run.ip || 'N/A'}</td>
+          <td>${run.anonymousSessionId || 'N/A'}</td>
+          <td class="text-preview">${run.sourceText ? run.sourceText.substring(0, 30) + (run.sourceText.length > 30 ? '...' : '') : 'N/A'}</td>
+          <td class="text-preview">${run.targetText ? run.targetText.substring(0, 30) + (run.targetText.length > 30 ? '...' : '') : 'N/A'}</td>
           <td class="action-cell">
             <button class="action-btn view-details-btn" data-id="${run._id}">View Details</button>
           </td>
@@ -1145,6 +1189,10 @@
       document.getElementById('detail-summary').textContent = run.summary || 'No summary available';
       document.getElementById('detail-model').textContent = run.llmModel || 'Unknown';
       document.getElementById('detail-location').textContent = location;
+      document.getElementById('detail-ip').textContent = run.ip || 'N/A';
+      document.getElementById('detail-anonymous-id').textContent = run.anonymousSessionId || 'N/A';
+      document.getElementById('detail-source-text').textContent = run.sourceText || 'N/A';
+      document.getElementById('detail-target-text').textContent = run.targetText || 'N/A';
       
       // Render issues table
       const issuesTbody = document.getElementById('issues-tbody');

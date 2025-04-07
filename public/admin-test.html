@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Interface Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    .test-container {
+      background-color: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    h1 {
+      color: #333;
+    }
+    button {
+      padding: 8px 16px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 10px;
+      margin-bottom: 10px;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    .result {
+      margin-top: 10px;
+      padding: 10px;
+      background-color: #f0f0f0;
+      border-radius: 4px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+  </style>
+</head>
+<body>
+  <h1>Admin Interface Test</h1>
+  
+  <div class="test-container">
+    <h2>Test Table Display</h2>
+    <table id="test-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Date</th>
+          <th>Languages</th>
+          <th>Mode</th>
+          <th>Words</th>
+          <th>Score</th>
+          <th>Issues</th>
+          <th>IP Address</th>
+          <th>Anonymous ID</th>
+          <th>Source Text</th>
+          <th>Target Text</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="test-tbody">
+        <!-- Sample data will be inserted here -->
+      </tbody>
+    </table>
+    <div class="result" id="table-result"></div>
+  </div>
+
+  <div class="test-container">
+    <h2>Test Modal Display</h2>
+    <button id="show-modal-btn">Show Details Modal</button>
+    <div class="result" id="modal-result"></div>
+  </div>
+
+  <div id="test-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 1000;">
+    <div style="background-color: white; margin: 10% auto; padding: 20px; width: 80%; max-width: 700px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2>Run Details</h2>
+        <button id="close-modal-btn" style="background-color: transparent; color: #333; font-size: 24px; border: none;">&times;</button>
+      </div>
+      <div id="run-details-content">
+        <div style="display: flex; margin-bottom: 10px;">
+          <div style="width: 150px; font-weight: bold;">ID</div>
+          <div id="detail-id">12345</div>
+        </div>
+        <div style="display: flex; margin-bottom: 10px;">
+          <div style="width: 150px; font-weight: bold;">Date</div>
+          <div id="detail-date">2025-04-07 14:25:21</div>
+        </div>
+        <div style="display: flex; margin-bottom: 10px;">
+          <div style="width: 150px; font-weight: bold;">Languages</div>
+          <div id="detail-languages">en → es</div>
+        </div>
+        <div style="display: flex; margin-bottom: 10px;">
+          <div style="width: 150px; font-weight: bold;">Analysis Mode</div>
+          <div id="detail-mode">bilingual</div>
+        </div>
+        <div style="display: flex; margin-bottom: 10px;">
+          <div style="width: 150px; font-weight: bold;">Word Count</div>
+          <div id="detail-wordcount">150</div>
+        </div>
+        <div style="display: flex; margin-bottom: 10px;">
+          <div style="width: 150px; font-weight: bold;">MQM Score</div>
+          <div id="detail-score">92.5</div>
+        </div>
+        <div style="display: flex; margin-bottom: 10px;">
+          <div style="width: 150px; font-weight: bold;">Summary</div>
+          <div id="detail-summary">This is a sample summary of the translation quality assessment.</div>
+        </div>
+        <div style="display: flex; margin-bottom: 10px;">
+          <div style="width: 150px; font-weight: bold;">LLM Model</div>
+          <div id="detail-model">claude-3-sonnet-20240229</div>
+        </div>
+        <div style="display: flex; margin-bottom: 10px;">
+          <div style="width: 150px; font-weight: bold;">Location</div>
+          <div id="detail-location">New York, NY, USA</div>
+        </div>
+        <div style="display: flex; margin-bottom: 10px;">
+          <div style="width: 150px; font-weight: bold;">IP Address</div>
+          <div id="detail-ip">192.168.1.1</div>
+        </div>
+        <div style="display: flex; margin-bottom: 10px;">
+          <div style="width: 150px; font-weight: bold;">Anonymous ID</div>
+          <div id="detail-anonymous-id">user1234</div>
+        </div>
+        
+        <h3 style="margin-top: 30px; margin-bottom: 15px;">Text Content</h3>
+        <div style="display: flex; margin-bottom: 10px;">
+          <div style="width: 150px; font-weight: bold;">Source Text</div>
+          <div id="detail-source-text" style="max-height: 150px; overflow-y: auto; background-color: #f5f5f5; padding: 10px; border-radius: 5px;">This is a sample source text for testing the admin interface. It contains multiple sentences to demonstrate how the text is displayed in the modal.</div>
+        </div>
+        <div style="display: flex; margin-bottom: 10px;">
+          <div style="width: 150px; font-weight: bold;">Target Text</div>
+          <div id="detail-target-text" style="max-height: 150px; overflow-y: auto; background-color: #f5f5f5; padding: 10px; border-radius: 5px;">Este es un texto de origen de muestra para probar la interfaz de administración. Contiene varias oraciones para demostrar cómo se muestra el texto en el modal.</div>
+        </div>
+        
+        <h3 style="margin-top: 30px; margin-bottom: 15px;">Issues</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th>Subcategory</th>
+              <th>Severity</th>
+              <th>Segment</th>
+            </tr>
+          </thead>
+          <tbody id="issues-tbody">
+            <tr>
+              <td>Fluency</td>
+              <td>Grammar</td>
+              <td>Minor</td>
+              <td>oraciones para demostrar</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Sample data
+    const sampleRuns = [
+      {
+        _id: '12345',
+        timestamp: new Date('2025-04-07T14:25:21'),
+        sourceLang: 'en',
+        targetLang: 'es',
+        analysisMode: 'bilingual',
+        wordCount: 150,
+        mqmScore: 92.5,
+        issues: [{ category: 'Fluency', subcategory: 'Grammar', severity: 'Minor' }],
+        ip: '192.168.1.1',
+        anonymousSessionId: 'user1234',
+        sourceText: 'This is a sample source text for testing the admin interface. It contains multiple sentences to demonstrate how the text is displayed in the table.',
+        targetText: 'Este es un texto de origen de muestra para probar la interfaz de administración. Contiene varias oraciones para demostrar cómo se muestra el texto en la tabla.'
+      },
+      {
+        _id: '67890',
+        timestamp: new Date('2025-04-06T10:15:30'),
+        sourceLang: 'fr',
+        targetLang: 'de',
+        analysisMode: 'monolingual',
+        wordCount: 200,
+        mqmScore: 85.0,
+        issues: [{ category: 'Accuracy', subcategory: 'Mistranslation', severity: 'Major' }, { category: 'Fluency', subcategory: 'Punctuation', severity: 'Minor' }],
+        ip: '192.168.1.2',
+        anonymousSessionId: 'user5678',
+        sourceText: 'Voici un exemple de texte source pour tester l\'interface d\'administration. Il contient plusieurs phrases pour démontrer comment le texte est affiché dans le tableau.',
+        targetText: 'Dies ist ein Beispielquelltext zum Testen der Administratoroberfläche. Es enthält mehrere Sätze, um zu zeigen, wie der Text in der Tabelle angezeigt wird.'
+      }
+    ];
+
+    // Populate table
+    function renderTable() {
+      const tbody = document.getElementById('test-tbody');
+      tbody.innerHTML = '';
+      
+      sampleRuns.forEach(run => {
+        const tr = document.createElement('tr');
+        
+        // Format date
+        const date = new Date(run.timestamp);
+        const formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+        
+        // Format languages
+        const languages = `${run.sourceLang || 'N/A'} → ${run.targetLang || 'N/A'}`;
+        
+        // Format score class
+        let scoreClass = '';
+        if (run.mqmScore >= 90) scoreClass = 'style="color: green;"';
+        if (run.mqmScore < 70) scoreClass = 'style="color: red;"';
+        
+        tr.innerHTML = `
+          <td>${run._id}</td>
+          <td>${formattedDate}</td>
+          <td>${languages}</td>
+          <td>${run.analysisMode}</td>
+          <td>${run.wordCount || 0}</td>
+          <td ${scoreClass}>${run.mqmScore ? run.mqmScore.toFixed(1) : 'N/A'}</td>
+          <td>${run.issues ? run.issues.length : 0}</td>
+          <td>${run.ip || 'N/A'}</td>
+          <td>${run.anonymousSessionId || 'N/A'}</td>
+          <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${run.sourceText ? run.sourceText.substring(0, 30) + (run.sourceText.length > 30 ? '...' : '') : 'N/A'}</td>
+          <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${run.targetText ? run.targetText.substring(0, 30) + (run.targetText.length > 30 ? '...' : '') : 'N/A'}</td>
+          <td>
+            <button class="view-details-btn" data-id="${run._id}">View Details</button>
+          </td>
+        `;
+        
+        tbody.appendChild(tr);
+      });
+      
+      // Add event listeners to view details buttons
+      document.querySelectorAll('.view-details-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const runId = btn.getAttribute('data-id');
+          const run = sampleRuns.find(r => r._id === runId);
+          if (run) {
+            showRunDetailsModal(run);
+            document.getElementById('table-result').textContent = `Clicked View Details for run ID: ${runId}`;
+          }
+        });
+      });
+    }
+
+    // Show run details modal
+    function showRunDetailsModal(run) {
+      document.getElementById('test-modal').style.display = 'block';
+      document.getElementById('modal-result').textContent = `Showing details for run ID: ${run._id}`;
+    }
+
+    // Close modal
+    document.getElementById('close-modal-btn').addEventListener('click', () => {
+      document.getElementById('test-modal').style.display = 'none';
+      document.getElementById('modal-result').textContent = 'Modal closed';
+    });
+
+    // Show modal button
+    document.getElementById('show-modal-btn').addEventListener('click', () => {
+      document.getElementById('test-modal').style.display = 'block';
+      document.getElementById('modal-result').textContent = 'Modal shown via button click';
+    });
+
+    // Initialize
+    renderTable();
+  </script>
+</body>
+</html>
