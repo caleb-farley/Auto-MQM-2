@@ -300,8 +300,18 @@ async function getSegments(params) {
   
   // If raw text is provided, segment it
   if (sourceText || targetText) {
-    const sourceSegments = sourceText ? segmentText(sourceText, sourceLang) : [];
-    const targetSegments = targetText ? segmentText(targetText, targetLang) : [];
+    // Process source and target text into segments
+    let sourceSegments = sourceText ? segmentText(sourceText, sourceLang) : [];
+    let targetSegments = targetText ? segmentText(targetText, targetLang) : [];
+    
+    // Ensure we have at least one segment even for simple inputs
+    if (sourceText && sourceSegments.length === 0) {
+      sourceSegments = [sourceText];
+    }
+    
+    if (targetText && targetSegments.length === 0) {
+      targetSegments = [targetText];
+    }
     
     // If both source and target are provided, align them
     if (sourceSegments.length && targetSegments.length) {
@@ -387,5 +397,6 @@ async function generateExcelReport(segments, ExcelJS) {
 module.exports = {
   getSegments,
   segmentText,
-  generateExcelReport
+  generateExcelReport,
+  parseTMX
 };

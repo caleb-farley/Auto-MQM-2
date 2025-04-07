@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tmx version="1.4">
+  <header srclang="en-US" datatype="plaintext"/>
+  <body>
+    <tu>
+      <tuv xml:lang="en-US">
+        <seg>This is a test sentence.</seg>
+      </tuv>
+      <tuv xml:lang="es-ES">
+        <seg>Esta es una frase de prueba.</seg>
+      </tuv>
+    </tu>
+    <tu>
+      <tuv xml:lang="en-US">
+        <seg>The quick brown fox jumps over the lazy dog.</seg>
+      </tuv>
+      <tuv xml:lang="es-ES">
+        <seg>El rápido zorro marrón salta sobre el perro perezoso.</seg>
+      </tuv>
+    </tu>
+  </body>
+</tmx>

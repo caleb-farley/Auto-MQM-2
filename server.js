@@ -782,11 +782,20 @@ app.post('/api/mqm-analysis',
       return res.status(500).json({ error: 'Could not parse analysis results' });
     }
   } catch (error) {
-    console.error('Excel upload error:', error);
-    return res.status(500).json({ 
-      error: 'Failed to process Excel file',
-      message: error.message
-    });
+    console.error('MQM analysis error:', error);
+    
+    // Provide more specific error messages based on the context
+    if (fileBuffer && error.message.includes('file')) {
+      return res.status(500).json({ 
+        error: 'Failed to process Excel file',
+        message: error.message
+      });
+    } else {
+      return res.status(500).json({ 
+        error: 'Failed to process text analysis',
+        message: error.message
+      });
+    }
   }
 });
 
