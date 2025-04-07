@@ -1660,10 +1660,24 @@
     const translationToggle = document.getElementById('translation-mode-toggle');
     const bilingualRadio = document.querySelector('input[name="translation-mode"][value="bilingual"]');
     const monolingualRadio = document.querySelector('input[name="translation-mode"][value="monolingual"]');
+    const sourceTextContainer = document.querySelector('.text-area-container:first-of-type');
+    
+    // Function to toggle source text visibility
+    function toggleSourceTextVisibility(isMonolingual) {
+      if (sourceTextContainer) {
+        if (isMonolingual) {
+          sourceTextContainer.style.display = 'none';
+        } else {
+          sourceTextContainer.style.display = 'flex';
+        }
+      }
+    }
     
     // Initialize toggle based on radio button state (if it exists)
     if (bilingualRadio && monolingualRadio) {
       translationToggle.checked = monolingualRadio.checked;
+      // Set initial visibility based on current toggle state
+      toggleSourceTextVisibility(translationToggle.checked);
     }
     
     // Handle toggle changes
@@ -1676,6 +1690,9 @@
           bilingualRadio.checked = true;
           monolingualRadio.checked = false;
         }
+        
+        // Update UI based on toggle state
+        toggleSourceTextVisibility(this.checked);
         
         // Trigger change event on radio buttons to ensure any existing handlers work
         const event = new Event('change');
