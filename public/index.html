@@ -1253,7 +1253,70 @@
   }
   
   input:checked + .slider:before {
+    -webkit-transform: translateX(26px);
+    -ms-transform: translateX(26px);
     transform: translateX(26px);
+  }
+
+  /* Toggle Switch Styles */
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 24px;
+  }
+  
+  .switch input { 
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--brand-blue-light);
+    -webkit-transition: .4s;
+    transition: .4s;
+  }
+  
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    -webkit-transition: .4s;
+    transition: .4s;
+  }
+  
+  input:checked + .slider {
+    background-color: var(--brand-blue);
+  }
+  
+  input:focus + .slider {
+    box-shadow: 0 0 1px var(--brand-blue);
+  }
+  
+  input:checked + .slider:before {
+    -webkit-transform: translateX(26px);
+    -ms-transform: translateX(26px);
+    transform: translateX(26px);
+  }
+  
+  /* Rounded sliders */
+  .slider.round {
+    border-radius: 34px;
+  }
+  
+  .slider.round:before {
+    border-radius: 50%;
   }
 
     /* Highlighted text handling - improved for mobile */
@@ -1542,41 +1605,59 @@
         </p>
       </div>
         
-    <!-- Translation Type Toggle -->
-    <div class="translation-toggle" style="margin-bottom: 12px;">
-      <label class="text-area-label" for="translation-mode">
-        Translation Type
-        <span title="Bilingual: requires source and target text. Monolingual: only target text is required." style="cursor: help; margin-left: 6px;">&#9432;</span>
+  <!-- Translation Type Toggle -->
+<div class="translation-toggle" style="margin-bottom: 12px; display: flex; justify-content: flex-end; align-items: center;">
+  <div style="display: flex; gap: 16px; align-items: center;">
+    <label class="text-area-label" for="translation-mode">
+      Translation Type
+      <span title="Bilingual: requires source and target text. Monolingual: only target text is required." style="cursor: help; margin-left: 6px;">&#9432;</span>
+    </label>
+    
+    <div class="toggle-switch-container" style="display: flex; align-items: center; gap: 8px;">
+      <span style="font-size: 14px;">Bilingual</span>
+      <label class="switch">
+        <input type="checkbox" id="translation-mode-toggle">
+        <span class="slider round"></span>
       </label>
-      <div style="display: flex; gap: 10px; align-items: center;">
-        <label style="display: flex; align-items: center; gap: 6px;">
-          <input type="radio" name="translation-mode" value="bilingual" checked />
-          Bilingual
-        </label>
-        <label style="display: flex; align-items: center; gap: 6px;">
-          <input type="radio" name="translation-mode" value="monolingual" />
-          Monolingual
-        </label>
-      </div>
-      </div>
-        
-    <!-- Translation Type Toggle -->
-    <div class="translation-toggle" style="margin-bottom: 12px;">
-      <label class="text-area-label" for="translation-mode">
-        Translation Type
-        <span title="Bilingual: requires source and target text. Monolingual: only target text is required." style="cursor: help; margin-left: 6px;">&#9432;</span>
-      </label>
-      <div style="display: flex; gap: 10px; align-items: center;">
-        <label style="display: flex; align-items: center; gap: 6px;">
-          <input type="radio" name="translation-mode" value="bilingual" checked />
-          Bilingual
-        </label>
-        <label style="display: flex; align-items: center; gap: 6px;">
-          <input type="radio" name="translation-mode" value="monolingual" />
-          Monolingual
-        </label>
-      </div>
+      <span style="font-size: 14px;">Monolingual</span>
     </div>
+  </div>
+</div>
+
+<script>
+  // Add this script to handle the toggle switch functionality
+  document.addEventListener('DOMContentLoaded', function() {
+    const translationToggle = document.getElementById('translation-mode-toggle');
+    const bilingualRadio = document.querySelector('input[name="translation-mode"][value="bilingual"]');
+    const monolingualRadio = document.querySelector('input[name="translation-mode"][value="monolingual"]');
+    
+    // Initialize toggle based on radio button state (if it exists)
+    if (bilingualRadio && monolingualRadio) {
+      translationToggle.checked = monolingualRadio.checked;
+    }
+    
+    // Handle toggle changes
+    translationToggle.addEventListener('change', function() {
+      if (bilingualRadio && monolingualRadio) {
+        if (this.checked) {
+          monolingualRadio.checked = true;
+          bilingualRadio.checked = false;
+        } else {
+          bilingualRadio.checked = true;
+          monolingualRadio.checked = false;
+        }
+        
+        // Trigger change event on radio buttons to ensure any existing handlers work
+        const event = new Event('change');
+        if (this.checked) {
+          monolingualRadio.dispatchEvent(event);
+        } else {
+          bilingualRadio.dispatchEvent(event);
+        }
+      }
+    });
+  });
+</script>      
     
     <!-- Text areas -->
     <div class="text-areas">
