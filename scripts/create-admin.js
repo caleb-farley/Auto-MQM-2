@@ -6,7 +6,7 @@ const User = require('../models/User');
 // Admin user details - you can modify these
 const adminUser = {
   email: 'admin@example.com',
-  password: 'Admin123!',  // This will be hashed before saving
+  password: 'admin123',  // This will be hashed before saving
   name: 'Admin User',
   accountType: 'admin'
 };

@@ -18,6 +18,7 @@ const User = require('./models/User');
 const authRoutes = require('./routes/authRoutes');
 const stripeRoutes = require('./routes/stripeRoutes');
 const runRoutes = require('./routes/runRoutes');
+const adminLoginRoute = require('./routes/adminLoginRoute');
 
 // Import middleware
 const authMiddleware = require('./middleware/authMiddleware');
@@ -64,6 +65,7 @@ app.use(cookieParser());
 app.use('/api/auth', authRoutes);
 app.use('/api/stripe', stripeRoutes);
 app.use('/api/runs', runRoutes);
+app.use('/api', adminLoginRoute);
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.status(200).send('OK');
