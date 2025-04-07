@@ -7,6 +7,8 @@ const path = require('path');
 const cookieParser = require('cookie-parser');
 const mongoose = require('mongoose');
 const PDFDocument = require('pdfkit');
+const ExcelJS = require('exceljs');
+const { Readable } = require('stream');
 
 // Import models
 const Run = require('./models/Run');
@@ -452,123 +454,150 @@ app.post('/api/mqm-analysis',
   authMiddleware.checkUsageLimit,
   authMiddleware.trackUsage,
   async (req, res) => {
-  try {
-    const { sourceText, targetText, sourceLang, targetLang, mode, llmModel } = req.body;
-    const isMonolingual = mode === 'monolingual';
-    const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress;
-    
-    // Default to Claude-3-Sonnet if no model is specified
-    const modelToUse = llmModel || "claude-3-sonnet-20240229";
-    
-    // Check if we have a cached assessment for the same text pair and model
-    const cachedRun = await Run.findOne({
-      sourceText: isMonolingual ? null : sourceText,
-      targetText,
-      sourceLang: isMonolingual ? null : sourceLang,
-      targetLang,
-      analysisMode: isMonolingual ? 'monolingual' : 'bilingual',
-      llmModel: modelToUse // Match the specific LLM model used
-    }).sort({ timestamp: -1 }); // Get the most recent match
-    
-    if (cachedRun) {
-      console.log('✅ Found cached assessment, reusing results');
-      // Return the cached results
-      return res.json({
-        mqmIssues: cachedRun.issues,
-        wordCount: cachedRun.wordCount,
-        overallScore: cachedRun.mqmScore,
-        summary: cachedRun.summary,
-        _id: cachedRun._id,
-        cached: true // Flag to indicate this is a cached result
-      });
-    }
-    
-    console.log('🔄 No cached assessment found, running new analysis');
-
-
-let location = {};
-try {
-  const geoResponse = await axios.get(`https://ipapi.co/${ip}/json/`);
-  location = {
-    ip,
-    city: geoResponse.data.city,
-    region: geoResponse.data.region,
-    country: geoResponse.data.country_name,
-    org: geoResponse.data.org
-  };
-} catch (err) {
-  console.warn('🌐 Could not fetch geolocation:', err.message);
-}
-    
-    // Validate parameters based on mode
-    if (isMonolingual) {
-      if (!targetText || !targetLang) {
-        return res.status(400).json({ error: 'Missing required parameters for monolingual mode' });
+    try {
+      const { sourceText, targetText, sourceLang, targetLang, mode, llmModel } = req.body;
+      const isMonolingual = mode === 'monolingual';
+      const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress;
+      
+      // Default to Claude-3-Sonnet if no model is specified
+      const modelToUse = llmModel || "claude-3-sonnet-20240229";
+      
+      // Check if we have a cached assessment for the same text pair and model
+      const cachedRun = await Run.findOne({
+        sourceText: isMonolingual ? null : sourceText,
+        targetText,
+        sourceLang: isMonolingual ? null : sourceLang,
+        targetLang,
+        analysisMode: isMonolingual ? 'monolingual' : 'bilingual',
+        llmModel: modelToUse // Match the specific LLM model used
+      }).sort({ timestamp: -1 }); // Get the most recent match
+      
+      if (cachedRun) {
+        console.log('✅ Found cached assessment, reusing results');
+        // Return the cached results
+        return res.json({
+          mqmIssues: cachedRun.issues,
+          wordCount: cachedRun.wordCount,
+          overallScore: cachedRun.mqmScore,
+          summary: cachedRun.summary,
+          _id: cachedRun._id,
+          cached: true // Flag to indicate this is a cached result
+        });
       }
-    } else {
-      if (!sourceText || !targetText || !sourceLang || !targetLang) {
-        return res.status(400).json({ error: 'Missing required parameters for bilingual mode' });
-      }
-    }
-    
-    // Check word count limit
-    const words = sourceText.trim().split(/\s+/);
-    const wordCount = words.length > 0 && words[0] !== '' ? words.length : 0;
-    const WORD_COUNT_LIMIT = 500;
-    
-    if (wordCount > WORD_COUNT_LIMIT) {
-      return res.status(400).json({ error: `Source text exceeds the ${WORD_COUNT_LIMIT} word limit` });
-    }
-    
-    // API key from environment variable
-    const claudeApiKey = process.env.CLAUDE_API_KEY;
-    
-    if (!claudeApiKey) {
-      return res.status(500).json({ error: 'API key not configured' });
-    }
-    
-    // Construct prompt for Claude using MQM framework based on mode
-    let prompt;
-    
-    if (isMonolingual) {
-      // Monolingual mode prompt - focuses on content quality without source comparison
-      prompt = "You are a localization QA expert using the MQM (Multidimensional Quality Metrics) framework to evaluate content quality. Please analyze the following text and provide a detailed quality assessment. This is a MONOLINGUAL assessment, so you will only evaluate the inherent quality of the content without comparing to any source text.\n\nIMPORTANT GUIDELINES FOR MONOLINGUAL ASSESSMENT:\n1. ONLY analyze the EXACT text provided in the submission. Do NOT invent or hallucinate errors that don't appear in the text.\n2. Be thorough in your analysis - even small or subtle issues can be important for quality assessment.\n3. For each issue identified, provide SPECIFIC EVIDENCE from the text - quote the exact problematic section.\n4. Include both objective errors and potentially problematic stylistic issues that may affect readability.\n5. Consider language-specific conventions and cultural context when evaluating the text.\n6. For each issue, indicate your confidence level (HIGH, MEDIUM, LOW).\n7. Focus on fluency, grammar, spelling, punctuation, and overall readability.\n8. Evaluate terminology consistency within the text itself.\n9. When multiple interpretations are possible, note this and explain the potential issue.\n10. Since this is a monolingual assessment, do NOT look for translation errors like mistranslations or omissions.\n\nLanguage: " + targetLang + "\n\nText to analyze:\n\"\"\"\n" + targetText + "\n\"\"\"\n\nPerform a detailed MQM analysis using the following error categories, but only if you find actual errors with concrete evidence:\n1. Fluency\n   - Grammar: Issues related to grammar, syntax, or morphology\n   - Spelling: Spelling errors or typos\n   - Punctuation: Incorrect or inconsistent punctuation\n   - Typography: Issues with formatting, capitalization, or other typographical elements\n   \n2. Terminology\n   - Inconsistent: Terminology used inconsistently within the text\n   - Inappropriate: Wrong terms used for the context or domain\n\n3. Style\n   - Awkward: Text sounds unnatural or awkward\n   - Cultural: Cultural references incorrectly used\n\n4. Design\n   - Length: Text is too verbose or too concise for effective communication\n   - Markup/Code: Issues with tags, placeholders, or code elements\n\nFor each issue found, provide:\n- Category and subcategory\n- Severity (Minor=1, Major=5, Critical=10)\n- Explanation\n- Location (if possible, provide specific information like character positions or word indices)\n- The exact problematic text segment\n- A suggested fix (textual description of what needs to be changed)\n- A fully corrected version of the entire segment with the fix applied (this is critical as it will be displayed to users)\n- Provide the exact **start and end character positions** of the segment in the text.\n\nAlso provide an MQM score calculated as:\nMQM Score = 100 - (sum of error points / word count * 100)\nWhere:\n- Minor issues = 1 point\n- Major issues = 5 points\n- Critical issues = 10 points\n\nReturn ONLY valid JSON without any other text. Use this exact structure:\n{\n  \"mqmIssues\": [\n    {\n      \"category\": \"Fluency\",\n      \"subcategory\": \"Grammar\",\n      \"severity\": \"MAJOR\",\n      \"explanation\": \"...\",\n      \"location\": \"...\",\n      \"segment\": \"...\",\n      \"suggestion\": \"...\",\n      \"correctedSegment\": \"...\",\n      \"startIndex\": 45,\n      \"endIndex\": 68\n    },\n    ...\n  ],\n  \"categories\": {\n    \"Accuracy\": { \"count\": 0, \"points\": 0 },\n    \"Fluency\": { \"count\": 0, \"points\": 0 },\n    \"Terminology\": { \"count\": 0, \"points\": 0 },\n    \"Style\": { \"count\": 0, \"points\": 0 },\n    \"Design\": { \"count\": 0, \"points\": 0 }\n  },\n  \"wordCount\": 120,\n  \"overallScore\": 95,\n  \"summary\": \"...\"\n}\n\nFor the location field, try to be as specific as possible. Preferred format is:\n- For specific words: \"Word 5-7 in sentence 2\" or \"Characters 120-135\"\n- For sentences: \"Sentence 3 in paragraph 2\"\n- For paragraphs: \"Paragraph 4\"\n\nFor the segment field, include ONLY the exact problematic text.\nFor the correctedSegment field, provide the complete fixed version of the segment with all corrections applied. This corrected segment will be displayed directly to users, so ensure it maintains the full context and represents a high-quality correction.";
-    } else {
-      // Bilingual mode prompt - traditional translation quality assessment
-      prompt = "You are a localization QA expert using the MQM (Multidimensional Quality Metrics) framework to evaluate translations. Please analyze the following source and target text pair and provide a detailed quality assessment.\n\nIMPORTANT GUIDELINES FOR BILINGUAL ASSESSMENT:\n1. ONLY analyze the EXACT text provided in the submission. Do NOT invent or hallucinate errors that don't appear in the text.\n2. Be thorough in your analysis - even small or subtle issues can be important for quality assessment.\n3. For each issue identified, provide SPECIFIC EVIDENCE from the text - quote the exact problematic section.\n4. Include both objective errors and potentially problematic stylistic issues that may affect readability.\n5. Consider language-specific conventions and cultural context when evaluating translations.\n6. For each issue, indicate your confidence level (HIGH, MEDIUM, LOW).\n7. Compare corresponding sections of source and target to identify translation issues.\n8. Be aware of domain-specific terminology, but flag terms that seem inconsistent or incorrectly translated.\n9. When multiple interpretations are possible, note this and explain the potential issue.\n10. Evaluate for both accuracy and fluency - both are important components of translation quality.\n\nSource language: " + sourceLang + "\nTarget language: " + targetLang + "\n\nSource text:\n\"\"\"\n" + sourceText + "\n\"\"\"\n\nTarget text:\n\"\"\"\n" + targetText + "\n\"\"\"\n\nPerform a detailed MQM analysis using the following error categories, but only if you find actual errors with concrete evidence:\n1. Accuracy\n   - Mistranslation: Content in target language that misrepresents source content\n   - Omission: Content missing from translation that is present in source\n   - Addition: Content added to translation that is not present in source\n   - Untranslated: Source content not translated that should be\n\n2. Fluency\n   - Grammar: Issues related to grammar, syntax, or morphology\n   - Spelling: Spelling errors or typos\n   - Punctuation: Incorrect or inconsistent punctuation\n   - Typography: Issues with formatting, capitalization, or other typographical elements\n   \n3. Terminology\n   - Inconsistent: Terminology used inconsistently within the text\n   - Inappropriate: Wrong terms used for the context or domain\n\n4. Style\n   - Awkward: Translation sounds unnatural or awkward\n   - Cultural: Cultural references incorrectly adapted\n\n5. Design\n   - Length: Target text is too long or too short relative to space constraints\n   - Markup/Code: Issues with tags, placeholders, or code elements\n\nFor each issue found, provide:\n- Category and subcategory\n- Severity (Minor=1, Major=5, Critical=10)\n- Explanation\n- Location (if possible, provide specific information like character positions or word indices)\n- The exact problematic text segment from the target translation\n- A suggested fix (textual description of what needs to be changed)\n- A fully corrected version of the entire segment with the fix applied (this is critical as it will be displayed to users)\n- Provide the exact **start and end character positions** of the segment in the target text.\n\nAlso provide an MQM score calculated as:\nMQM Score = 100 - (sum of error points / word count * 100)\nWhere:\n- Minor issues = 1 point\n- Major issues = 5 points\n- Critical issues = 10 points\n\nReturn ONLY valid JSON without any other text. Use this exact structure:\n{\n  \"mqmIssues\": [\n    {\n      \"category\": \"Accuracy\",\n      \"subcategory\": \"Mistranslation\",\n      \"severity\": \"MAJOR\",\n      \"explanation\": \"...\",\n      \"location\": \"...\",\n      \"segment\": \"...\",\n      \"suggestion\": \"...\",\n      \"correctedSegment\": \"...\",\n      \"startIndex\": 45,\n      \"endIndex\": 68\n    },\n    ...\n  ],\n  \"categories\": {\n    \"Accuracy\": { \"count\": 0, \"points\": 0 },\n    \"Fluency\": { \"count\": 0, \"points\": 0 },\n    \"Terminology\": { \"count\": 0, \"points\": 0 },\n    \"Style\": { \"count\": 0, \"points\": 0 },\n    \"Design\": { \"count\": 0, \"points\": 0 }\n  },\n  \"wordCount\": 120,\n  \"overallScore\": 95,\n  \"summary\": \"...\"\n}\n\nFor the location field, try to be as specific as possible. Preferred format is:\n- For specific words: \"Word 5-7 in sentence 2\" or \"Characters 120-135\"\n- For sentences: \"Sentence 3 in paragraph 2\"\n- For paragraphs: \"Paragraph 4\"\n\nFor the segment field, include ONLY the exact problematic text from the target translation.\nFor the correctedSegment field, provide the complete fixed version of the segment with all corrections applied. This corrected segment will be displayed directly to users, so ensure it maintains the full context and represents a high-quality correction.\n\nFor example, if the segment is \"The internationale women day\" and the issue is terminology inconsistency, then correctedSegment might be \"La journée internationale des femmes\".";
+      
+      console.log('🔄 No cached assessment found, running new analysis');
 
-    // Call Claude API
-    const response = await axios.post(
-      'https://api.anthropic.com/v1/messages',
-      {
-        model: "claude-3-sonnet-20240229", // Or your preferred model
-        max_tokens: 4000,
-        messages: [
-          {
-            role: "user",
-            content: prompt
-          }
-        ]
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': claudeApiKey,
-          'anthropic-version': '2023-06-01'
+      let location = {};
+      try {
+        const geoResponse = await axios.get(`https://ipapi.co/${ip}/json/`);
+        location = {
+          ip,
+          city: geoResponse.data.city,
+          region: geoResponse.data.region,
+          country: geoResponse.data.country_name,
+          org: geoResponse.data.org
+        };
+      } catch (err) {
+        console.warn('🌐 Could not fetch geolocation:', err.message);
+      }
+      
+      // Validate parameters based on mode
+      if (isMonolingual) {
+        if (!targetText || !targetLang) {
+          return res.status(400).json({ error: 'Missing required parameters for monolingual mode' });
+        }
+      } else {
+        if (!sourceText || !targetText || !sourceLang || !targetLang) {
+          return res.status(400).json({ error: 'Missing required parameters for bilingual mode' });
         }
       }
-    );
+      
+      // Check word count limit
+      const words = sourceText.trim().split(/\s+/);
+      const wordCount = words.length > 0 && words[0] !== '' ? words.length : 0;
+      const WORD_COUNT_LIMIT = 500;
+      
+      if (wordCount > WORD_COUNT_LIMIT) {
+        return res.status(400).json({ error: `Source text exceeds the ${WORD_COUNT_LIMIT} word limit` });
+      }
+      
+      // API key from environment variable
+      const claudeApiKey = process.env.CLAUDE_API_KEY;
+      
+      if (!claudeApiKey) {
+        return res.status(500).json({ error: 'API key not configured' });
+      }
+      
+      // Construct prompt for Claude using MQM framework based on mode
+      let prompt;
+      
+      if (isMonolingual) {
+        // Monolingual mode prompt - focuses on content quality without source comparison
+        prompt = "You are a localization QA expert using the MQM (Multidimensional Quality Metrics) framework to evaluate content quality. Please analyze the following text and provide a detailed quality assessment. This is a MONOLINGUAL assessment, so you will only evaluate the inherent quality of the content without comparing to any source text.\n\nIMPORTANT GUIDELINES FOR MONOLINGUAL ASSESSMENT:\n1. ONLY analyze the EXACT text provided in the submission. Do NOT invent or hallucinate errors that don't appear in the text.\n2. Be thorough in your analysis - even small or subtle issues can be important for quality assessment.\n3. For each issue identified, provide SPECIFIC EVIDENCE from the text - quote the exact problematic section.\n4. Include both objective errors and potentially problematic stylistic issues that may affect readability.\n5. Consider language-specific conventions and cultural context when evaluating the text.\n6. For each issue, indicate your confidence level (HIGH, MEDIUM, LOW).\n7. Focus on fluency, grammar, spelling, punctuation, and overall readability.\n8. Evaluate terminology consistency within the text itself.\n9. When multiple interpretations are possible, note this and explain the potential issue.\n10. Since this is a monolingual assessment, do NOT look for translation errors like mistranslations or omissions.\n\nLanguage: " + targetLang + "\n\nText to analyze:\n\"\"\"\n" + targetText + "\n\"\"\"\n\nPerform a detailed MQM analysis using the following error categories, but only if you find actual errors with concrete evidence:\n1. Fluency\n   - Grammar: Issues related to grammar, syntax, or morphology\n   - Spelling: Spelling errors or typos\n   - Punctuation: Incorrect or inconsistent punctuation\n   - Typography: Issues with formatting, capitalization, or other typographical elements\n   \n2. Terminology\n   - Inconsistent: Terminology used inconsistently within the text\n   - Inappropriate: Wrong terms used for the context or domain\n\n3. Style\n   - Awkward: Text sounds unnatural or awkward\n   - Cultural: Cultural references incorrectly used\n\n4. Design\n   - Length: Text is too verbose or too concise for effective communication\n   - Markup/Code: Issues with tags, placeholders, or code elements\n\nFor each issue found, provide:\n- Category and subcategory\n- Severity (Minor=1, Major=5, Critical=10)\n- Explanation\n- Location (if possible, provide specific information like character positions or word indices)\n- The exact problematic text segment\n- A suggested fix (textual description of what needs to be changed)\n- A fully corrected version of the entire segment with the fix applied (this is critical as it will be displayed to users)\n- Provide the exact **start and end character positions** of the segment in the text.\n\nAlso provide an MQM score calculated as:\nMQM Score = 100 - (sum of error points / word count * 100)\nWhere:\n- Minor issues = 1 point\n- Major issues = 5 points\n- Critical issues = 10 points\n\nReturn ONLY valid JSON without any other text. Use this exact structure:\n{\n  \"mqmIssues\": [\n    {\n      \"category\": \"Fluency\",\n      \"subcategory\": \"Grammar\",\n      \"severity\": \"MAJOR\",\n      \"explanation\": \"...\",\n      \"location\": \"...\",\n      \"segment\": \"...\",\n      \"suggestion\": \"...\",\n      \"correctedSegment\": \"...\",\n      \"startIndex\": 45,\n      \"endIndex\": 68\n    },\n    ...\n  ],\n  \"categories\": {\n    \"Accuracy\": { \"count\": 0, \"points\": 0 },\n    \"Fluency\": { \"count\": 0, \"points\": 0 },\n    \"Terminology\": { \"count\": 0, \"points\": 0 },\n    \"Style\": { \"count\": 0, \"points\": 0 },\n    \"Design\": { \"count\": 0, \"points\": 0 }\n  },\n  \"wordCount\": 120,\n  \"overallScore\": 95,\n  \"summary\": \"...\"\n}\n\nFor the location field, try to be as specific as possible. Preferred format is:\n- For specific words: \"Word 5-7 in sentence 2\" or \"Characters 120-135\"\n- For sentences: \"Sentence 3 in paragraph 2\"\n- For paragraphs: \"Paragraph 4\"\n\nFor the segment field, include ONLY the exact problematic text.\nFor the correctedSegment field, provide the complete fixed version of the segment with all corrections applied. This corrected segment will be displayed directly to users, so ensure it maintains the full context and represents a high-quality correction.";
+      } 
+      else {
+        // Bilingual mode prompt - traditional translation quality assessment
+        prompt = "You are a localization QA expert using the MQM (Multidimensional Quality Metrics) framework to evaluate translations. Please analyze the following source and target text pair and provide a detailed quality assessment.\n\nIMPORTANT GUIDELINES FOR BILINGUAL ASSESSMENT:\n1. ONLY analyze the EXACT text provided in the submission. Do NOT invent or hallucinate errors that don't appear in the text.\n2. Be thorough in your analysis - even small or subtle issues can be important for quality assessment.\n3. For each issue identified, provide SPECIFIC EVIDENCE from the text - quote the exact problematic section.\n4. Include both objective errors and potentially problematic stylistic issues that may affect readability.\n5. Consider language-specific conventions and cultural context when evaluating translations.\n6. For each issue, indicate your confidence level (HIGH, MEDIUM, LOW).\n7. Compare corresponding sections of source and target to identify translation issues.\n8. Be aware of domain-specific terminology, but flag terms that seem inconsistent or incorrectly translated.\n9. When multiple interpretations are possible, note this and explain the potential issue.\n10. Evaluate for both accuracy and fluency - both are important components of translation quality.\n\nSource language: " + sourceLang + "\nTarget language: " + targetLang + "\n\nSource text:\n\"\"\"\n" + sourceText + "\n\"\"\"\n\nTarget text:\n\"\"\"\n" + targetText + "\n\"\"\"\n\nPerform a detailed MQM analysis using the following error categories, but only if you find actual errors with concrete evidence:\n1. Accuracy\n   - Mistranslation: Content in target language that misrepresents source content\n   - Omission: Content missing from translation that is present in source\n   - Addition: Content added to translation that is not present in source\n   - Untranslated: Source content not translated that should be\n\n2. Fluency\n   - Grammar: Issues related to grammar, syntax, or morphology\n   - Spelling: Spelling errors or typos\n   - Punctuation: Incorrect or inconsistent punctuation\n   - Typography: Issues with formatting, capitalization, or other typographical elements\n   \n3. Terminology\n   - Inconsistent: Terminology used inconsistently within the text\n   - Inappropriate: Wrong terms used for the context or domain\n\n4. Style\n   - Awkward: Translation sounds unnatural or awkward\n   - Cultural: Cultural references incorrectly adapted\n\n5. Design\n   - Length: Target text is too long or too short relative to space constraints\n   - Markup/Code: Issues with tags, placeholders, or code elements\n\nFor each issue found, provide:\n- Category and subcategory\n- Severity (Minor=1, Major=5, Critical=10)\n- Explanation\n- Location (if possible, provide specific information like character positions or word indices)\n- The exact problematic text segment from the target translation\n- A suggested fix (textual description of what needs to be changed)\n- A fully corrected version of the entire segment with the fix applied (this is critical as it will be displayed to users)\n- Provide the exact **start and end character positions** of the segment in the target text.\n\nAlso provide an MQM score calculated as:\nMQM Score = 100 - (sum of error points / word count * 100)\nWhere:\n- Minor issues = 1 point\n- Major issues = 5 points\n- Critical issues = 10 points\n\nReturn ONLY valid JSON without any other text. Use this exact structure:\n{\n  \"mqmIssues\": [\n    {\n      \"category\": \"Accuracy\",\n      \"subcategory\": \"Mistranslation\",\n      \"severity\": \"MAJOR\",\n      \"explanation\": \"...\",\n      \"location\": \"...\",\n      \"segment\": \"...\",\n      \"suggestion\": \"...\",\n      \"correctedSegment\": \"...\",\n      \"startIndex\": 45,\n      \"endIndex\": 68\n    },\n    ...\n  ],\n  \"categories\": {\n    \"Accuracy\": { \"count\": 0, \"points\": 0 },\n    \"Fluency\": { \"count\": 0, \"points\": 0 },\n    \"Terminology\": { \"count\": 0, \"points\": 0 },\n    \"Style\": { \"count\": 0, \"points\": 0 },\n    \"Design\": { \"count\": 0, \"points\": 0 }\n  },\n  \"wordCount\": 120,\n  \"overallScore\": 95,\n  \"summary\": \"...\"\n}\n\nFor the location field, try to be as specific as possible. Preferred format is:\n- For specific words: \"Word 5-7 in sentence 2\" or \"Characters 120-135\"\n- For sentences: \"Sentence 3 in paragraph 2\"\n- For paragraphs: \"Paragraph 4\"\n\nFor the segment field, include ONLY the exact problematic text from the target translation.\nFor the correctedSegment field, provide the complete fixed version of the segment with all corrections applied. This corrected segment will be displayed directly to users, so ensure it maintains the full context and represents a high-quality correction.\n\nFor example, if the segment is \"The internationale women day\" and the issue is terminology inconsistency, then correctedSegment might be \"La journée internationale des femmes\".";
+      }
 
-    // Extract the content from Claude's response
-    const content = response.data.content[0].text;
-    console.log('🧠 Claude response:', content);
+      // Check for cached assessment
+      try {
+        // Try to find a recent assessment with the same parameters
+        const cachedRun = await Run.findOne({
+          sourceText: isMonolingual ? null : sourceText,
+          targetText,
+          sourceLang: isMonolingual ? null : sourceLang,
+          targetLang,
+          analysisMode: isMonolingual ? 'monolingual' : 'bilingual',
+          llmModel: modelToUse // Match the specific LLM model used
+        }).sort({ timestamp: -1 });
+
+        // If found and not too old (within 24 hours), use it
+        if (cachedRun && (Date.now() - cachedRun.timestamp) < 24 * 60 * 60 * 1000) {
+          console.log('🔄 Using cached assessment');
+          return res.json({
+            runId: cachedRun._id,
+            result: cachedRun.result,
+            cached: true
+          });
+        }
+      } catch (err) {
+        console.error('Error checking cache:', err);
+        // Continue with new assessment if cache check fails
+      }
+
+      // Call Claude API
+      const response = await axios.post(
+        'https://api.anthropic.com/v1/messages',
+        {
+          model: "claude-3-sonnet-20240229", // Or your preferred model
+          max_tokens: 4000,
+          messages: [
+            {
+              role: "user",
+              content: prompt
+            }
+          ]
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': claudeApiKey,
+            'anthropic-version': '2023-06-01'
+          }
+        }
+      );
+
+      // Extract the content from Claude's response
+      const content = response.data.content[0].text;
+      console.log('🧠 Claude response:', content);
     
-    // Find and parse the JSON in the response
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      console.error('❌ No JSON match found in Claude response');
-      return res.status(500).json({ error: 'Could not parse analysis results' });
-    }
+      // Find and parse the JSON in the response
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        console.error('❌ No JSON match found in Claude response');
+        return res.status(500).json({ error: 'Could not parse analysis results' });
+      }
     
     console.log('📦 Parsed JSON string:', jsonMatch[0]);    
     
@@ -589,7 +618,8 @@ try {
         location,
         wordCount: mqmResults.wordCount,
         llmModel: modelToUse, // Store which LLM model was used
-        analysisMode: isMonolingual ? 'monolingual' : 'bilingual', // Store the analysis mode
+        timestamp: Date.now(),
+        analysisMode: isMonolingual ? 'monolingual' : 'bilingual',
         summary: mqmResults.summary || ''
       };
 
@@ -609,7 +639,6 @@ try {
       console.error('Error parsing JSON:', error);
       return res.status(500).json({ error: 'Could not parse analysis results' });
     }
-    
   } catch (error) {
     console.error('MQM analysis error:', error);
     return res.status(500).json({ 
@@ -618,8 +647,6 @@ try {
     });
   }
 });
-
-const { Readable } = require('stream');
 
 app.get('/api/download-report/:id/pdf', authMiddleware.optionalAuth, async (req, res) => {
   try {
@@ -1046,8 +1073,6 @@ app.post('/api/upload-excel',
     }
   }
 });
-
-const ExcelJS = require('exceljs');
 
 // Helper function to segment text into sentences while preserving code elements
 function segmentText(text) {
