@@ -2287,7 +2287,7 @@
     <div class="excel-section" style="margin-bottom: 20px; background-color: var(--bg-accent); padding: 15px; border-radius: 8px; border: 1px solid var(--border-light);">
       <h3 class="gothic-title" style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 10px;">Translation File Upload</h3>
       <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 15px;">
-        Upload your translation files for automated MQM assessment. We support the following file formats:
+        Upload your translation files for automated translation quality assessment. We support the following file formats:
         <ul style="margin-top: 8px; margin-left: 20px;">
           <li><strong>TMX files</strong> (.tmx) - Translation Memory Exchange format</li>
           <li><strong>XLIFF files</strong> (.xliff, .xlf) - XML Localization Interchange File Format</li>
@@ -2419,6 +2419,20 @@
     <details class="faq-item" style="margin-bottom: 20px;">
       <summary class="gothic-title" style="font-size: 18px; font-weight: 600; color: #ff6c36; cursor: pointer;">What's the difference between Bilingual and Monolingual modes?</summary>
       <p style="font-size: 14px; color: #a0a0a0; margin-top: 10px;">In Bilingual mode, FastFin compares source and target texts to identify translation-specific issues like mistranslations, omissions, or additions. This is ideal for evaluating translation accuracy. Monolingual mode focuses solely on the target text quality, analyzing fluency, grammar, and style without requiring source text. This is useful for evaluating standalone content or when source text isn't available.</p>
+    </details>
+
+    <details class="faq-item" style="margin-bottom: 20px;">
+      <summary class="gothic-title" style="font-size: 18px; font-weight: 600; color: #ff6c36; cursor: pointer;">How does the automated translation assessment work?</summary>
+      <p style="font-size: 14px; color: #a0a0a0; margin-top: 10px;">Our automated translation assessment uses the Multidimensional Quality Metrics (MQM) framework implemented through advanced AI models (Claude 3 family). The system is calibrated on thousands of professional translations across multiple industries and language pairs. It evaluates translations based on several dimensions:
+        <ul style="margin-top: 8px; margin-left: 20px; color: #a0a0a0;">
+          <li><strong>Accuracy:</strong> Detecting mistranslations, omissions, additions, and untranslated content</li>
+          <li><strong>Fluency:</strong> Evaluating grammar, spelling, punctuation, and typography</li>
+          <li><strong>Terminology:</strong> Checking for consistent and appropriate terminology use</li>
+          <li><strong>Style:</strong> Identifying awkward phrasing and cultural adaptation issues</li>
+          <li><strong>Design:</strong> Assessing text length and markup/code elements</li>
+        </ul>
+        Each issue is assigned a severity level (minor, major, or critical) which contributes to the overall quality score. The system has been benchmarked against human evaluators and achieves high correlation with professional reviewers.
+      </p>
     </details>
 
     <details class="faq-item" style="margin-bottom: 20px;">
