@@ -2286,7 +2286,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h2 class="modal-title">Log In</h2>
-        <button class="close-modal">&times;</button>
+        <button class="close">&times;</button>
       </div>
       <form id="login-form">
         <div class="form-group">
@@ -2342,7 +2342,7 @@
   <div id="register-modal" class="modal-overlay">
     <div class="modal-content">
       <div class="modal-header">
-        <h2>Create an Account</h2>
+        <h2 class="modal-title">Create an Account</h2>
         <span class="close">&times;</span>
       </div>
       <form id="register-form">
@@ -3475,16 +3475,28 @@
       // Show the target display with highlighted issues
       highlightIssuesInText(targetText.value, results.mqmIssues);
 
-        // ✅ Add this to enable PDF/Excel download buttons
+        // Always enable Excel report download buttons
+        const downloadBtns = document.getElementById('download-buttons');
+        downloadBtns.style.display = 'flex';
+        
+        // If we have a run ID, use the server API, otherwise use client-side generation
         const runId = results._id;
-        if (runId) {
-          const downloadBtns = document.getElementById('download-buttons');
-          downloadBtns.style.display = 'flex';
-
-          document.getElementById('download-excel-btn').onclick = () => {
+        document.getElementById('download-excel-btn').onclick = async () => {
+          if (runId) {
+            // Server-side generation
             window.open(`/api/download-report/${runId}/excel`, '_blank');
-          };
-        }
+          } else {
+            // Client-side generation
+            try {
+              // Load XLSX library if not already loaded
+              await loadXLSXLibrary();
+              generateAndDownloadExcelReport(results);
+            } catch (error) {
+              console.error('Error loading XLSX library:', error);
+              showNotification('Failed to generate Excel report. Please try again.', 'error');
+            }
+          }
+        };
       
       // Show apply all button and undo button if there are issues
       if (results.mqmIssues && results.mqmIssues.length > 0) {
@@ -4862,6 +4874,113 @@ correctedText.removeAttribute('readonly');
       return names[code] || names[mainCode] || 'Unknown';
     }
 
+    // Function to generate and download Excel report on the client side
+    function generateAndDownloadExcelReport(results) {
+      try {
+        // Create a workbook with a worksheet
+        const XLSX = window.XLSX;
+        if (!XLSX) {
+          showNotification('Excel library not loaded. Please try again later.', 'error');
+          return;
+        }
+        
+        const wb = XLSX.utils.book_new();
+        
+        // Create data for the summary sheet
+        const summaryData = [
+          ['MQM Quality Assessment Report'],
+          ['Generated on', new Date().toLocaleString()],
+          [''],
+          ['Source Language', sourceLang.value ? `${getLanguageFlag(sourceLang.value)} ${getLanguageName(sourceLang.value)}` : 'Not specified'],
+          ['Target Language', targetLang.value ? `${getLanguageFlag(targetLang.value)} ${getLanguageName(targetLang.value)}` : 'Not specified'],
+          ['Word Count', document.getElementById('word-count').textContent.split(':')[1].trim()],
+          ['Quality Score', document.getElementById('score').textContent],
+          ['Analysis Mode', document.getElementById('translation-mode-toggle').checked ? 'Monolingual' : 'Bilingual'],
+          [''],
+          ['Issue Summary'],
+          ['Category', 'Severity', 'Count', 'Points']
+        ];
+        
+        // Add issue summary data
+        if (results.categoryCounts) {
+          Object.entries(results.categoryCounts).forEach(([category, severities]) => {
+            Object.entries(severities).forEach(([severity, count]) => {
+              const points = count * (severity === 'minor' ? 1 : severity === 'major' ? 5 : 10);
+              summaryData.push([category, severity, count, points]);
+            });
+          });
+        }
+        
+        // Add summary sheet
+        const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
+        XLSX.utils.book_append_sheet(wb, summaryWs, 'Summary');
+        
+        // Create data for the issues sheet
+        const issuesData = [
+          ['ID', 'Category', 'Severity', 'Issue', 'Suggestion', 'Points']
+        ];
+        
+        // Add issue details
+        if (results.mqmIssues && results.mqmIssues.length > 0) {
+          results.mqmIssues.forEach((issue, index) => {
+            const points = issue.severity === 'minor' ? 1 : issue.severity === 'major' ? 5 : 10;
+            issuesData.push([
+              index + 1,
+              issue.category,
+              issue.severity,
+              issue.issue,
+              issue.suggestion || '',
+              points
+            ]);
+          });
+        }
+        
+        // Add issues sheet
+        const issuesWs = XLSX.utils.aoa_to_sheet(issuesData);
+        XLSX.utils.book_append_sheet(wb, issuesWs, 'Issues');
+        
+        // Generate Excel file and trigger download
+        const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+        const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = URL.createObjectURL(blob);
+        
+        // Create a temporary link and trigger download
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `MQM_Report_${new Date().toISOString().slice(0, 10)}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        
+        // Clean up
+        setTimeout(() => {
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }, 100);
+        
+        showNotification('Excel report downloaded successfully', 'success');
+      } catch (error) {
+        console.error('Error generating Excel report:', error);
+        showNotification('Failed to generate Excel report: ' + error.message, 'error');
+      }
+    }
+    
+    // Load XLSX library dynamically when needed
+    function loadXLSXLibrary() {
+      return new Promise((resolve, reject) => {
+        if (window.XLSX) {
+          resolve(window.XLSX);
+          return;
+        }
+        
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+        script.async = true;
+        script.onload = () => resolve(window.XLSX);
+        script.onerror = () => reject(new Error('Failed to load XLSX library'));
+        document.head.appendChild(script);
+      });
+    }
+    
     // Excel template download event handler
     downloadTemplateBtn.addEventListener('click', async () => {
       try {
@@ -4899,14 +5018,20 @@ correctedText.removeAttribute('readonly');
       const file = e.target.files[0];
       
       if (file) {
-        // Check if it's an Excel file
-        if (file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
+        // Get file extension
+        const fileName = file.name.toLowerCase();
+        const fileExtension = fileName.split('.').pop();
+        
+        // Check if it's a valid file type (Excel, TMX, or XLIFF)
+        if (file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || 
+            fileExtension === 'xlsx' || fileExtension === 'tmx' || 
+            fileExtension === 'xliff' || fileExtension === 'xlf') {
           // Update UI to show selected file
           selectedFileInfo.textContent = `Selected: ${file.name} (${formatFileSize(file.size)})`;
           excelUploadBtn.disabled = false;
         } else {
           // Show error for invalid file type
-          selectedFileInfo.textContent = 'Error: Please select a valid Excel (.xlsx) file';
+          selectedFileInfo.textContent = 'Error: Please select a valid file (.xlsx, .tmx, .xliff, or .xlf)';
           excelUploadBtn.disabled = true;
           excelFileInput.value = '';
         }
@@ -6458,6 +6583,22 @@ correctedText.removeAttribute('readonly');
     window.saveRun = saveRun;
     window.viewRun = viewRun;
     window.deleteRun = deleteRun;
+    
+    // Ensure all modal close buttons work
+    document.addEventListener('DOMContentLoaded', function() {
+      // Get all modals
+      const modals = document.querySelectorAll('.modal-overlay');
+      
+      // Add event listeners to all close buttons
+      modals.forEach(modal => {
+        const closeButtons = modal.querySelectorAll('.close, .close-modal');
+        closeButtons.forEach(button => {
+          button.addEventListener('click', function() {
+            hideModal(modal);
+          });
+        });
+      });
+    });
     
     // Handle profile update form submission
     async function handleProfileUpdate(event) {
