@@ -453,9 +453,38 @@ app.post('/api/mqm-analysis',
   authMiddleware.trackUsage,
   async (req, res) => {
   try {
-    const { sourceText, targetText, sourceLang, targetLang, mode } = req.body;
+    const { sourceText, targetText, sourceLang, targetLang, mode, llmModel } = req.body;
     const isMonolingual = mode === 'monolingual';
     const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress;
+    
+    // Default to Claude-3-Sonnet if no model is specified
+    const modelToUse = llmModel || "claude-3-sonnet-20240229";
+    
+    // Check if we have a cached assessment for the same text pair and model
+    const cachedRun = await Run.findOne({
+      sourceText: isMonolingual ? null : sourceText,
+      targetText,
+      sourceLang: isMonolingual ? null : sourceLang,
+      targetLang,
+      analysisMode: isMonolingual ? 'monolingual' : 'bilingual',
+      llmModel: modelToUse // Match the specific LLM model used
+    }).sort({ timestamp: -1 }); // Get the most recent match
+    
+    if (cachedRun) {
+      console.log('✅ Found cached assessment, reusing results');
+      // Return the cached results
+      return res.json({
+        mqmIssues: cachedRun.issues,
+        wordCount: cachedRun.wordCount,
+        overallScore: cachedRun.mqmScore,
+        summary: cachedRun.summary,
+        _id: cachedRun._id,
+        cached: true // Flag to indicate this is a cached result
+      });
+    }
+    
+    console.log('🔄 No cached assessment found, running new analysis');
+
 
 let location = {};
 try {
@@ -548,9 +577,9 @@ try {
 
       // Prepare run document with user info if authenticated
       const runData = {
-        sourceText,
+        sourceText: isMonolingual ? null : sourceText,
         targetText,
-        sourceLang,
+        sourceLang: isMonolingual ? null : sourceLang,
         targetLang,
         alignmentConfidence: req.body.matchConfidence || 100,
         alignmentReason: req.body.reason || 'N/A',
@@ -558,7 +587,10 @@ try {
         issues: mqmResults.mqmIssues,
         ip: location.ip,
         location,
-        wordCount: mqmResults.wordCount
+        wordCount: mqmResults.wordCount,
+        llmModel: modelToUse, // Store which LLM model was used
+        analysisMode: isMonolingual ? 'monolingual' : 'bilingual', // Store the analysis mode
+        summary: mqmResults.summary || ''
       };
 
       // Add user association if authenticated

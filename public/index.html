@@ -1655,6 +1655,22 @@
         </label>
         <span style="font-size: 14px;">Monolingual</span>
       </div>
+      
+      <!-- LLM Model Selection -->
+      <div style="display: flex; align-items: center; margin-left: 20px;">
+        <label for="llm-model" style="font-size: 14px; margin-right: 8px;">Model:</label>
+        <select id="llm-model" class="form-control" style="width: auto; font-size: 14px; padding: 4px 8px;">
+          <option value="claude-3-sonnet-20240229">Claude 3 Sonnet</option>
+          <option value="claude-3-haiku-20240307">Claude 3 Haiku</option>
+          <option value="claude-3-opus-20240229">Claude 3 Opus</option>
+        </select>
+        <span class="info-icon" style="cursor: help; margin-left: 6px; position: relative;" onmouseover="this.querySelector('.tooltip-text').style.visibility='visible'" onmouseout="this.querySelector('.tooltip-text').style.visibility='hidden'">&#9432;
+          <span class="tooltip-text" style="visibility: hidden; width: 240px; background-color: #333; color: #fff; text-align: center; border-radius: 6px; padding: 8px; position: absolute; z-index: 1; bottom: 125%; left: 50%; margin-left: -120px; font-size: 12px; font-weight: normal; text-transform: none; letter-spacing: normal; font-family: 'Inter', sans-serif;">
+            Select the LLM model to use for analysis.<br>
+            If the same text has been analyzed before with this model, cached results will be used.
+          </span>
+        </span>
+      </div>
     </div>
   </div>
 </div>
@@ -2720,6 +2736,10 @@
       }
 
       // Step 2: If alignment passes or in monolingual mode, proceed with MQM analysis
+      // Get the selected LLM model
+      const llmModelSelect = document.getElementById('llm-model');
+      const selectedModel = llmModelSelect.value;
+      
       const mqmResponse = await fetch('/api/mqm-analysis', {
         method: 'POST',
         headers: {
@@ -2730,7 +2750,8 @@
           targetText: targetText.value,
           sourceLang: isMonolingual ? '' : sourceLang.value,
           targetLang: targetLang.value,
-          mode: isMonolingual ? 'monolingual' : 'bilingual'
+          mode: isMonolingual ? 'monolingual' : 'bilingual',
+          llmModel: selectedModel // Include the selected LLM model
         })
       });
 

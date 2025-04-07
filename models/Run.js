@@ -11,6 +11,11 @@ const runSchema = new mongoose.Schema({
   ip: String,
   summary: String,
   wordCount: Number,
+  // Store which LLM model was used for the assessment
+  llmModel: {
+    type: String,
+    default: 'claude-3-sonnet-20240229'
+  },
   // Store whether this is a monolingual or bilingual analysis
   analysisMode: {
     type: String,
