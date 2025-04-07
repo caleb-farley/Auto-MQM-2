@@ -1756,73 +1756,65 @@
     const translationToggle = document.getElementById('translation-mode-toggle');
     const bilingualRadio = document.querySelector('input[name="translation-mode"][value="bilingual"]');
     const monolingualRadio = document.querySelector('input[name="translation-mode"][value="monolingual"]');
-    // Function to toggle source text visibility - completely rewritten for reliability
+    // Function to toggle source text visibility - completely rewritten with a direct approach
     function toggleSourceTextVisibility(isMonolingual) {
-      // Direct DOM manipulation with a more reliable approach
-      const sourceContainer = document.querySelector('.text-areas > .text-area-container:first-child');
-      const targetContainer = document.querySelector('.text-areas > .text-area-container:last-child');
-      
-      // Set global state for other functions to reference
-      window.isMonolingualMode = isMonolingual;
+      // Use direct IDs for maximum reliability
+      const sourceContainer = document.getElementById('source-text-container');
+      const targetContainer = document.getElementById('target-text-container');
+      const sourceText = document.getElementById('source-text');
+      const sourceLang = document.getElementById('source-lang');
       
       console.log('Toggle called with isMonolingual:', isMonolingual);
       
+      // Set global state for reference
+      window.isMonolingualMode = isMonolingual;
+      
       if (isMonolingual) {
-        // MONOLINGUAL MODE: Hide source text and related elements
-        // Hide source container with multiple approaches for redundancy
+        // MONOLINGUAL MODE
+        console.log('Activating monolingual mode');
+        
+        // 1. Hide source container with inline style (most direct approach)
         if (sourceContainer) {
-          sourceContainer.classList.add('hidden-container');
-          sourceContainer.setAttribute('aria-hidden', 'true');
-          sourceContainer.style.cssText = 'display: none !important; visibility: hidden !important; height: 0 !important; overflow: hidden !important; margin: 0 !important; padding: 0 !important;';
+          sourceContainer.style.display = 'none';
+          console.log('Source container hidden');
+        } else {
+          console.error('Source container not found');
         }
         
-        // Clear source inputs
-        const sourceText = document.getElementById('source-text');
-        const sourceLang = document.getElementById('source-lang');
+        // 2. Clear source inputs
         if (sourceText) sourceText.value = '';
         if (sourceLang) sourceLang.value = '';
         
-        // Make target container full width
+        // 3. Make target container full width
         if (targetContainer) {
-          targetContainer.style.cssText = 'width: 100% !important; flex: 1 0 100% !important;';
-        }
-        
-        // Set data attribute on body for CSS targeting
-        document.body.setAttribute('data-translation-mode', 'monolingual');
-        
-        // Add a class to the parent container for CSS targeting
-        const textAreasContainer = document.querySelector('.text-areas');
-        if (textAreasContainer) {
-          textAreasContainer.classList.add('monolingual-mode');
+          targetContainer.style.width = '100%';
         }
       } else {
-        // BILINGUAL MODE: Show source text and related elements
+        // BILINGUAL MODE
+        console.log('Activating bilingual mode');
+        
+        // 1. Show source container
         if (sourceContainer) {
-          sourceContainer.classList.remove('hidden-container');
-          sourceContainer.removeAttribute('aria-hidden');
-          sourceContainer.style.cssText = 'display: block !important; visibility: visible !important; height: auto !important;';
+          sourceContainer.style.display = 'block';
+          console.log('Source container shown');
+        } else {
+          console.error('Source container not found');
         }
         
-        // Reset target container width
+        // 2. Reset target container width
         if (targetContainer) {
-          targetContainer.style.cssText = '';
-        }
-        
-        // Set data attribute on body for CSS targeting
-        document.body.setAttribute('data-translation-mode', 'bilingual');
-        
-        // Remove monolingual class from the parent container
-        const textAreasContainer = document.querySelector('.text-areas');
-        if (textAreasContainer) {
-          textAreasContainer.classList.remove('monolingual-mode');
+          targetContainer.style.width = '';
         }
       }
       
       // Force immediate update of the analyze button validation
       updateAnalyzeButton();
       
-      // Log the current state for debugging
-      console.log('Translation mode updated:', isMonolingual ? 'Monolingual' : 'Bilingual');
+      // For debugging - output the current display style
+      if (sourceContainer) {
+        console.log('Source container display style:', sourceContainer.style.display);
+        console.log('Source container computed style:', window.getComputedStyle(sourceContainer).display);
+      }
     }
     
     // Initialize toggle based on radio button state (if it exists)
@@ -1891,11 +1883,11 @@
 </script>      
     
     <!-- Text areas -->
-    <div class="text-areas">
+    <div class="text-areas" id="text-areas-container">
       <!-- Source text -->
-      <div class="text-area-container">
+      <div class="text-area-container" id="source-text-container">
         <div class="text-area-header">
-          <label class="text-area-label">Source Text:</label>
+          <label class="text-area-label" id="source-text-label">Source Text:</label>
           <select id="source-lang">
             <option value="">-- Select Language --</option>
             <option value="en">🇬🇧 English</option>
@@ -1984,9 +1976,9 @@
     
     <button id="save-run-btn" class="btn btn-secondary" style="display: none;">Save Assessment</button>
       <!-- Target text -->
-      <div class="text-area-container">
+      <div class="text-area-container" id="target-text-container">
         <div class="text-area-header">
-          <label class="text-area-label">Target Text:</label>
+          <label class="text-area-label" id="target-text-label">Target Text:</label>
           <select id="target-lang">
             <option value="">-- Select Language --</option>
             <option value="en">🇬🇧 English</option>
@@ -5891,6 +5883,54 @@ correctedText.removeAttribute('readonly');
         `;
       }
     };
+  </script>
+  
+  <!-- Direct monolingual toggle fix -->
+  <script>
+    // This script runs after the page is fully loaded to ensure monolingual toggle works
+    document.addEventListener('DOMContentLoaded', function() {
+      // Get the toggle element
+      const toggle = document.getElementById('translation-mode-toggle');
+      if (!toggle) {
+        console.error('Translation mode toggle not found');
+        return;
+      }
+      
+      // Get the source container directly by ID
+      const sourceContainer = document.getElementById('source-text-container');
+      if (!sourceContainer) {
+        console.error('Source container not found');
+        return;
+      }
+      
+      // Add a direct event listener to the toggle
+      toggle.addEventListener('change', function() {
+        // Direct manipulation of the source container display
+        if (this.checked) {
+          // Monolingual mode - hide source
+          sourceContainer.style.display = 'none';
+          console.log('DIRECT TOGGLE: Source container hidden');
+          // Clear source inputs
+          const sourceText = document.getElementById('source-text');
+          const sourceLang = document.getElementById('source-lang');
+          if (sourceText) sourceText.value = '';
+          if (sourceLang) sourceLang.value = '';
+        } else {
+          // Bilingual mode - show source
+          sourceContainer.style.display = 'block';
+          console.log('DIRECT TOGGLE: Source container shown');
+        }
+      });
+      
+      // Force initial state based on toggle
+      if (toggle.checked) {
+        sourceContainer.style.display = 'none';
+        console.log('INITIAL STATE: Source container hidden (monolingual mode)');
+      } else {
+        sourceContainer.style.display = 'block';
+        console.log('INITIAL STATE: Source container shown (bilingual mode)');
+      }
+    });
   </script>
 </body>
 </html>
