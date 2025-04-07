@@ -1718,7 +1718,11 @@
     // Function to toggle source text visibility
     function toggleSourceTextVisibility(isMonolingual) {
       // Get the source text container directly when function is called
-      const sourceTextContainer = document.querySelector('.text-areas > .text-area-container:nth-child(1)');
+      const sourceTextContainer = document.querySelector('.text-areas > .text-area-container:first-child');
+      const sourceTextLabel = document.querySelector('label[for="sourceText"]');
+      const sourceLangLabel = document.querySelector('label[for="sourceLang"]');
+      const sourceLangContainer = document.getElementById('sourceLang').parentElement;
+      
       console.log('Toggle called with isMonolingual:', isMonolingual);
       console.log('Source container found:', sourceTextContainer);
       
@@ -1726,11 +1730,17 @@
         if (isMonolingual) {
           // Force display none for monolingual mode
           sourceTextContainer.style.display = 'none';
+          sourceLangContainer.style.display = 'none';
+          if (sourceTextLabel) sourceTextLabel.style.display = 'none';
+          if (sourceLangLabel) sourceLangLabel.style.display = 'none';
           document.getElementById('sourceText').value = '';
           document.getElementById('sourceLang').value = '';
         } else {
           // Force display block for bilingual mode
           sourceTextContainer.style.display = 'block';
+          sourceLangContainer.style.display = 'block';
+          if (sourceTextLabel) sourceTextLabel.style.display = 'block';
+          if (sourceLangLabel) sourceLangLabel.style.display = 'block';
         }
         
         // Force immediate update of the analyze button validation
