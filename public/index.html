@@ -2283,9 +2283,9 @@
       </div>
     </div>
   </div>
-    <!-- Excel Upload Section -->
+    <!-- File Upload Section -->
     <div class="excel-section" style="margin-bottom: 20px; background-color: var(--bg-accent); padding: 15px; border-radius: 8px; border: 1px solid var(--border-light);">
-      <h3 class="gothic-title" style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 10px;">Excel Template</h3>
+      <h3 class="gothic-title" style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 10px;">File Upload</h3>
       <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 15px;">
         Download our Excel template to perform MQM assessments offline, then upload it for automated processing.
       </p>
@@ -2304,13 +2304,13 @@
       <!-- Upload Form -->
       <form id="excel-upload-form">
         <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 10px;">
-          <input type="file" id="excel-file-input" style="display: none;" accept=".xlsx">
+          <input type="file" id="excel-file-input" style="display: none;" accept=".xlsx,.xliff,.xlf,.tmx">
           <button type="button" id="excel-file-select-btn" class="btn btn-secondary" style="flex-grow: 0;">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-right: 8px; vertical-align: text-bottom;">
               <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
               <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
             </svg>
-            Select Excel File
+            Select File
           </button>
           <span id="selected-file-info" style="color: var(--text-muted); flex-grow: 1;"></span>
           <button type="submit" id="excel-upload-btn" class="btn btn-primary" disabled>
@@ -4242,6 +4242,17 @@ correctedText.removeAttribute('readonly');
       else return (bytes / 1048576).toFixed(1) + ' MB';
     }
     
+    // Helper function to convert ArrayBuffer to Base64 string
+    function arrayBufferToBase64(buffer) {
+      let binary = '';
+      const bytes = new Uint8Array(buffer);
+      const len = bytes.byteLength;
+      for (let i = 0; i < len; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      return window.btoa(binary);
+    }
+    
     // Form submission handler
     excelUploadForm.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -4249,7 +4260,28 @@ correctedText.removeAttribute('readonly');
       // Check if file is selected
       const file = excelFileInput.files[0];
       if (!file) {
-        showError('Please select an Excel file to upload');
+        showError('Please select a file to upload');
+        return;
+      }
+      
+      // Get file extension and determine file type
+      const fileName = file.name.toLowerCase();
+      const fileExtension = fileName.split('.').pop();
+      let fileType = '';
+      let apiEndpoint = '/api/upload-excel';
+      
+      // Determine file type and API endpoint based on extension
+      if (fileExtension === 'xlsx') {
+        fileType = 'excel';
+        apiEndpoint = '/api/upload-excel';
+      } else if (fileExtension === 'xliff' || fileExtension === 'xlf') {
+        fileType = 'xliff';
+        apiEndpoint = '/api/mqm-analysis';
+      } else if (fileExtension === 'tmx') {
+        fileType = 'tmx';
+        apiEndpoint = '/api/mqm-analysis';
+      } else {
+        showError('Unsupported file type. Please upload .xlsx, .xliff, .xlf, or .tmx files.');
         return;
       }
       
@@ -4257,19 +4289,56 @@ correctedText.removeAttribute('readonly');
       excelUploadBtn.disabled = true;
       excelUploadBtn.innerHTML = '<span class="spinner">⟳</span> Uploading...';
       errorMessage.style.display = 'none';
-      excelUploadStatus.innerHTML = '<div style="color: var(--brand-teal);">Processing your Excel file, please wait...</div>';
+      excelUploadStatus.innerHTML = `<div style="color: var(--brand-teal);">Processing your ${fileType.toUpperCase()} file, please wait...</div>`;
       excelUploadStatus.style.display = 'block';
       
-      // Create form data for the file upload
-      const formData = new FormData();
-      formData.append('excelFile', file);
-      
       try {
-        // Upload the file
-        const response = await fetch('/api/upload-excel', {
-          method: 'POST',
-          body: formData
-        });
+        let response;
+        
+        // Handle different file types
+        if (fileType === 'excel') {
+          // Create form data for Excel file upload
+          const formData = new FormData();
+          formData.append('excelFile', file);
+          
+          // Upload the Excel file
+          response = await fetch(apiEndpoint, {
+            method: 'POST',
+            body: formData
+          });
+        } else {
+          // For XLIFF and TMX files, we need to read the file and send it as a buffer
+          const fileReader = new FileReader();
+          
+          // Create a promise to handle the FileReader
+          const readFileAsArrayBuffer = new Promise((resolve, reject) => {
+            fileReader.onload = () => resolve(fileReader.result);
+            fileReader.onerror = () => reject(new Error('File reading failed'));
+            fileReader.readAsArrayBuffer(file);
+          });
+          
+          // Wait for the file to be read
+          const arrayBuffer = await readFileAsArrayBuffer;
+          
+          // Check if in monolingual mode
+          const isMonolingual = document.getElementById('translation-mode-toggle').checked;
+          
+          // Convert ArrayBuffer to Base64
+          const base64String = arrayBufferToBase64(arrayBuffer);
+          
+          // Send the file data to the server
+          response = await fetch(apiEndpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              fileBuffer: base64String,
+              fileType: fileType,
+              mode: isMonolingual ? 'monolingual' : 'bilingual'
+            })
+          });
+        }
         
         if (!response.ok) {
           const errorData = await response.json();

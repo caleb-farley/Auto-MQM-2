@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tmx version="1.4">
+  <header
+    creationtool="Auto-MQM"
+    creationtoolversion="1.0"
+    segtype="sentence"
+    o-tmf="plaintext"
+    adminlang="en"
+    srclang="en"
+    datatype="plaintext"
+  />
+  <body>
+    <tu>
+      <tuv xml:lang="en">
+        <seg>Welcome to our website. We are happy to have you here.</seg>
+      </tuv>
+      <tuv xml:lang="es">
+        <seg>Bienvenido a nuestro sitio web. Estamos felices de tenerlo aquí.</seg>
+      </tuv>
+    </tu>
+    <tu>
+      <tuv xml:lang="en">
+        <seg>Please check our latest products and services.</seg>
+      </tuv>
+      <tuv xml:lang="es">
+        <seg>Por favor, consulte nuestros últimos productos y servicios.</seg>
+      </tuv>
+    </tu>
+    <tu>
+      <tuv xml:lang="en">
+        <seg>Contact us if you have any questions or concerns.</seg>
+      </tuv>
+      <tuv xml:lang="es">
+        <seg>Contáctenos si tiene alguna pregunta o inquietud.</seg>
+      </tuv>
+    </tu>
+    <tu>
+      <tuv xml:lang="en">
+        <seg>Our team is available Monday through Friday, 9 AM to 5 PM.</seg>
+      </tuv>
+      <tuv xml:lang="es">
+        <seg>Nuestro equipo está disponible de lunes a viernes, de 9 AM a 5 PM.</seg>
+      </tuv>
+    </tu>
+    <tu>
+      <tuv xml:lang="en">
+        <seg>Thank you for your interest in our company.</seg>
+      </tuv>
+      <tuv xml:lang="es">
+        <seg>Gracias por su interés en nuestra empresa.</seg>
+      </tuv>
+    </tu>
+  </body>
+</tmx>

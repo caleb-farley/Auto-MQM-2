@@ -1,5 +1,18 @@
 const mongoose = require('mongoose');
 
+// Define a schema for segments
+const segmentSchema = new mongoose.Schema({
+  segment_id: Number,
+  source: String,
+  target: String,
+  sourceLang: String,
+  targetLang: String,
+  mqmScore: Number,
+  mqmIssues: Array,
+  wordCount: Number,
+  summary: String
+}, { _id: false });
+
 const runSchema = new mongoose.Schema({
   timestamp: { type: Date, default: Date.now },
   sourceText: String,
@@ -11,6 +24,8 @@ const runSchema = new mongoose.Schema({
   ip: String,
   summary: String,
   wordCount: Number,
+  // Store segments for detailed analysis
+  segments: [segmentSchema],
   // Store which LLM model was used for the assessment
   llmModel: {
     type: String,

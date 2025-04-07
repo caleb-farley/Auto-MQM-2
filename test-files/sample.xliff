@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff version="1.2" xmlns="urn:oasis:names:tc:xliff:document:1.2">
+  <file original="sample.txt" source-language="en" target-language="fr" datatype="plaintext">
+    <header>
+      <tool tool-id="auto-mqm" tool-name="Auto-MQM Test" tool-version="1.0"/>
+    </header>
+    <body>
+      <trans-unit id="1">
+        <source>Welcome to our website. We are happy to have you here.</source>
+        <target>Bienvenue sur notre site web. Nous sommes heureux de vous accueillir ici.</target>
+      </trans-unit>
+      <trans-unit id="2">
+        <source>Please check our latest products and services.</source>
+        <target>Veuillez consulter nos derniers produits et services.</target>
+      </trans-unit>
+      <trans-unit id="3">
+        <source>Contact us if you have any questions or concerns.</source>
+        <target>Contactez-nous si vous avez des questions ou des préoccupations.</target>
+      </trans-unit>
+      <trans-unit id="4">
+        <source>Our team is available Monday through Friday, 9 AM to 5 PM.</source>
+        <target>Notre équipe est disponible du lundi au vendredi, de 9h à 17h.</target>
+      </trans-unit>
+      <trans-unit id="5">
+        <source>Thank you for your interest in our company.</source>
+        <target>Merci de votre intérêt pour notre entreprise.</target>
+      </trans-unit>
+    </body>
+  </file>
+</xliff>
