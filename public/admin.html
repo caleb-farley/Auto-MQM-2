@@ -6,6 +6,8 @@
   <title>Translation Assessment Admin Dashboard</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="admin-traffic.css">
   <style>
     :root {
       --bg-primary: #1a1a1a;
@@ -387,6 +389,7 @@
     <div class="tabs">
       <div class="tab active" data-tab="runs">Runs</div>
       <div class="tab" data-tab="actions">Action Logs</div>
+      <div class="tab" data-tab="traffic">Traffic Analytics</div>
     </div>
     
     <div id="runs-tab" class="tab-content active">
@@ -754,6 +757,8 @@
             fetchActionsData();
           } else if (tabId === 'runs') {
             fetchRunsData();
+          } else if (tabId === 'traffic') {
+            fetchTrafficData();
           }
         });
       });
@@ -1121,6 +1126,84 @@
       }
     }
   </script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="admin-actions.js"></script>
+  <script src="admin-traffic.js"></script>
+</div>
+
+  <!-- Traffic Analytics Tab -->
+  <div id="traffic-tab" class="tab-content">
+    <div class="header">
+      <h2>Traffic Analytics</h2>
+      <button id="export-traffic-csv-btn" class="btn btn-secondary">Export CSV</button>
+    </div>
+    
+    <div class="analytics-container">
+      <div class="analytics-row">
+        <div class="analytics-card">
+          <h3>Users Overview</h3>
+          <div class="analytics-chart-container">
+            <canvas id="users-chart"></canvas>
+          </div>
+          <div class="analytics-summary">
+            <div class="stat-box">
+              <span class="stat-value" id="total-users">0</span>
+              <span class="stat-label">Total Users</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-value" id="active-users">0</span>
+              <span class="stat-label">Active Today</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-value" id="new-users">0</span>
+              <span class="stat-label">New Today</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="analytics-card">
+          <h3>Geographic Distribution</h3>
+          <div class="analytics-chart-container">
+            <canvas id="geo-chart"></canvas>
+          </div>
+          <div id="top-countries" class="top-list">
+            <h4>Top Countries</h4>
+            <ul id="countries-list"></ul>
+          </div>
+        </div>
+      </div>
+      
+      <div class="analytics-row">
+        <div class="analytics-card">
+          <h3>Actions by Type</h3>
+          <div class="analytics-chart-container">
+            <canvas id="actions-chart"></canvas>
+          </div>
+          <div class="analytics-summary">
+            <div class="stat-box">
+              <span class="stat-value" id="total-translations">0</span>
+              <span class="stat-label">Translations</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-value" id="total-analyses">0</span>
+              <span class="stat-label">Analyses</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="analytics-card">
+          <h3>Language Pairs</h3>
+          <div class="analytics-chart-container">
+            <canvas id="language-chart"></canvas>
+          </div>
+          <div id="top-languages" class="top-list">
+            <h4>Top Language Pairs</h4>
+            <ul id="languages-list"></ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

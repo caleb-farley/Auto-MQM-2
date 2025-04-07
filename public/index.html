@@ -2183,16 +2183,14 @@
         <div class="text-area-footer" style="display: flex; justify-content: space-between; align-items: center;">
           <div id="target-lang-detected"></div>
           <div style="display: flex; flex-direction: column; align-items: flex-end;">
-            <div style="display: flex; flex-direction: column; align-items: center;">
-              <button id="translate-btn" class="btn" style="padding: 6px 15px; background-color: #FF8C00; border-color: #FF8C00; color: white;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style="margin-right: 5px; vertical-align: text-bottom;">
-                  <path d="M4.545 6.714 4.11 8H3l1.862-5h1.284L8 8H6.833l-.435-1.286H4.545zm1.634-.736L5.5 3.956h-.049l-.679 2.022H6.18z"/>
-                  <path d="M0 2a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v3h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-3H2a2 2 0 0 1-2-2V2zm2-1a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H2zm7.138 9.995c.193.301.402.583.63.846-.748.575-1.673 1.001-2.768 1.292.178.217.451.635.555.867 1.125-.359 2.08-.844 2.886-1.494.777.665 1.739 1.165 2.93 1.472.133-.254.414-.673.629-.89-1.125-.253-2.057-.694-2.82-1.284.681-.747 1.222-1.651 1.621-2.757H14V8h-3v1.059h.5c.412 0 .74.337.74.75v.5h-.739c-.4-1.023-.918-1.805-1.541-2.543-.473.605-.914 1.173-1.284 1.729-.687-.524-1.063-1.109-1.466-1.729H5.5V7.5h2v-1H5.5V6h6V5h-2.5c-.1-.445-.324-1.775-1.5-2.5C7.146 4.013 6.773 5.111 6.5 6H4v1h1.5v.5H4v1h1.5v.5H5c-.177 0-.335.077-.442.235z"/>
-                </svg>
-                Translate
-              </button>
-              <div id="translation-engine-info" style="font-size: 11px; color: var(--brand-teal); margin-top: 4px; text-align: center;"></div>
-            </div>
+            <button id="translate-btn" class="btn" style="padding: 6px 15px; background-color: #FF8C00; border-color: #FF8C00; color: white;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style="margin-right: 5px; vertical-align: text-bottom;">
+                <path d="M4.545 6.714 4.11 8H3l1.862-5h1.284L8 8H6.833l-.435-1.286H4.545zm1.634-.736L5.5 3.956h-.049l-.679 2.022H6.18z"/>
+                <path d="M0 2a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v3h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-3H2a2 2 0 0 1-2-2V2zm2-1a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H2zm7.138 9.995c.193.301.402.583.63.846-.748.575-1.673 1.001-2.768 1.292.178.217.451.635.555.867 1.125-.359 2.08-.844 2.886-1.494.777.665 1.739 1.165 2.93 1.472.133-.254.414-.673.629-.89-1.125-.253-2.057-.694-2.82-1.284.681-.747 1.222-1.651 1.621-2.757H14V8h-3v1.059h.5c.412 0 .74.337.74.75v.5h-.739c-.4-1.023-.918-1.805-1.541-2.543-.473.605-.914 1.173-1.284 1.729-.687-.524-1.063-1.109-1.466-1.729H5.5V7.5h2v-1H5.5V6h6V5h-2.5c-.1-.445-.324-1.775-1.5-2.5C7.146 4.013 6.773 5.111 6.5 6H4v1h1.5v.5H4v1h1.5v.5H5c-.177 0-.335.077-.442.235z"/>
+              </svg>
+              Translate
+            </button>
+            <div id="translation-engine-info" style="font-size: 11px; color: var(--brand-teal); margin-top: 4px; text-align: center; width: 100%;"></div>
           </div>
         </div>
       </div>
@@ -2604,7 +2602,7 @@
     <div class="results">
       <div class="results-header">
         <div class="results-title-row">
-          <h2 class="results-title gothic-title">MQM Analysis Results</h2>
+          <h2 class="results-title gothic-title">Quality Check Results</h2>
           <div class="score-container">
             <span id="score" class="score">0.0</span>
             <div id="score-indicator" class="score-indicator success">✓</div>
@@ -3015,7 +3013,42 @@
 
   // Machine Translation functionality
   const translateBtn = document.getElementById('translate-btn');
+  // Create a function to show target language error specifically under the dropdown
+  function showTargetLangError(message) {
+    // Create error element if it doesn't exist
+    let targetLangError = document.getElementById('target-lang-error');
+    if (!targetLangError) {
+      targetLangError = document.createElement('div');
+      targetLangError.id = 'target-lang-error';
+      targetLangError.style.display = 'none';
+      targetLangError.style.color = '#721c24';
+      targetLangError.style.backgroundColor = '#f8d7da';
+      targetLangError.style.padding = '5px';
+      targetLangError.style.borderRadius = '4px';
+      targetLangError.style.marginTop = '5px';
+      targetLangError.style.fontSize = '12px';
+      targetLangError.style.fontWeight = 'bold';
+      
+      // Insert after target language dropdown
+      const targetLangSelect = document.getElementById('target-lang');
+      targetLangSelect.parentNode.insertBefore(targetLangError, targetLangSelect.nextSibling);
+    }
+    
+    // Show the error message
+    targetLangError.textContent = message;
+    targetLangError.style.display = 'block';
+    
+    // Hide after 5 seconds
+    setTimeout(() => {
+      targetLangError.style.display = 'none';
+    }, 5000);
+  }
+
   translateBtn.addEventListener('click', async () => {
+    // Clear any previous error messages
+    const targetLangError = document.getElementById('target-lang-error');
+    if (targetLangError) targetLangError.style.display = 'none';
+    
     // Check if we have source text and languages selected
     if (!sourceText.value) {
       showError('Please enter source text to translate');
@@ -3028,7 +3061,7 @@
     }
     
     if (!targetLang.value) {
-      showError('Please select a target language');
+      showTargetLangError('Please select a target language');
       return;
     }
     
@@ -3152,7 +3185,7 @@
     loadingIndicator.innerHTML = `
       <div class="loading-animation">
         <div class="dancing-emoji">🧠</div>
-        <div class="loading-text">AI is analyzing your text...</div>
+        <div class="loading-text">ORCA is analyzing your text...</div>
         <div class="progress-bar"><div class="progress-fill"></div></div>
       </div>
     `;
@@ -3194,7 +3227,7 @@
           
           // Reset button state
           analyzeBtn.disabled = false;
-          analyzeBtn.textContent = 'Run MQM Analysis';
+          analyzeBtn.textContent = 'Run Quality Check';
           
           // Show apply all button and undo button if there are issues
           if (mockResults.mqmIssues && mockResults.mqmIssues.length > 0) {

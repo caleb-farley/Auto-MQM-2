@@ -1185,6 +1185,237 @@ app.get('/api/admin/actions', async (req, res) => {
   }
 });
 
+// Traffic analytics API endpoint
+app.get('/api/admin/traffic', async (req, res) => {
+  try {
+    // Get query parameters for date range
+    const { startDate, endDate } = req.query;
+    
+    // Default to last 30 days if no date range provided
+    const start = startDate ? new Date(startDate) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const end = endDate ? new Date(endDate) : new Date();
+    
+    // Query for user activity (daily active and new users)
+    const userActivityPipeline = [
+      {
+        $match: {
+          timestamp: { $gte: start, $lte: end }
+        }
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$timestamp' } },
+          activeUsers: { $addToSet: { $cond: [{ $ifNull: ['$user', false] }, '$user', '$anonymousSessionId'] } },
+          // Count as new user if this is their first action
+          newUsers: { 
+            $addToSet: { 
+              $cond: [
+                { $eq: [{ $min: '$timestamp' }, '$timestamp'] },
+                { $cond: [{ $ifNull: ['$user', false] }, '$user', '$anonymousSessionId'] },
+                null
+              ]
+            }
+          }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          date: '$_id',
+          activeUsers: { $size: '$activeUsers' },
+          newUsers: { $size: '$newUsers' }
+        }
+      },
+      {
+        $sort: { date: 1 }
+      }
+    ];
+    
+    // Query for geographic distribution
+    const geoPipeline = [
+      {
+        $match: {
+          timestamp: { $gte: start, $lte: end },
+          'location.country': { $exists: true, $ne: null }
+        }
+      },
+      {
+        $group: {
+          _id: '$location.country',
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          country: '$_id',
+          count: 1
+        }
+      },
+      {
+        $sort: { count: -1 }
+      }
+    ];
+    
+    // Query for actions by type
+    const actionsPipeline = [
+      {
+        $match: {
+          timestamp: { $gte: start, $lte: end }
+        }
+      },
+      {
+        $group: {
+          _id: '$actionType',
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          type: '$_id',
+          count: 1
+        }
+      }
+    ];
+    
+    // Query for language pairs
+    const languagePipeline = [
+      {
+        $match: {
+          timestamp: { $gte: start, $lte: end },
+          sourceLang: { $exists: true, $ne: null },
+          targetLang: { $exists: true, $ne: null }
+        }
+      },
+      {
+        $group: {
+          _id: { sourceLang: '$sourceLang', targetLang: '$targetLang' },
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          sourceLang: '$_id.sourceLang',
+          targetLang: '$_id.targetLang',
+          count: 1
+        }
+      },
+      {
+        $sort: { count: -1 }
+      }
+    ];
+    
+    // Execute all aggregation pipelines
+    const [userActivity, geoDistribution, actionsByTypeArray, topLanguagePairs] = await Promise.all([
+      ActionLog.aggregate(userActivityPipeline),
+      ActionLog.aggregate(geoPipeline),
+      ActionLog.aggregate(actionsPipeline),
+      ActionLog.aggregate(languagePipeline)
+    ]);
+    
+    // Convert actions by type array to object
+    const actionsByType = {};
+    actionsByTypeArray.forEach(item => {
+      actionsByType[item.type] = item.count;
+    });
+    
+    // Count total users, active users today, and new users today
+    const totalUsersPipeline = [
+      {
+        $group: {
+          _id: null,
+          uniqueUsers: { $addToSet: { $cond: [{ $ifNull: ['$user', false] }, '$user', '$anonymousSessionId'] } }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          count: { $size: '$uniqueUsers' }
+        }
+      }
+    ];
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const activeUsersTodayPipeline = [
+      {
+        $match: {
+          timestamp: { $gte: today }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          uniqueUsers: { $addToSet: { $cond: [{ $ifNull: ['$user', false] }, '$user', '$anonymousSessionId'] } }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          count: { $size: '$uniqueUsers' }
+        }
+      }
+    ];
+    
+    const newUsersTodayPipeline = [
+      {
+        $match: {
+          timestamp: { $gte: today }
+        }
+      },
+      {
+        $group: {
+          _id: { $cond: [{ $ifNull: ['$user', false] }, '$user', '$anonymousSessionId'] },
+          firstAction: { $min: '$timestamp' }
+        }
+      },
+      {
+        $match: {
+          firstAction: { $gte: today }
+        }
+      },
+      {
+        $count: 'count'
+      }
+    ];
+    
+    // Execute user count aggregations
+    const [totalUsersResult, activeUsersTodayResult, newUsersTodayResult] = await Promise.all([
+      ActionLog.aggregate(totalUsersPipeline),
+      ActionLog.aggregate(activeUsersTodayPipeline),
+      ActionLog.aggregate(newUsersTodayPipeline)
+    ]);
+    
+    // Extract counts from results
+    const totalUsers = totalUsersResult.length > 0 ? totalUsersResult[0].count : 0;
+    const activeUsers = activeUsersTodayResult.length > 0 ? activeUsersTodayResult[0].count : 0;
+    const newUsers = newUsersTodayResult.length > 0 ? newUsersTodayResult[0].count : 0;
+    
+    // Count total translations and analyses
+    const totalTranslations = actionsByType['translate'] || 0;
+    const totalAnalyses = actionsByType['qa'] || 0;
+    
+    // Return the traffic analytics data
+    res.json({
+      userActivity,
+      geoDistribution,
+      actionsByType,
+      topLanguagePairs,
+      totalUsers,
+      activeUsers,
+      newUsers,
+      totalTranslations,
+      totalAnalyses
+    });
+  } catch (error) {
+    console.error('Error fetching traffic analytics:', error);
+    res.status(500).json({ error: 'Error fetching traffic analytics' });
+  }
+});
+
 // API endpoint to get a specific run by ID - no auth required for development
 app.get('/api/admin/runs/:id', async (req, res) => {
   try {
