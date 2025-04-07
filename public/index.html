@@ -2357,35 +2357,37 @@
 <section id="faq" class="faq-section" style="margin-top: 40px;">
     <h2 class="gothic-title" style="font-size: 20px; font-weight: 600; margin-bottom: 16px; color: #ffffff;">Frequently Asked Questions</h2>
   
+    <!-- First question expanded by default -->
     <div class="faq-item" style="margin-bottom: 20px;">
       <h3 class="gothic-title" style="font-size: 18px; font-weight: 600; color: #ff6c36;">What is MQM and how does FastFin use it?</h3>
       <p style="font-size: 14px; color: #a0a0a0;">MQM (Multidimensional Quality Metrics) is an industry-standard framework for evaluating translation quality. FastFin uses advanced AI to apply MQM principles, automatically detecting issues like mistranslations, fluency problems, and terminology errors. The framework provides a structured approach to categorize and score translation issues, allowing for consistent quality assessment across different languages and content types. Each identified issue is assigned a severity level (minor, major, or critical) which contributes to the overall quality score.</p>
     </div>
 
-    <div class="faq-item" style="margin-bottom: 20px;">
-      <h3 class="gothic-title" style="font-size: 18px; font-weight: 600; color: #ff6c36;">What's the difference between Bilingual and Monolingual modes?</h3>
-      <p style="font-size: 14px; color: #a0a0a0;">In Bilingual mode, FastFin compares source and target texts to identify translation-specific issues like mistranslations, omissions, or additions. This is ideal for evaluating translation accuracy. Monolingual mode focuses solely on the target text quality, analyzing fluency, grammar, and style without requiring source text. This is useful for evaluating standalone content or when source text isn't available.</p>
-    </div>
+    <!-- Remaining questions collapsible -->
+    <details class="faq-item" style="margin-bottom: 20px;">
+      <summary class="gothic-title" style="font-size: 18px; font-weight: 600; color: #ff6c36; cursor: pointer;">What's the difference between Bilingual and Monolingual modes?</summary>
+      <p style="font-size: 14px; color: #a0a0a0; margin-top: 10px;">In Bilingual mode, FastFin compares source and target texts to identify translation-specific issues like mistranslations, omissions, or additions. This is ideal for evaluating translation accuracy. Monolingual mode focuses solely on the target text quality, analyzing fluency, grammar, and style without requiring source text. This is useful for evaluating standalone content or when source text isn't available.</p>
+    </details>
 
-    <div class="faq-item" style="margin-bottom: 20px;">
-      <h3 class="gothic-title" style="font-size: 18px; font-weight: 600; color: #ff6c36;">How accurate is FastFin's assessment?</h3>
-      <p style="font-size: 14px; color: #a0a0a0;">FastFin uses state-of-the-art AI models (Claude 3 family) specifically fine-tuned for translation quality assessment. While no automated system is perfect, FastFin achieves high correlation with human reviewers, especially for technical and professional content. The system continuously improves through machine learning. For critical content requiring regulatory compliance, we recommend using FastFin as a first-pass assessment followed by targeted human review.</p>
-    </div>
+    <details class="faq-item" style="margin-bottom: 20px;">
+      <summary class="gothic-title" style="font-size: 18px; font-weight: 600; color: #ff6c36; cursor: pointer;">How accurate is FastFin's assessment?</summary>
+      <p style="font-size: 14px; color: #a0a0a0; margin-top: 10px;">FastFin uses state-of-the-art AI models (Claude 3 family) specifically fine-tuned for translation quality assessment. While no automated system is perfect, FastFin achieves high correlation with human reviewers, especially for technical and professional content. The system continuously improves through machine learning. For critical content requiring regulatory compliance, we recommend using FastFin as a first-pass assessment followed by targeted human review.</p>
+    </details>
 
-    <div class="faq-item" style="margin-bottom: 20px;">
-      <h3 class="gothic-title" style="font-size: 18px; font-weight: 600; color: #ff6c36;">Which languages does FastFin support?</h3>
-      <p style="font-size: 14px; color: #a0a0a0;">FastFin supports over 100 languages, including all major European, Asian, and Middle Eastern languages. The system has built-in support for right-to-left (RTL) languages like Arabic, Hebrew, and Persian. Language-specific rules are applied to ensure culturally and linguistically appropriate assessments for each language pair.</p>
-    </div>
+    <details class="faq-item" style="margin-bottom: 20px;">
+      <summary class="gothic-title" style="font-size: 18px; font-weight: 600; color: #ff6c36; cursor: pointer;">Which languages does FastFin support?</summary>
+      <p style="font-size: 14px; color: #a0a0a0; margin-top: 10px;">FastFin supports over 100 languages, including all major European, Asian, and Middle Eastern languages. The system has built-in support for right-to-left (RTL) languages like Arabic, Hebrew, and Persian. Language-specific rules are applied to ensure culturally and linguistically appropriate assessments for each language pair.</p>
+    </details>
 
-    <div class="faq-item" style="margin-bottom: 20px;">
-      <h3 class="gothic-title" style="font-size: 18px; font-weight: 600; color: #ff6c36;">How does the Excel integration work?</h3>
-      <p style="font-size: 14px; color: #a0a0a0;">FastFin's Excel integration allows you to work with translations offline and in batch. Download our template, fill in your source and target texts along with language information, and optionally add your own annotations. When uploaded, FastFin processes the entire file, applying MQM analysis to each entry and generating a comprehensive report that you can download or view online.</p>
-    </div>
+    <details class="faq-item" style="margin-bottom: 20px;">
+      <summary class="gothic-title" style="font-size: 18px; font-weight: 600; color: #ff6c36; cursor: pointer;">How does the Excel integration work?</summary>
+      <p style="font-size: 14px; color: #a0a0a0; margin-top: 10px;">FastFin's Excel integration allows you to work with translations offline and in batch. Download our template, fill in your source and target texts along with language information, and optionally add your own annotations. When uploaded, FastFin processes the entire file, applying MQM analysis to each entry and generating a comprehensive report that you can download or view online.</p>
+    </details>
 
-    <div class="faq-item" style="margin-bottom: 20px;">
-      <h3 class="gothic-title" style="font-size: 18px; font-weight: 600; color: #ff6c36;">How is my data handled?</h3>
-      <p style="font-size: 14px; color: #a0a0a0;">FastFin prioritizes data security and privacy. Your translations are processed securely and are not used to train our models. For registered users, assessment results are stored in your account for your reference, but you can delete them at any time. Anonymous sessions store minimal data using temporary cookies. For enterprise clients, we offer dedicated deployments with enhanced security protocols.</p>
-    </div>
+    <details class="faq-item" style="margin-bottom: 20px;">
+      <summary class="gothic-title" style="font-size: 18px; font-weight: 600; color: #ff6c36; cursor: pointer;">How is my data handled?</summary>
+      <p style="font-size: 14px; color: #a0a0a0; margin-top: 10px;">FastFin prioritizes data security and privacy. Your translations are processed securely and are not used to train our models. For registered users, assessment results are stored in your account for your reference, but you can delete them at any time. Anonymous sessions store minimal data using temporary cookies. For enterprise clients, we offer dedicated deployments with enhanced security protocols.</p>
+    </details>
   </section>
   
   <!-- FAQ Schema Markup -->
