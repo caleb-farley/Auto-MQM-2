@@ -1063,14 +1063,12 @@ app.post('/api/upload-excel',
       console.error('Error parsing JSON or processing Claude response:', error);
       return res.status(500).json({ error: 'Could not parse analysis results' });
     }
-
-    } catch (error) {
-      console.error('Excel upload error:', error);
-      return res.status(500).json({ 
-        error: 'Failed to process Excel file',
-        message: error.message
-      });
-    }
+  } catch (error) {
+    console.error('Excel upload error:', error);
+    return res.status(500).json({ 
+      error: 'Failed to process Excel file',
+      message: error.message
+    });
   }
 });
 
