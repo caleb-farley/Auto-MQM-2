@@ -493,6 +493,12 @@ app.post('/api/mqm-analysis',
           processedTargetLang = segments[0].targetLang;
         }
         
+        // Force bilingual mode for file uploads
+        if (isMonolingual && fileBuffer) {
+          console.log('Forcing bilingual mode for file upload');
+          isMonolingual = false;
+        }
+        
         console.log(`Extracted ${segments.length} segments from ${fileType} file`);
       }
       

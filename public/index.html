@@ -2285,9 +2285,16 @@
   </div>
     <!-- File Upload Section -->
     <div class="excel-section" style="margin-bottom: 20px; background-color: var(--bg-accent); padding: 15px; border-radius: 8px; border: 1px solid var(--border-light);">
-      <h3 class="gothic-title" style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 10px;">File Upload</h3>
+      <h3 class="gothic-title" style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 10px;">Translation File Upload</h3>
       <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 15px;">
-        Download our Excel template to perform MQM assessments offline, then upload it for automated processing.
+        Upload your translation files for automated MQM assessment. We support the following file formats:
+        <ul style="margin-top: 8px; margin-left: 20px;">
+          <li><strong>TMX files</strong> (.tmx) - Translation Memory Exchange format</li>
+          <li><strong>XLIFF files</strong> (.xliff, .xlf) - XML Localization Interchange File Format</li>
+          <li><strong>Excel files</strong> (.xlsx) - Using our template format</li>
+        </ul>
+        <span style="display: block; margin-top: 8px; color: var(--text-warning);">Note: File upload currently works for bilingual translations only.</span>
+        <span style="display: block; margin-top: 8px;">If you don't have TMX or XLIFF files, you can download our Excel template below, fill it with your translations, and upload it for assessment.</span>
       </p>
       
       <!-- Download Template Button -->
@@ -2310,7 +2317,7 @@
               <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
               <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
             </svg>
-            Select File
+            Select Translation File
           </button>
           <span id="selected-file-info" style="color: var(--text-muted); flex-grow: 1;"></span>
           <button type="submit" id="excel-upload-btn" class="btn btn-primary" disabled>
@@ -4322,6 +4329,17 @@ correctedText.removeAttribute('readonly');
           
           // Check if in monolingual mode
           const isMonolingual = document.getElementById('translation-mode-toggle').checked;
+          
+          // Show warning and switch to bilingual mode if monolingual is selected
+          if (isMonolingual) {
+            // Switch to bilingual mode
+            document.getElementById('translation-mode-toggle').checked = false;
+            const event = new Event('change');
+            document.getElementById('translation-mode-toggle').dispatchEvent(event);
+            
+            // Show warning
+            excelUploadStatus.innerHTML += '<div style="color: var(--text-warning); margin-top: 8px;">Note: Switched to bilingual mode as file uploads require source and target text comparison.</div>';
+          }
           
           // Convert ArrayBuffer to Base64
           const base64String = arrayBufferToBase64(arrayBuffer);
