@@ -11,6 +11,9 @@
   <!-- Auth components script -->
   <script src="/auth-components.js" defer></script>
   <style>
+    /* Import Gothic fonts */
+    @import url('https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;600;700&display=swap');
+    
     /* Color variables */
     :root {
       /* Theme colors */
@@ -59,6 +62,23 @@
       box-sizing: border-box;
       margin: 0;
       padding: 0;
+      font-family: 'Inter', sans-serif;
+    }
+    
+    /* Typography */
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    
+    p, span, div, button, input, textarea, select, option, label:not(.text-area-label) {
+      font-family: 'Inter', sans-serif;
+    }
+    
+    /* Gothic title style */
+    .gothic-title, h1, h2, h3, h4, h5, h6, .text-area-label, .modal-title, .section-title {
+      font-family: 'Copperplate Gothic', 'Century Gothic', 'Gothic A1', sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
     /* Authentication UI */
@@ -1297,7 +1317,7 @@
   }
   
   input:checked + .slider {
-    background-color: var(--brand-blue);
+    background-color: var(--brand-orange);
   }
   
   input:focus + .slider {
@@ -1605,21 +1625,31 @@
         </p>
       </div>
         
-  <!-- Translation Type Toggle -->
-<div class="translation-toggle" style="margin-bottom: 12px; display: flex; justify-content: flex-end; align-items: center;">
-  <div style="display: flex; gap: 16px; align-items: center;">
-    <label class="text-area-label" for="translation-mode">
-      Translation Type
-      <span title="Bilingual: requires source and target text. Monolingual: only target text is required." style="cursor: help; margin-left: 6px;">&#9432;</span>
+  <!-- Section Headers -->
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+  <!-- Translation Content Heading -->
+  <div style="display: inline-block;">
+    <label class="text-area-label gothic-title" style="font-size: 18px; font-weight: 600;">
+      Translation Content
     </label>
-    
-    <div class="toggle-switch-container" style="display: flex; align-items: center; gap: 8px;">
-      <span style="font-size: 14px;">Bilingual</span>
-      <label class="switch">
-        <input type="checkbox" id="translation-mode-toggle">
-        <span class="slider round"></span>
+  </div>
+  
+  <!-- Translation Type Toggle -->
+  <div style="display: inline-block;">
+    <div class="translation-toggle" style="display: flex; align-items: center;">
+      <label class="text-area-label gothic-title" for="translation-mode" style="font-size: 18px; font-weight: 600;">
+        Translation Type
+        <span title="Bilingual: requires source and target text. Monolingual: only target text is required." style="cursor: help; margin-left: 6px;">&#9432;</span>
       </label>
-      <span style="font-size: 14px;">Monolingual</span>
+      
+      <div class="toggle-switch-container" style="display: flex; align-items: center; gap: 8px; margin-left: 16px;">
+        <span style="font-size: 14px;">Bilingual</span>
+        <label class="switch">
+          <input type="checkbox" id="translation-mode-toggle">
+          <span class="slider round"></span>
+        </label>
+        <span style="font-size: 14px;">Monolingual</span>
+      </div>
     </div>
   </div>
 </div>
@@ -2062,7 +2092,7 @@
   </div>
     <!-- Excel Upload Section -->
     <div class="excel-section" style="margin-bottom: 20px; background-color: var(--bg-accent); padding: 15px; border-radius: 8px; border: 1px solid var(--border-light);">
-      <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 10px;">Excel Template</h3>
+      <h3 class="gothic-title" style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 10px;">Excel Template</h3>
       <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 15px;">
         Download our Excel template to perform MQM assessments offline, then upload it for automated processing.
       </p>
@@ -2149,7 +2179,7 @@
     <div class="results">
       <div class="results-header">
         <div class="results-title-row">
-          <h2 class="results-title">MQM Analysis Results</h2>
+          <h2 class="results-title gothic-title">MQM Analysis Results</h2>
           <div class="score-container">
             <span id="score" class="score">0.0</span>
             <div id="score-indicator" class="score-indicator success">✓</div>
@@ -2177,7 +2207,7 @@
 
 <!-- FAQ Section -->
 <section id="faq" class="faq-section" style="margin-top: 40px;">
-    <h2 style="font-size: 20px; font-weight: 600; margin-bottom: 16px; color: #ffffff;">Frequently Asked Questions</h2>
+    <h2 class="gothic-title" style="font-size: 20px; font-weight: 600; margin-bottom: 16px; color: #ffffff;">Frequently Asked Questions</h2>
   
     <!-- First 3 fully expanded -->
     <div class="faq-item" style="margin-bottom: 20px;">
