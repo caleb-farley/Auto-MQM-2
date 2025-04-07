@@ -897,6 +897,7 @@
       height: 10px;
       background-color: var(--brand-orange);
       transform: rotate(45deg);
+      z-index: -1;
     }
     
     @keyframes pulse {
@@ -3140,6 +3141,10 @@
     const targetLangError = document.getElementById('target-lang-error');
     if (targetLangError) targetLangError.style.display = 'none';
     
+    // Hide the bubble if it's visible
+    const targetLangBubble = document.getElementById('target-lang-bubble');
+    if (targetLangBubble) targetLangBubble.style.display = 'none';
+    
     // Check if we have source text and languages selected
     if (!sourceText.value) {
       showError('Please enter source text to translate');
@@ -3152,8 +3157,7 @@
     }
     
     if (!targetLang.value) {
-      // Show the target language bubble
-      const targetLangBubble = document.getElementById('target-lang-bubble');
+      // Show ONLY the target language bubble (not the error message)
       if (targetLangBubble) {
         targetLangBubble.style.display = 'block';
         // Make it pulse to draw attention
@@ -3163,7 +3167,6 @@
           targetLangBubble.classList.remove('pulse');
         }, 1000);
       }
-      showTargetLangError('Please select a target language');
       return;
     }
     
