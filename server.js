@@ -453,7 +453,8 @@ app.post('/api/mqm-analysis',
   authMiddleware.trackUsage,
   async (req, res) => {
   try {
-    const { sourceText, targetText, sourceLang, targetLang } = req.body;
+    const { sourceText, targetText, sourceLang, targetLang, mode } = req.body;
+    const isMonolingual = mode === 'monolingual';
     const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress;
 
 let location = {};
@@ -470,8 +471,15 @@ try {
   console.warn('🌐 Could not fetch geolocation:', err.message);
 }
     
-    if (!sourceText || !targetText || !sourceLang || !targetLang) {
-      return res.status(400).json({ error: 'Missing required parameters' });
+    // Validate parameters based on mode
+    if (isMonolingual) {
+      if (!targetText || !targetLang) {
+        return res.status(400).json({ error: 'Missing required parameters for monolingual mode' });
+      }
+    } else {
+      if (!sourceText || !targetText || !sourceLang || !targetLang) {
+        return res.status(400).json({ error: 'Missing required parameters for bilingual mode' });
+      }
     }
     
     // Check word count limit
@@ -490,11 +498,112 @@ try {
       return res.status(500).json({ error: 'API key not configured' });
     }
     
-    // Construct prompt for Claude using MQM framework
-    const prompt = `
+    // Construct prompt for Claude using MQM framework based on mode
+    let prompt;
+    
+    if (isMonolingual) {
+      // Monolingual mode prompt - focuses on content quality without source comparison
+      prompt = `
+You are a localization QA expert using the MQM (Multidimensional Quality Metrics) framework to evaluate content quality. Please analyze the following text and provide a detailed quality assessment. This is a MONOLINGUAL assessment, so you will only evaluate the inherent quality of the content without comparing to any source text.
+
+IMPORTANT GUIDELINES FOR MONOLINGUAL ASSESSMENT:
+1. ONLY analyze the EXACT text provided in the submission. Do NOT invent or hallucinate errors that don't appear in the text.
+2. Be thorough in your analysis - even small or subtle issues can be important for quality assessment.
+3. For each issue identified, provide SPECIFIC EVIDENCE from the text - quote the exact problematic section.
+4. Include both objective errors and potentially problematic stylistic issues that may affect readability.
+5. Consider language-specific conventions and cultural context when evaluating the text.
+6. For each issue, indicate your confidence level (HIGH, MEDIUM, LOW).
+7. Focus on fluency, grammar, spelling, punctuation, and overall readability.
+8. Evaluate terminology consistency within the text itself.
+9. When multiple interpretations are possible, note this and explain the potential issue.
+10. Since this is a monolingual assessment, do NOT look for translation errors like mistranslations or omissions.
+
+Language: ${targetLang}
+
+Text to analyze:
+"""
+${targetText}
+"""
+
+Perform a detailed MQM analysis using the following error categories, but only if you find actual errors with concrete evidence:
+1. Fluency
+   - Grammar: Issues related to grammar, syntax, or morphology
+   - Spelling: Spelling errors or typos
+   - Punctuation: Incorrect or inconsistent punctuation
+   - Typography: Issues with formatting, capitalization, or other typographical elements
+   
+2. Terminology
+   - Inconsistent: Terminology used inconsistently within the text
+   - Inappropriate: Wrong terms used for the context or domain
+
+3. Style
+   - Awkward: Text sounds unnatural or awkward
+   - Cultural: Cultural references incorrectly used
+
+4. Design
+   - Length: Text is too verbose or too concise for effective communication
+   - Markup/Code: Issues with tags, placeholders, or code elements
+
+For each issue found, provide:
+- Category and subcategory
+- Severity (Minor=1, Major=5, Critical=10)
+- Explanation
+- Location (if possible, provide specific information like character positions or word indices)
+- The exact problematic text segment
+- A suggested fix (textual description of what needs to be changed)
+- A fully corrected version of the entire segment with the fix applied (this is critical as it will be displayed to users)
+- Provide the exact **start and end character positions** of the segment in the text.
+
+Also provide an MQM score calculated as:
+MQM Score = 100 - (sum of error points / word count * 100)
+Where:
+- Minor issues = 1 point
+- Major issues = 5 points
+- Critical issues = 10 points
+
+Return ONLY valid JSON without any other text. Use this exact structure:
+{
+  "mqmIssues": [
+    {
+      "category": "Fluency",
+      "subcategory": "Grammar",
+      "severity": "MAJOR",
+      "explanation": "...",
+      "location": "...",
+      "segment": "...",
+      "suggestion": "...",
+      "correctedSegment": "...",
+      "startIndex": 45,
+      "endIndex": 68
+    },
+    ...
+  ],
+  "categories": {
+    "Accuracy": { "count": 0, "points": 0 },
+    "Fluency": { "count": 0, "points": 0 },
+    "Terminology": { "count": 0, "points": 0 },
+    "Style": { "count": 0, "points": 0 },
+    "Design": { "count": 0, "points": 0 }
+  },
+  "wordCount": 120,
+  "overallScore": 95,
+  "summary": "..."
+}
+
+For the location field, try to be as specific as possible. Preferred format is:
+- For specific words: "Word 5-7 in sentence 2" or "Characters 120-135"
+- For sentences: "Sentence 3 in paragraph 2"
+- For paragraphs: "Paragraph 4"
+
+For the segment field, include ONLY the exact problematic text.
+For the correctedSegment field, provide the complete fixed version of the segment with all corrections applied. This corrected segment will be displayed directly to users, so ensure it maintains the full context and represents a high-quality correction.
+`;
+    } else {
+      // Bilingual mode prompt - traditional translation quality assessment
+      prompt = `
 You are a localization QA expert using the MQM (Multidimensional Quality Metrics) framework to evaluate translations. Please analyze the following source and target text pair and provide a detailed quality assessment.
 
-IMPORTANT GUIDELINES FOR EFFECTIVE ASSESSMENT:
+IMPORTANT GUIDELINES FOR BILINGUAL ASSESSMENT:
 1. ONLY analyze the EXACT text provided in the submission. Do NOT invent or hallucinate errors that don't appear in the text.
 2. Be thorough in your analysis - even small or subtle issues can be important for quality assessment.
 3. For each issue identified, provide SPECIFIC EVIDENCE from the text - quote the exact problematic section.
@@ -518,6 +627,7 @@ Target text:
 """
 ${targetText}
 """
+`;
 
 Perform a detailed MQM analysis using the following error categories, but only if you find actual errors with concrete evidence:
 1. Accuracy
@@ -572,7 +682,7 @@ Return ONLY valid JSON without any other text. Use this exact structure:
       "location": "...",
       "segment": "...",
       "suggestion": "...",
-      "correctedSegment": "..."
+      "correctedSegment": "...",
       "startIndex": 45,
       "endIndex": 68
     },
@@ -1036,7 +1146,7 @@ Return ONLY valid JSON without any other text. Use this exact structure:
       "location": "...",
       "segment": "...",
       "suggestion": "...",
-      "correctedSegment": "..."
+      "correctedSegment": "...",
       "startIndex": 45,
       "endIndex": 68
     },
@@ -1162,16 +1272,17 @@ For example, if the segment is "The internationale women day" and the issue is t
 
       // Prepare run document
       const runData = {
-        sourceText,
+        sourceText: isMonolingual ? '' : sourceText,
         targetText,
-        sourceLang,
+        sourceLang: isMonolingual ? '' : sourceLang,
         targetLang,
         mqmScore: mqmResults.overallScore,
         issues: mqmResults.mqmIssues,
         ip: location.ip,
         location,
         summary: mqmResults.summary,
-        wordCount: mqmResults.wordCount || wordCount
+        wordCount: mqmResults.wordCount || wordCount,
+        analysisMode: isMonolingual ? 'monolingual' : 'bilingual'
       };
 
       // Add user association if authenticated
@@ -1187,10 +1298,11 @@ For example, if the segment is "The internationale women day" and the issue is t
       return res.json({ 
         ...mqmResults, 
         _id: runDoc._id,
-        sourceText,  // Include source and target text in response
+        sourceText: isMonolingual ? '' : sourceText,  // Include source and target text in response based on mode
         targetText,
-        sourceLang,
-        targetLang
+        sourceLang: isMonolingual ? '' : sourceLang,
+        targetLang,
+        analysisMode: isMonolingual ? 'monolingual' : 'bilingual'
       });
       
     } catch (error) {

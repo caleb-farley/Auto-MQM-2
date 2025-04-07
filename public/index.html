@@ -1668,7 +1668,7 @@
     // Function to toggle source text visibility
     function toggleSourceTextVisibility(isMonolingual) {
       // Get the source text container directly when function is called
-      const sourceTextContainer = document.querySelector('.text-areas > div:first-child');
+      const sourceTextContainer = document.querySelector('.text-areas > .text-area-container:nth-child(1)');
       console.log('Toggle called with isMonolingual:', isMonolingual);
       console.log('Source container found:', sourceTextContainer);
       
@@ -1676,15 +1676,15 @@
         if (isMonolingual) {
           // Force display none for monolingual mode
           sourceTextContainer.style.display = 'none';
+          document.getElementById('sourceText').value = '';
+          document.getElementById('sourceLang').value = '';
         } else {
           // Force display block for bilingual mode
           sourceTextContainer.style.display = 'block';
         }
         
         // Force immediate update of the analyze button validation
-        setTimeout(function() {
-          updateAnalyzeButton();
-        }, 0);
+        updateAnalyzeButton();
       }
     }
     
@@ -2696,7 +2696,7 @@
           targetText: targetText.value,
           sourceLang: isMonolingual ? '' : sourceLang.value,
           targetLang: targetLang.value,
-          isMonolingual: isMonolingual
+          mode: isMonolingual ? 'monolingual' : 'bilingual'
         })
       });
 

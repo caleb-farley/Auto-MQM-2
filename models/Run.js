@@ -11,6 +11,12 @@ const runSchema = new mongoose.Schema({
   ip: String,
   summary: String,
   wordCount: Number,
+  // Store whether this is a monolingual or bilingual analysis
+  analysisMode: {
+    type: String,
+    enum: ['monolingual', 'bilingual'],
+    default: 'bilingual'
+  },
   location: {
     city: String,
     region: String,
