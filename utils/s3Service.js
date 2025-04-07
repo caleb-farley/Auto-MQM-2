@@ -44,7 +44,25 @@ async function uploadFile(filePath, key) {
  * @param {string} contentType - MIME type of the file
  * @returns {Promise<string>} - URL of the uploaded file
  */
-async function uploadBuffer(buffer, key, contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
+async function uploadBuffer(buffer, key, contentType) {
+  // Determine content type based on file extension if not provided
+  if (!contentType) {
+    const extension = path.extname(key).toLowerCase();
+    switch (extension) {
+      case '.xlsx':
+        contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+        break;
+      case '.tmx':
+        contentType = 'application/xml';
+        break;
+      case '.xliff':
+      case '.xlf':
+        contentType = 'application/xml';
+        break;
+      default:
+        contentType = 'application/octet-stream';
+    }
+  }
   try {
     const params = {
       Bucket: bucketName,

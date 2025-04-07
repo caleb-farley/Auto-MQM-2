@@ -482,9 +482,12 @@ app.post('/api/mqm-analysis',
       let processedTargetText = targetText;
       let processedSourceLang = sourceLang;
       let processedTargetLang = targetLang;
+      let originalFileName = null;
       
       // If segments were obtained from a file, extract the text
       if (fileBuffer && segments && segments.length > 0) {
+        console.log(`Successfully parsed file with ${segments.length} segments`);
+        
         // Combine all segments into a single text
         processedSourceText = segments.map(segment => segment.source).join('\n');
         processedTargetText = segments.map(segment => segment.target).join('\n');
@@ -492,16 +495,52 @@ app.post('/api/mqm-analysis',
         // Use language codes from segments if available
         if (segments[0].sourceLang) {
           processedSourceLang = segments[0].sourceLang;
+          console.log(`Using source language from file: ${processedSourceLang}`);
+        } else {
+          // Default to English if no source language is found
+          processedSourceLang = 'en';
+          console.log('No source language found in file, defaulting to English');
         }
         
         if (segments[0].targetLang) {
           processedTargetLang = segments[0].targetLang;
+          console.log(`Using target language from file: ${processedTargetLang}`);
+        } else {
+          // Default to English if no target language is found
+          processedTargetLang = 'en';
+          console.log('No target language found in file, defaulting to English');
+        }
+        
+        // Save original file name if provided
+        if (req.body.fileName) {
+          originalFileName = req.body.fileName;
         }
         
         // Force bilingual mode for file uploads
         if (isMonolingual && fileBuffer) {
           console.log('Forcing bilingual mode for file upload');
           isMonolingual = false;
+        }
+        
+        // Store the original file in S3 if configured
+        let fileUrl = null;
+        if (process.env.AWS_S3_BUCKET && fileBuffer) {
+          try {
+            const s3Service = require('./utils/s3Service');
+            const fileExtension = fileType === 'tmx' ? '.tmx' : '.xliff';
+            const fileName = originalFileName || `upload_${Date.now()}${fileExtension}`;
+            const key = `uploads/${fileName}`;
+            
+            // Convert base64 string to buffer if needed
+            const buffer = typeof fileBuffer === 'string' ? 
+              Buffer.from(fileBuffer, 'base64') : fileBuffer;
+              
+            fileUrl = await s3Service.uploadBuffer(buffer, key);
+            console.log(`Uploaded file to S3: ${fileUrl}`);
+          } catch (error) {
+            console.error('Error uploading file to S3:', error);
+            // Continue with analysis even if S3 upload fails
+          }
         }
         
         console.log(`Extracted ${segments.length} segments from ${fileType} file`);
@@ -813,6 +852,13 @@ app.post('/api/mqm-analysis',
         segments: processedSegments
       });
       
+      // If we have a file URL, store it with the run
+      if (fileUrl) {
+        run.fileUrl = fileUrl;
+        run.fileType = fileType;
+        run.fileName = originalFileName;
+      }
+      
       await run.save();
       
       // Log the QA action
@@ -828,7 +874,9 @@ app.post('/api/mqm-analysis',
         llmModel: llmModel || 'claude-3-sonnet-20240229',
         analysisMode: isMonolingual ? 'monolingual' : 'bilingual',
         run: run._id,
-        location: req.geoip // If you have geoip middleware
+        location: req.geoip, // If you have geoip middleware
+        fileType: fileType || null,
+        fileUrl: fileUrl || null
       });
       
       // Return the results

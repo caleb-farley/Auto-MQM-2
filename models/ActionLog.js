@@ -44,6 +44,16 @@ const actionLogSchema = new mongoose.Schema({
     region: String,
     country: String,
     org: String
+  },
+  // File information for uploads
+  fileType: {
+    type: String,
+    enum: ['tmx', 'xliff', 'excel', null],
+    required: false
+  },
+  fileUrl: {
+    type: String,
+    required: false
   }
 });
 

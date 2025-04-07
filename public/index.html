@@ -1935,6 +1935,9 @@
         document.head.appendChild(styleEl);
       }
       
+      // Force a redraw by accessing offsetHeight
+      document.body.offsetHeight;
+      
       if (isMonolingual) {
         // MONOLINGUAL MODE
         console.log('Activating monolingual mode');
@@ -1945,6 +1948,17 @@
         
         // Clear source inputs since they won't be used
         if (sourceText) sourceText.value = '';
+        
+        // Directly hide the source container with inline style for maximum compatibility
+        if (sourceContainer) {
+          sourceContainer.style.display = 'none';
+        }
+        
+        // Directly set the target container to full width
+        if (targetContainer) {
+          targetContainer.style.width = '100%';
+          targetContainer.style.flex = '1 0 100%';
+        }
         
         // Add a visual indicator that we're in monolingual mode
         const modeIndicator = document.createElement('div');
@@ -1973,6 +1987,17 @@
         // Remove monolingual mode classes
         document.body.classList.remove('monolingual-mode');
         textAreasContainer.classList.remove('monolingual-mode');
+        
+        // Directly show the source container with inline style
+        if (sourceContainer) {
+          sourceContainer.style.display = 'block';
+        }
+        
+        // Reset the target container width
+        if (targetContainer) {
+          targetContainer.style.width = '';
+          targetContainer.style.flex = '';
+        }
         
         // Remove the monolingual mode indicator if it exists
         const modeIndicator = document.getElementById('monolingual-indicator');
@@ -2040,6 +2065,12 @@
         } else {
           bilingualRadio.dispatchEvent(event);
         }
+        
+        // Dispatch a custom event that other parts of the code can listen for
+        const modeChangedEvent = new CustomEvent('translation-mode-changed', {
+          detail: { isMonolingual: isMonolingual }
+        });
+        document.dispatchEvent(modeChangedEvent);
         
         // Log the current state for debugging
         console.log('Translation mode changed:', this.checked ? 'Monolingual' : 'Bilingual');
@@ -3423,31 +3454,64 @@
       const llmModelSelect = document.getElementById('llm-model');
       const selectedModel = llmModelSelect.value;
       
-      const mqmResponse = await fetch('/api/mqm-analysis', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          sourceText: isMonolingual ? '' : sourceText.value,
-          targetText: targetText.value,
-          sourceLang: isMonolingual ? '' : sourceLang.value,
-          targetLang: targetLang.value,
-          mode: isMonolingual ? 'monolingual' : 'bilingual',
-          llmModel: selectedModel // Include the selected LLM model
-        })
-      });
-
-      if (!mqmResponse.ok) {
-        const errorData = await mqmResponse.json();
-        throw new Error(errorData.error || 'Analysis failed');
-      }
-
-      const results = await mqmResponse.json();
+      // Track when we started the analysis
+      const startTime = Date.now();
       
-      // Store current issues and target text
-      currentIssues = results.mqmIssues;
-      currentTargetText = targetText.value;
+      // Show a message that we're waiting for the AI to analyze the text
+      const waitingMessage = document.createElement('div');
+      waitingMessage.id = 'waiting-message';
+      waitingMessage.textContent = 'Waiting for AI analysis...';
+      waitingMessage.style.textAlign = 'center';
+      waitingMessage.style.marginTop = '20px';
+      waitingMessage.style.color = '#666';
+      waitingMessage.style.fontStyle = 'italic';
+      document.querySelector('.container').appendChild(waitingMessage);
+      
+      // Set a timeout to update the waiting message if it takes longer than expected
+      const waitingTimeout = setTimeout(() => {
+        if (waitingMessage && document.contains(waitingMessage)) {
+          waitingMessage.textContent = 'Still analyzing... This might take a few more seconds';
+        }
+      }, 10000); // 10 seconds
+      
+      try {
+        // Get the current mode from the toggle
+        const isMonolingual = document.getElementById('translation-mode-toggle').checked;
+        console.log('Sending analysis request in mode:', isMonolingual ? 'monolingual' : 'bilingual');
+        
+        const mqmResponse = await fetch('/api/mqm-analysis', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            sourceText: isMonolingual ? '' : sourceText.value,
+            targetText: targetText.value,
+            sourceLang: isMonolingual ? '' : sourceLang.value,
+            targetLang: targetLang.value,
+            mode: isMonolingual ? 'monolingual' : 'bilingual',
+            llmModel: selectedModel // Include the selected LLM model
+          })
+        });
+        
+        console.log('Analysis request sent with mode:', isMonolingual ? 'monolingual' : 'bilingual');
+  
+        if (!mqmResponse.ok) {
+          const errorData = await mqmResponse.json();
+          throw new Error(errorData.error || 'Analysis failed');
+        }
+  
+        const results = await mqmResponse.json();
+        
+        // Remove the waiting message
+        clearTimeout(waitingTimeout);
+        if (waitingMessage && document.contains(waitingMessage)) {
+          waitingMessage.remove();
+        }
+      
+        // Store current issues and target text
+        currentIssues = results.mqmIssues;
+        currentTargetText = targetText.value;
       
       // Remove loading indicator before showing results
       const loadingIndicator = document.getElementById('analysis-loading-indicator');
@@ -3486,18 +3550,32 @@
           }
         };
       
-      // Show apply all button and undo button if there are issues
-      if (results.mqmIssues && results.mqmIssues.length > 0) {
-        applyAllBtn.style.display = 'block';
-        undoBtn.style.display = 'block';
-        undoBtn.disabled = true; // Initially disabled until changes are made
+        // Show apply all button and undo button if there are issues
+        if (results.mqmIssues && results.mqmIssues.length > 0) {
+          applyAllBtn.style.display = 'block';
+          undoBtn.style.display = 'block';
+          undoBtn.disabled = true; // Initially disabled until changes are made
+        }
+      } catch (error) {
+        console.error('MQM analysis error in API call:', error);
+        analyzeBtn.disabled = false;
+        analyzeBtn.textContent = 'Run Quality Check';
+        
+        // Only show the error if it's not the temporary parsing error
+        // or if we've been waiting too long (more than 5 seconds)
+        if (error.message !== 'Could not parse analysis results' || Date.now() - startTime > 5000) {
+          showError(error.message || 'Analysis failed');
+        }
+        
+        // Remove waiting message if it exists
+        clearTimeout(waitingTimeout);
+        if (waitingMessage && document.contains(waitingMessage)) {
+          waitingMessage.remove();
+        }
+        
+        // Return early to avoid the outer catch block
+        return;
       }
-      
-    } catch (error) {
-      console.error('MQM analysis error:', error);
-      analyzeBtn.disabled = false;
-      analyzeBtn.textContent = 'Run Quality Check';
-      showError(error.message || 'Analysis failed');
     } finally {
       // Always clean up the loading indicator
       const loadingIndicator = document.getElementById('analysis-loading-indicator');
@@ -3517,9 +3595,24 @@
       loadingIndicator.remove();
     }
     
+    // Hide any previous results if showing an error
+    if (resultsContainer.style.display === 'block') {
+      // Don't hide results if this is a temporary error that will be resolved
+      if (message !== 'Could not parse analysis results') {
+        resultsContainer.style.display = 'none';
+      }
+    }
+    
     // Show the error message
     errorMessage.textContent = message;
     errorMessage.style.display = 'block';
+    
+    // If this is the parsing error, hide it after a short delay
+    if (message === 'Could not parse analysis results') {
+      setTimeout(() => {
+        errorMessage.style.display = 'none';
+      }, 1000);
+    }
     errorMessage.style.backgroundColor = '#f8d7da';
     errorMessage.style.color = '#721c24';
     errorMessage.style.padding = '10px';
@@ -5141,7 +5234,10 @@ correctedText.removeAttribute('readonly');
             body: JSON.stringify({
               fileBuffer: base64String,
               fileType: fileType,
-              mode: isMonolingual ? 'monolingual' : 'bilingual'
+              fileName: file.name, // Include the original filename
+              mode: 'bilingual', // Always use bilingual mode for file uploads
+              sourceLang: '', // Include empty source language to avoid validation errors
+              targetLang: '' // Include empty target language to avoid validation errors
             })
           });
         }

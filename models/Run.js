@@ -49,6 +49,20 @@ const runSchema = new mongoose.Schema({
     ref: 'User',
     required: false // Not required for anonymous users
   },
+  // File information for uploads
+  fileUrl: {
+    type: String,
+    required: false
+  },
+  fileType: {
+    type: String,
+    enum: ['tmx', 'xliff', 'excel', null],
+    required: false
+  },
+  fileName: {
+    type: String,
+    required: false
+  },
   // Anonymous session tracking - for non-registered users
   anonymousSessionId: {
     type: String,
