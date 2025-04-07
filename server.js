@@ -627,7 +627,6 @@ Target text:
 """
 ${targetText}
 """
-`;
 
 Perform a detailed MQM analysis using the following error categories, but only if you find actual errors with concrete evidence:
 1. Accuracy

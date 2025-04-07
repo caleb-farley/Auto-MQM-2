@@ -1660,8 +1660,42 @@
 </div>
 
 <script>
-  // Add this script to handle the toggle switch functionality
+  // Add this script to handle the toggle switch functionality and bidirectional text support
   document.addEventListener('DOMContentLoaded', function() {
+    // RTL language codes
+    const rtlLanguages = ['ar', 'he', 'fa', 'ur'];
+    
+    // Function to check if a language is RTL
+    function isRTL(langCode) {
+      if (!langCode) return false;
+      // Check if the language code starts with any RTL language prefix
+      return rtlLanguages.some(rtlCode => langCode.startsWith(rtlCode));
+    }
+    
+    // Function to update text direction based on language
+    function updateTextDirection() {
+      const sourceLang = document.getElementById('source-lang').value;
+      const targetLang = document.getElementById('target-lang').value;
+      const sourceText = document.getElementById('source-text');
+      const targetText = document.getElementById('target-text');
+      
+      // Set text direction based on language (while keeping dir='auto' for automatic detection)
+      if (sourceLang && isRTL(sourceLang)) {
+        sourceText.style.textAlign = 'right';
+      } else if (sourceLang) {
+        sourceText.style.textAlign = 'left';
+      }
+      
+      if (targetLang && isRTL(targetLang)) {
+        targetText.style.textAlign = 'right';
+      } else if (targetLang) {
+        targetText.style.textAlign = 'left';
+      }
+    }
+    
+    // Add event listeners for language selection changes
+    document.getElementById('source-lang').addEventListener('change', updateTextDirection);
+    document.getElementById('target-lang').addEventListener('change', updateTextDirection);
     const translationToggle = document.getElementById('translation-mode-toggle');
     const bilingualRadio = document.querySelector('input[name="translation-mode"][value="bilingual"]');
     const monolingualRadio = document.querySelector('input[name="translation-mode"][value="monolingual"]');
@@ -1828,7 +1862,7 @@
             <option value="lt">🇱🇹 Lithuanian</option>
           </select>
         </div>
-        <textarea id="source-text" placeholder="Enter the original text..."></textarea>
+        <textarea id="source-text" placeholder="Enter the original text..." dir="auto"></textarea>
         <div class="text-area-footer">
           <div id="source-lang-detected"></div>
           <div id="word-count" class="word-count">0 / 500 words</div>
@@ -1919,7 +1953,7 @@
             <option value="lt">🇱🇹 Lithuanian</option>            
           </select>
         </div>
-        <textarea id="target-text" placeholder="Enter the translated text..."></textarea>
+        <textarea id="target-text" placeholder="Enter the translated text..." dir="auto"></textarea>
         <div class="text-area-footer">
           <div id="target-lang-detected"></div>
         </div>
