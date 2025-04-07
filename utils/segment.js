@@ -7,6 +7,8 @@
 
 const fs = require('fs');
 const path = require('path');
+// Import language utilities for code normalization
+const { normalizeLanguageCode, isValidLanguageCode } = require('./languageUtils');
 // Import sentence-splitter or provide a simple fallback if it fails
 let sentenceSplitter, split, Syntax;
 try {
@@ -201,10 +203,11 @@ async function parseTMX(fileBuffer) {
       let targetLangCode = '';
       
       tuvArray.forEach(tuv => {
-        const langCode = tuv.$.xml_lang || tuv.$.lang;
+        const rawLangCode = tuv.$.xml_lang || tuv.$.lang;
+        const langCode = normalizeLanguageCode(rawLangCode);
         const segText = tuv.seg && (typeof tuv.seg === 'string' ? tuv.seg : tuv.seg._);
         
-        if (langCode === sourceLang || !targetLangCode) {
+        if (langCode === normalizeLanguageCode(sourceLang) || !targetLangCode) {
           sourceText = segText || '';
           sourceLangCode = langCode;
         } else {
@@ -213,12 +216,16 @@ async function parseTMX(fileBuffer) {
         }
       });
       
+      // Normalize language codes
+      const normalizedSourceLang = normalizeLanguageCode(sourceLangCode);
+      const normalizedTargetLang = normalizeLanguageCode(targetLangCode);
+      
       return {
         segment_id: index + 1,
         source: sourceText,
         target: targetText,
-        sourceLang: sourceLangCode,
-        targetLang: targetLangCode
+        sourceLang: normalizedSourceLang,
+        targetLang: normalizedTargetLang
       };
     });
   } catch (error) {
@@ -252,8 +259,8 @@ async function parseXLIFF(fileBuffer) {
     // Process each file in the XLIFF
     Object.keys(xliffObj).forEach(fileKey => {
       const file = xliffObj[fileKey];
-      const sourceLang = file.sourceLanguage;
-      const targetLang = file.targetLanguage;
+      const sourceLang = normalizeLanguageCode(file.sourceLanguage);
+      const targetLang = normalizeLanguageCode(file.targetLanguage);
       
       // Process each translation unit
       Object.keys(file.resources).forEach(resKey => {

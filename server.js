@@ -452,8 +452,9 @@ app.get('/api/download-template', authMiddleware.optionalAuth, async (req, res) 
   }
 });
 
-// Import segmentation utility
+// Import segmentation utility and language utilities
 const { getSegments, generateExcelReport } = require('./utils/segment');
+const { normalizeLanguageCode, isValidLanguageCode } = require('./utils/languageUtils');
 
 // MQM analysis endpoint using Claude API
 app.post('/api/mqm-analysis', 
@@ -552,14 +553,61 @@ app.post('/api/mqm-analysis',
         console.warn('🌐 Could not fetch geolocation:', err.message);
       }
       
+      // Normalize language codes
+      processedSourceLang = normalizeLanguageCode(processedSourceLang);
+      processedTargetLang = normalizeLanguageCode(processedTargetLang);
+      
       // Validate parameters based on mode
       if (isMonolingual) {
-        if (!targetText || !targetLang) {
+        if (!processedTargetText || !processedTargetLang) {
           return res.status(400).json({ error: 'Missing required parameters for monolingual mode' });
         }
+        
+        // Validate target language code
+        if (!isValidLanguageCode(processedTargetLang)) {
+          console.warn(`Invalid target language code: ${processedTargetLang}, attempting to normalize`);
+          processedTargetLang = normalizeLanguageCode(processedTargetLang);
+          
+          if (!isValidLanguageCode(processedTargetLang)) {
+            console.error(`Could not normalize target language code: ${processedTargetLang}`);
+            return res.status(400).json({ error: `Unsupported target language: ${processedTargetLang}` });
+          }
+        }
       } else {
-        if (!sourceText || !targetText || !sourceLang || !targetLang) {
-          return res.status(400).json({ error: 'Missing required parameters for bilingual mode' });
+        if (!processedSourceText || !processedTargetText) {
+          return res.status(400).json({ error: 'Missing source or target text for bilingual mode' });
+        }
+        
+        // For TMX/XLIFF files, we may need to handle missing language codes
+        if (!processedSourceLang || !processedTargetLang) {
+          if (fileBuffer) {
+            console.warn('Missing language codes in uploaded file, using fallbacks');
+            processedSourceLang = processedSourceLang || 'en';
+            processedTargetLang = processedTargetLang || 'en';
+          } else {
+            return res.status(400).json({ error: 'Missing language codes for bilingual mode' });
+          }
+        }
+        
+        // Validate language codes
+        if (!isValidLanguageCode(processedSourceLang)) {
+          console.warn(`Invalid source language code: ${processedSourceLang}, attempting to normalize`);
+          processedSourceLang = normalizeLanguageCode(processedSourceLang);
+          
+          if (!isValidLanguageCode(processedSourceLang)) {
+            console.error(`Could not normalize source language code: ${processedSourceLang}`);
+            return res.status(400).json({ error: `Unsupported source language: ${processedSourceLang}` });
+          }
+        }
+        
+        if (!isValidLanguageCode(processedTargetLang)) {
+          console.warn(`Invalid target language code: ${processedTargetLang}, attempting to normalize`);
+          processedTargetLang = normalizeLanguageCode(processedTargetLang);
+          
+          if (!isValidLanguageCode(processedTargetLang)) {
+            console.error(`Could not normalize target language code: ${processedTargetLang}`);
+            return res.status(400).json({ error: `Unsupported target language: ${processedTargetLang}` });
+          }
         }
       }
       
