@@ -25,10 +25,7 @@ const userSchema = new mongoose.Schema({
     enum: ['free', 'paid', 'admin'],
     default: 'free',
   },
-  isVerified: {
-    type: Boolean,
-    default: false,
-  },
+  isVerified: { type: Boolean, default: false },
   verificationToken: String,
   verificationTokenExpires: Date,
   resetPasswordToken: String,

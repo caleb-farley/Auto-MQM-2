@@ -2294,8 +2294,11 @@
           <input type="email" id="login-email" required placeholder="Enter your email">
         </div>
         <div class="form-group">
-          <label for="login-password" class="form-label">Password</label>
-          <input type="password" id="login-password" required placeholder="Enter your password">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" required>
+          <div style="text-align: right; margin-top: 5px;">
+            <a href="#" id="forgot-password-link" class="text-sm text-blue-500 hover:text-blue-700">Forgot Password?</a>
+          </div>
         </div>
         <div id="login-error" class="form-error"></div>
         <div class="buttons mt-4">
@@ -2308,12 +2311,39 @@
     </div>
   </div>
   
+  <!-- Forgot Password Modal -->
+  <div id="forgot-password-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Reset Password</h2>
+        <span class="close">&times;</span>
+      </div>
+      <div class="modal-body">
+        <form id="forgot-password-form">
+          <div class="form-group">
+            <label for="forgot-email">Email Address</label>
+            <input type="email" id="forgot-email" required>
+            <p class="form-help">Enter the email address associated with your account.</p>
+          </div>
+          <div id="forgot-password-error" class="form-error"></div>
+          <div id="forgot-password-success" class="form-success" style="display: none;">
+            <p>If your email is registered, you will receive a password reset link shortly.</p>
+            <p>Please check your inbox and follow the instructions to reset your password.</p>
+          </div>
+          <div class="buttons mt-4">
+            <button type="submit" class="btn btn-primary">Send Reset Link</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  
   <!-- Register Modal -->
   <div id="register-modal" class="modal-overlay">
     <div class="modal-content">
       <div class="modal-header">
-        <h2 class="modal-title">Register</h2>
-        <button class="close-modal">&times;</button>
+        <h2>Create an Account</h2>
+        <span class="close">&times;</span>
       </div>
       <form id="register-form">
         <div class="form-group">
@@ -5360,11 +5390,65 @@ correctedText.removeAttribute('readonly');
       const loginForm = document.getElementById('login-form');
       if (loginForm) {
         loginForm.addEventListener('submit', handleLogin);
-      }
+        document.getElementById('forgot-password-link').addEventListener('click', function(e) {
+          e.preventDefault();
+          showModal(document.getElementById('forgot-password-modal'));
+        });
 
-      // Setup register form
-      const registerForm = document.getElementById('register-form');
-      if (registerForm) {
+        const forgotPasswordForm = document.getElementById('forgot-password-form');
+        forgotPasswordForm.addEventListener('submit', async function(e) {
+          e.preventDefault();
+          
+          const emailInput = document.getElementById('forgot-email');
+          const errorEl = document.getElementById('forgot-password-error');
+          const successEl = document.getElementById('forgot-password-success');
+          
+          // Validate email
+          if (!emailInput.value) {
+            errorEl.textContent = 'Please enter your email address';
+            return;
+          }
+          
+          // Clear previous messages
+          errorEl.textContent = '';
+          successEl.style.display = 'none';
+          
+          try {
+            // Show loading state
+            const submitBtn = e.target.querySelector('button[type=\'submit\']');
+            const originalBtnText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Sending...';
+            
+            // Send request
+            const response = await fetch('/api/auth/forgot-password', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ email: emailInput.value })
+            });
+            
+            // Reset button state
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalBtnText;
+            
+            if (response.ok) {
+              // Show success message
+              forgotPasswordForm.querySelector('.form-group').style.display = 'none';
+              forgotPasswordForm.querySelector('.buttons').style.display = 'none';
+              successEl.style.display = 'block';
+            } else {
+              const data = await response.json();
+              errorEl.textContent = data.message || 'Failed to send reset email';
+            }
+          } catch (error) {
+            console.error('Forgot password error:', error);
+            errorEl.textContent = 'An error occurred. Please try again.';
+          }
+        });
+
+        const registerForm = document.getElementById('register-form');
         registerForm.addEventListener('submit', handleRegister);
       }
 

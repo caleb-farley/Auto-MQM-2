@@ -12,6 +12,11 @@ router.get('/anonymous-session', authController.getAnonymousSession);
 router.get('/status', authMiddleware.optionalAuth, authController.getAuthStatus);
 router.get('/verify-email', authController.verifyEmail);
 
+// Password reset routes
+router.post('/forgot-password', authController.requestPasswordReset);
+router.get('/validate-reset-token', authController.validateResetToken);
+router.post('/reset-password', authController.resetPassword);
+
 // Protected routes (require authentication)
 router.get(
   '/me',
