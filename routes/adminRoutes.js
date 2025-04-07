@@ -14,7 +14,7 @@ const isAdmin = (req, res, next) => {
 };
 
 // Get all users
-router.get('/users', authMiddleware.requireAuth, isAdmin, async (req, res) => {
+router.get('/users', authMiddleware.protect, isAdmin, async (req, res) => {
   try {
     const users = await User.find({}).select('-password');
     res.json({ success: true, users });
@@ -25,7 +25,7 @@ router.get('/users', authMiddleware.requireAuth, isAdmin, async (req, res) => {
 });
 
 // Get user by ID
-router.get('/users/:id', authMiddleware.requireAuth, isAdmin, async (req, res) => {
+router.get('/users/:id', authMiddleware.protect, isAdmin, async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select('-password');
     if (!user) {
@@ -39,7 +39,7 @@ router.get('/users/:id', authMiddleware.requireAuth, isAdmin, async (req, res) =
 });
 
 // Update user
-router.put('/users/:id', authMiddleware.requireAuth, isAdmin, async (req, res) => {
+router.put('/users/:id', authMiddleware.protect, isAdmin, async (req, res) => {
   try {
     const { name, email, accountType, isVerified } = req.body;
     
@@ -65,7 +65,7 @@ router.put('/users/:id', authMiddleware.requireAuth, isAdmin, async (req, res) =
 });
 
 // Delete user
-router.delete('/users/:id', authMiddleware.requireAuth, isAdmin, async (req, res) => {
+router.delete('/users/:id', authMiddleware.protect, isAdmin, async (req, res) => {
   try {
     const user = await User.findByIdAndDelete(req.params.id);
     if (!user) {
@@ -79,7 +79,7 @@ router.delete('/users/:id', authMiddleware.requireAuth, isAdmin, async (req, res
 });
 
 // Resend verification email
-router.post('/resend-verification/:id', authMiddleware.requireAuth, isAdmin, async (req, res) => {
+router.post('/resend-verification/:id', authMiddleware.protect, isAdmin, async (req, res) => {
   try {
     // Find user
     const user = await User.findById(req.params.id);
@@ -106,7 +106,7 @@ router.post('/resend-verification/:id', authMiddleware.requireAuth, isAdmin, asy
 });
 
 // Get user statistics
-router.get('/stats', authMiddleware.requireAuth, isAdmin, async (req, res) => {
+router.get('/stats', authMiddleware.protect, isAdmin, async (req, res) => {
   try {
     const totalUsers = await User.countDocuments();
     const verifiedUsers = await User.countDocuments({ isVerified: true });
