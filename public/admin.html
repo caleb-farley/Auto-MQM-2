@@ -546,18 +546,12 @@
       <table id="runs-table">
         <thead>
           <tr>
-            <th>ID</th>
             <th>Date</th>
             <th>Languages</th>
             <th>Mode</th>
             <th>Words</th>
             <th>Score</th>
-            <th>Issues</th>
-            <th>IP Address</th>
             <th>Anonymous ID</th>
-            <th>Source Text</th>
-            <th>Target Text</th>
-            <th>Actions</th>
           </tr>
         </thead>
         <tbody id="runs-tbody">
@@ -1083,8 +1077,6 @@
           <td>${run.issues ? run.issues.length : 0}</td>
           <td>${run.ip || 'N/A'}</td>
           <td>${run.anonymousSessionId || 'N/A'}</td>
-          <td class="text-preview">${run.sourceText ? run.sourceText.substring(0, 30) + (run.sourceText.length > 30 ? '...' : '') : 'N/A'}</td>
-          <td class="text-preview">${run.targetText ? run.targetText.substring(0, 30) + (run.targetText.length > 30 ? '...' : '') : 'N/A'}</td>
           <td class="action-cell">
             <button class="action-btn view-details-btn" data-id="${run._id}">View Details</button>
           </td>

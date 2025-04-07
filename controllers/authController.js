@@ -287,6 +287,67 @@ exports.changePassword = async (req, res) => {
   }
 };
 
+// Get authentication status
+exports.getAuthStatus = async (req, res) => {
+  try {
+    // If user is authenticated (middleware attached user to request)
+    if (req.user) {
+      const user = await User.findById(req.user.id).select('-password');
+      if (!user) {
+        return res.status(200).json({
+          isAuthenticated: false,
+          message: 'User not found'
+        });
+      }
+      
+      // Get usage limit based on account type
+      const usageLimit = user.getUsageLimit();
+      
+      return res.status(200).json({
+        isAuthenticated: true,
+        user: {
+          id: user._id,
+          email: user.email,
+          name: user.name,
+          accountType: user.accountType
+        },
+        accountType: user.accountType,
+        usageCount: user.usageCount,
+        usageLimit: usageLimit
+      });
+    }
+    
+    // If not authenticated, check for anonymous session
+    const anonymousSessionId = req.cookies.anonymousSessionId;
+    if (anonymousSessionId) {
+      const usageCount = await Run.countDocuments({ anonymousSessionId });
+      const limit = User.getAnonymousLimit();
+      
+      return res.status(200).json({
+        isAuthenticated: false,
+        accountType: 'anonymous',
+        usageCount: usageCount,
+        usageLimit: limit
+      });
+    }
+    
+    // No authentication or anonymous session
+    return res.status(200).json({
+      isAuthenticated: false,
+      accountType: 'anonymous',
+      usageCount: 0,
+      usageLimit: User.getAnonymousLimit()
+    });
+  } catch (error) {
+    console.error('Auth status error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to get authentication status', 
+      error: error.message 
+    });
+  }
+};
+
 // Social login (placeholder for integration with OAuth providers)
 exports.socialLogin = async (req, res) => {
   try {
