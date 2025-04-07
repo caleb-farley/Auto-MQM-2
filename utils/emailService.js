@@ -1,6 +1,11 @@
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
-const cryptoRandomString = require('crypto-random-string');
+// Use native crypto module instead of crypto-random-string
+const generateRandomString = (length) => {
+  return crypto.randomBytes(Math.ceil(length / 2))
+    .toString('hex')
+    .slice(0, length);
+};
 
 // Create a transporter
 const transporter = nodemailer.createTransport({
@@ -310,15 +315,15 @@ const emailTemplates = {
   }
 };
 
-// Generate verification token
+// Generate token
 const generateToken = () => {
-  return cryptoRandomString({length: 32, type: 'url-safe'});
+  return generateRandomString(32);
 };
 
 // Generate verification token
 const generateVerificationToken = async (user) => {
   // Generate a random token
-  const token = cryptoRandomString({length: 32, type: 'url-safe'});
+  const token = generateRandomString(32);
   
   // Set token and expiration (24 hours)
   user.verificationToken = token;
@@ -333,7 +338,7 @@ const generateVerificationToken = async (user) => {
 // Generate password reset token
 const generatePasswordResetToken = async (user) => {
   // Generate a random token
-  const token = cryptoRandomString({length: 32, type: 'url-safe'});
+  const token = generateRandomString(32);
   
   // Set token and expiration (1 hour)
   user.resetPasswordToken = token;
