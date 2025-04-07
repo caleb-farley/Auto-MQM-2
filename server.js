@@ -763,6 +763,22 @@ app.post('/api/mqm-analysis',
       
       await run.save();
       
+      // Log the QA action
+      await ActionLog.create({
+        actionType: 'qa',
+        user: req.user ? req.user._id : null,
+        anonymousSessionId: !req.user ? req.cookies.sessionId : undefined,
+        ip,
+        sourceLang: processedSourceLang,
+        targetLang: processedTargetLang,
+        sourceTextLength: processedSourceText ? processedSourceText.length : 0,
+        targetTextLength: processedTargetText ? processedTargetText.length : 0,
+        llmModel: llmModel || 'claude-3-sonnet-20240229',
+        analysisMode: isMonolingual ? 'monolingual' : 'bilingual',
+        run: run._id,
+        location: req.geoip // If you have geoip middleware
+      });
+      
       // Return the results
       return res.json({
         runId: run._id,
@@ -1092,8 +1108,8 @@ app.get('/api/admin/runs', async (req, res) => {
     const runs = await Run.find(query)
       .sort({ timestamp: -1 })
       .skip((page - 1) * limit)
-      .limit(parseInt(limit))
-      .select('-sourceText -targetText'); // Exclude large text fields
+      .limit(parseInt(limit));
+      // Including sourceText and targetText fields
     
     // Return JSON response with pagination info
     res.json({
@@ -1108,6 +1124,64 @@ app.get('/api/admin/runs', async (req, res) => {
   } catch (error) {
     console.error('Error fetching runs data:', error);
     res.status(500).json({ error: 'Error fetching runs data' });
+  }
+});
+
+// API endpoint to get action logs - no auth required for development
+app.get('/api/admin/actions', async (req, res) => {
+  try {
+    // Get query parameters for filtering
+    const { page = 1, limit = 20, actionType, startDate, endDate, search } = req.query;
+    
+    // Build query object
+    const query = {};
+    
+    // Add action type filter if provided
+    if (actionType) {
+      query.actionType = actionType;
+    }
+    
+    // Add date range filter if provided
+    if (startDate || endDate) {
+      query.timestamp = {};
+      if (startDate) query.timestamp.$gte = new Date(startDate);
+      if (endDate) query.timestamp.$lte = new Date(endDate);
+    }
+    
+    // Add search filter if provided
+    if (search) {
+      query.$or = [
+        { sourceLang: new RegExp(search, 'i') },
+        { targetLang: new RegExp(search, 'i') },
+        { engineUsed: new RegExp(search, 'i') },
+        { llmModel: new RegExp(search, 'i') }
+      ];
+    }
+    
+    // Count total documents matching the query
+    const total = await ActionLog.countDocuments(query);
+    
+    // Fetch paginated action logs
+    const actions = await ActionLog.find(query)
+      .sort({ timestamp: -1 })
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit))
+      .populate('user', 'email name')
+      .populate('run', 'mqmScore wordCount');
+    
+    // Return JSON response with pagination info
+    res.json({
+      actions,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        pages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching action logs:', error);
+    res.status(500).json({ error: 'Error fetching action logs' });
   }
 });
 
@@ -1132,10 +1206,14 @@ app.get('/api/admin/runs/:id', async (req, res) => {
   }
 });
 
+// Import ActionLog model
+const ActionLog = require('./models/ActionLog');
+
 // Machine Translation API endpoint
 app.post('/api/translate', authMiddleware.optionalAuth, async (req, res) => {
   try {
     const { text, sourceLang, targetLang } = req.body;
+    const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress;
     
     if (!text || !sourceLang || !targetLang) {
       return res.status(400).json({ error: 'Missing required parameters: text, sourceLang, targetLang' });
@@ -1192,6 +1270,20 @@ app.post('/api/translate', authMiddleware.optionalAuth, async (req, res) => {
           engineUsed = 'DeepL';
           console.log(`DeepL Translation: ${sourceLang} -> ${targetLang}, ${text.length} chars`);
           
+          // Log the translation action
+          await ActionLog.create({
+            actionType: 'translate',
+            user: req.user ? req.user.id : null,
+            anonymousSessionId: req.cookies.anonymousSessionId,
+            ip,
+            sourceLang,
+            targetLang,
+            sourceTextLength: text.length,
+            targetTextLength: translatedText.length,
+            engineUsed,
+            location: req.geoip // If you have geoip middleware
+          });
+          
           return res.json({
             translatedText,
             sourceLang,
@@ -1221,6 +1313,20 @@ app.post('/api/translate', authMiddleware.optionalAuth, async (req, res) => {
           translatedText = response.data.data.translations[0].translatedText;
           engineUsed = 'Google Translate';
           console.log(`Google Translation: ${sourceLang} -> ${targetLang}, ${text.length} chars`);
+          
+          // Log the translation action
+          await ActionLog.create({
+            actionType: 'translate',
+            user: req.user ? req.user.id : null,
+            anonymousSessionId: req.cookies.anonymousSessionId,
+            ip,
+            sourceLang,
+            targetLang,
+            sourceTextLength: text.length,
+            targetTextLength: translatedText.length,
+            engineUsed,
+            location: req.geoip // If you have geoip middleware
+          });
           
           return res.json({
             translatedText,
@@ -1263,6 +1369,21 @@ ${text}`;
         translatedText = response.data.content[0].text;
         engineUsed = 'Claude AI';
         console.log(`Claude Translation: ${sourceLang} -> ${targetLang}, ${text.length} chars`);
+        
+        // Log the translation action
+        await ActionLog.create({
+          actionType: 'translate',
+          user: req.user ? req.user.id : null,
+          anonymousSessionId: req.cookies.anonymousSessionId,
+          ip,
+          sourceLang,
+          targetLang,
+          sourceTextLength: text.length,
+          targetTextLength: translatedText.length,
+          engineUsed,
+          llmModel: 'claude-3-haiku-20240307',
+          location: req.geoip // If you have geoip middleware
+        });
         
         return res.json({
           translatedText,

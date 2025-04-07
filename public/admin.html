@@ -199,11 +199,51 @@
       color: #3498db;
       border: 1px solid rgba(52, 152, 219, 0.3);
     }
-
+    
     .badge-monolingual {
       background-color: rgba(155, 89, 182, 0.2);
       color: #9b59b6;
       border: 1px solid rgba(155, 89, 182, 0.3);
+    }
+    
+    .badge-translate {
+      background-color: rgba(46, 204, 113, 0.2);
+      color: #2ecc71;
+      border: 1px solid rgba(46, 204, 113, 0.3);
+    }
+    
+    .badge-qa {
+      background-color: rgba(241, 196, 15, 0.2);
+      color: #f1c40f;
+      border: 1px solid rgba(241, 196, 15, 0.3);
+    }
+    
+    .tabs {
+      display: flex;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--border-light);
+    }
+    
+    .tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      font-weight: 500;
+      color: var(--text-secondary);
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+    }
+    
+    .tab.active {
+      color: var(--brand-orange);
+      border-bottom: 2px solid var(--brand-orange);
+    }
+    
+    .tab-content {
+      display: none;
+    }
+    
+    .tab-content.active {
+      display: block;
     }
 
     .score-cell {
@@ -342,10 +382,18 @@
   <div class="container">
     <div class="header">
       <h1>Translation Assessment Admin Dashboard</h1>
-      <div>
+    </div>
+    
+    <div class="tabs">
+      <div class="tab active" data-tab="runs">Runs</div>
+      <div class="tab" data-tab="actions">Action Logs</div>
+    </div>
+    
+    <div id="runs-tab" class="tab-content active">
+      <div class="header">
+        <div></div>
         <button id="export-csv-btn" class="btn btn-secondary">Export CSV</button>
       </div>
-    </div>
 
     <div class="filters">
       <div class="filter-row">
@@ -405,6 +453,142 @@
       <div class="pagination-controls">
         <button id="prev-page-btn" class="btn btn-secondary" disabled>Previous</button>
         <button id="next-page-btn" class="btn btn-secondary" disabled>Next</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Action Logs Tab -->
+  <div id="actions-tab" class="tab-content">
+    <div class="header">
+      <div></div>
+      <button id="export-actions-csv-btn" class="btn btn-secondary">Export CSV</button>
+    </div>
+    
+    <div class="filters">
+      <div class="filter-row">
+        <div class="filter-group">
+          <label for="action-search">Search</label>
+          <input type="text" id="action-search" placeholder="Search by language or engine...">
+        </div>
+        <div class="filter-group">
+          <label for="action-start-date">Start Date</label>
+          <input type="date" id="action-start-date">
+        </div>
+        <div class="filter-group">
+          <label for="action-end-date">End Date</label>
+          <input type="date" id="action-end-date">
+        </div>
+        <div class="filter-group">
+          <label for="action-type">Action Type</label>
+          <select id="action-type">
+            <option value="">All</option>
+            <option value="translate">Translation</option>
+            <option value="qa">QA</option>
+          </select>
+        </div>
+      </div>
+      <div class="filter-row">
+        <button id="apply-action-filters-btn" class="btn btn-primary">Apply Filters</button>
+        <button id="reset-action-filters-btn" class="btn btn-secondary">Reset</button>
+      </div>
+    </div>
+    
+    <div id="action-error-container" class="error" style="display: none;"></div>
+    
+    <div class="table-container">
+      <table id="actions-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Action Type</th>
+            <th>Languages</th>
+            <th>Engine/Model</th>
+            <th>Text Length</th>
+            <th>User</th>
+            <th>Details</th>
+          </tr>
+        </thead>
+        <tbody id="actions-tbody">
+          <tr>
+            <td colspan="7" class="loading">Loading...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    
+    <div class="pagination">
+      <div class="pagination-info" id="action-pagination-info">Showing 0 of 0 entries</div>
+      <div class="pagination-controls">
+        <button id="action-prev-page-btn" class="btn btn-secondary" disabled>Previous</button>
+        <button id="action-next-page-btn" class="btn btn-secondary" disabled>Next</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Action Logs Tab -->
+  <div id="actions-tab" class="tab-content">
+    <div class="header">
+      <div></div>
+      <button id="export-actions-csv-btn" class="btn btn-secondary">Export CSV</button>
+    </div>
+    
+    <div class="filters">
+      <div class="filter-row">
+        <div class="filter-group">
+          <label for="action-search">Search</label>
+          <input type="text" id="action-search" placeholder="Search by language or engine...">
+        </div>
+        <div class="filter-group">
+          <label for="action-start-date">Start Date</label>
+          <input type="date" id="action-start-date">
+        </div>
+        <div class="filter-group">
+          <label for="action-end-date">End Date</label>
+          <input type="date" id="action-end-date">
+        </div>
+        <div class="filter-group">
+          <label for="action-type">Action Type</label>
+          <select id="action-type">
+            <option value="">All</option>
+            <option value="translate">Translation</option>
+            <option value="qa">QA</option>
+          </select>
+        </div>
+      </div>
+      <div class="filter-row">
+        <button id="apply-action-filters-btn" class="btn btn-primary">Apply Filters</button>
+        <button id="reset-action-filters-btn" class="btn btn-secondary">Reset</button>
+      </div>
+    </div>
+    
+    <div id="action-error-container" class="error" style="display: none;"></div>
+    
+    <div class="table-container">
+      <table id="actions-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Action Type</th>
+            <th>Languages</th>
+            <th>Engine/Model</th>
+            <th>Text Length</th>
+            <th>User</th>
+            <th>Details</th>
+          </tr>
+        </thead>
+        <tbody id="actions-tbody">
+          <tr>
+            <td colspan="7" class="loading">Loading...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    
+    <div class="pagination">
+      <div class="pagination-info" id="action-pagination-info">Showing 0 of 0 entries</div>
+      <div class="pagination-controls">
+        <button id="action-prev-page-btn" class="btn btn-secondary" disabled>Previous</button>
+        <button id="action-next-page-btn" class="btn btn-secondary" disabled>Next</button>
       </div>
     </div>
   </div>
@@ -477,10 +661,15 @@
   </div>
 
   <script>
-    // DOM Elements
+    // DOM Elements - Runs Tab
     const runsTable = document.getElementById('runs-table');
     const runsTbody = document.getElementById('runs-tbody');
     const paginationInfo = document.getElementById('pagination-info');
+    
+    // DOM Elements - Actions Tab
+    const actionsTable = document.getElementById('actions-table');
+    const actionsTbody = document.getElementById('actions-tbody');
+    const actionPaginationInfo = document.getElementById('action-pagination-info');
     const prevPageBtn = document.getElementById('prev-page-btn');
     const nextPageBtn = document.getElementById('next-page-btn');
     const searchInput = document.getElementById('search');
@@ -491,25 +680,83 @@
     const resetFiltersBtn = document.getElementById('reset-filters-btn');
     const exportCsvBtn = document.getElementById('export-csv-btn');
     const errorContainer = document.getElementById('error-container');
+    
+    // Action Tab Elements
+    const actionPrevPageBtn = document.getElementById('action-prev-page-btn');
+    const actionNextPageBtn = document.getElementById('action-next-page-btn');
+    const actionSearchInput = document.getElementById('action-search');
+    const actionStartDateInput = document.getElementById('action-start-date');
+    const actionEndDateInput = document.getElementById('action-end-date');
+    const actionTypeSelect = document.getElementById('action-type');
+    const applyActionFiltersBtn = document.getElementById('apply-action-filters-btn');
+    const resetActionFiltersBtn = document.getElementById('reset-action-filters-btn');
+    const exportActionsCsvBtn = document.getElementById('export-actions-csv-btn');
+    const actionErrorContainer = document.getElementById('action-error-container');
+    
+    // Tab Elements
+    const tabs = document.querySelectorAll('.tab');
+    const tabContents = document.querySelectorAll('.tab-content');
     const runDetailsModal = document.getElementById('run-details-modal');
     const closeModalBtn = document.querySelector('.close-modal');
 
-    // State
+    // Global variables - Runs Tab
     let currentPage = 1;
-    let totalPages = 0;
-    let limit = 20;
+    let totalPages = 1;
+    let runs = [];
+    let pagination = {};
     let filters = {
       search: '',
       startDate: '',
       endDate: '',
       analysisMode: ''
     };
+    
+    // Global variables - Actions Tab
+    let actionCurrentPage = 1;
+    let actionTotalPages = 1;
+    let actions = [];
+    let actionPagination = {};
+    let actionFilters = {
+      search: '',
+      startDate: '',
+      endDate: '',
+      actionType: ''
+    };
 
     // Initialize
     document.addEventListener('DOMContentLoaded', () => {
       fetchRunsData();
       setupEventListeners();
+      fetchActionsData();
+      setupActionEventListeners();
+      setupTabEventListeners();
     });
+    
+    // Setup Tab Event Listeners
+    function setupTabEventListeners() {
+      tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          const tabId = tab.getAttribute('data-tab');
+          
+          // Update active tab
+          tabs.forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          
+          // Update active content
+          tabContents.forEach(content => {
+            content.classList.remove('active');
+          });
+          document.getElementById(`${tabId}-tab`).classList.add('active');
+          
+          // Refresh data if needed
+          if (tabId === 'actions') {
+            fetchActionsData();
+          } else if (tabId === 'runs') {
+            fetchRunsData();
+          }
+        });
+      });
+    }
 
     // Setup Event Listeners
     function setupEventListeners() {
@@ -562,6 +809,49 @@
           runDetailsModal.style.display = 'none';
         }
       });
+    }
+
+    // Setup Action Event Listeners
+    function setupActionEventListeners() {
+      actionPrevPageBtn.addEventListener('click', () => {
+        if (actionCurrentPage > 1) {
+          actionCurrentPage--;
+          fetchActionsData();
+        }
+      });
+
+      actionNextPageBtn.addEventListener('click', () => {
+        if (actionCurrentPage < actionTotalPages) {
+          actionCurrentPage++;
+          fetchActionsData();
+        }
+      });
+
+      applyActionFiltersBtn.addEventListener('click', () => {
+        actionFilters.search = actionSearchInput.value.trim();
+        actionFilters.startDate = actionStartDateInput.value;
+        actionFilters.endDate = actionEndDateInput.value;
+        actionFilters.actionType = actionTypeSelect.value;
+        actionCurrentPage = 1;
+        fetchActionsData();
+      });
+
+      resetActionFiltersBtn.addEventListener('click', () => {
+        actionSearchInput.value = '';
+        actionStartDateInput.value = '';
+        actionEndDateInput.value = '';
+        actionTypeSelect.value = '';
+        actionFilters = {
+          search: '',
+          startDate: '',
+          endDate: '',
+          actionType: ''
+        };
+        actionCurrentPage = 1;
+        fetchActionsData();
+      });
+
+      exportActionsCsvBtn.addEventListener('click', exportActionsToCsv);
     }
 
     // Fetch Runs Data
@@ -830,5 +1120,6 @@
       }
     }
   </script>
+  <script src="admin-actions.js"></script>
 </body>
 </html>
