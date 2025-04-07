@@ -1824,6 +1824,7 @@
       const targetContainer = document.getElementById('target-text-container');
       const sourceText = document.getElementById('source-text');
       const sourceLang = document.getElementById('source-lang');
+      const textAreasContainer = document.getElementById('text-areas-container');
       
       console.log('Toggle called with isMonolingual:', isMonolingual);
       
@@ -1834,9 +1835,18 @@
         // MONOLINGUAL MODE
         console.log('Activating monolingual mode');
         
-        // 1. Hide source container with inline style (most direct approach)
+        // Add a class to the main container for CSS targeting
+        document.body.classList.add('monolingual-mode');
+        textAreasContainer.classList.add('monolingual-mode');
+        
+        // 1. Hide source container with multiple approaches for redundancy
         if (sourceContainer) {
+          // Use both inline style and a class
           sourceContainer.style.display = 'none';
+          sourceContainer.style.visibility = 'hidden';
+          sourceContainer.style.position = 'absolute';
+          sourceContainer.style.left = '-9999px';
+          sourceContainer.classList.add('hidden');
           console.log('Source container hidden');
         } else {
           console.error('Source container not found');
@@ -1846,17 +1856,48 @@
         if (sourceText) sourceText.value = '';
         if (sourceLang) sourceLang.value = '';
         
-        // 3. Make target container full width
+        // 3. Make target container full width with multiple approaches
         if (targetContainer) {
           targetContainer.style.width = '100%';
+          targetContainer.style.flex = '1 0 100%';
+          targetContainer.classList.add('full-width');
+        }
+        
+        // Add a visual indicator that we're in monolingual mode
+        const modeIndicator = document.createElement('div');
+        modeIndicator.id = 'monolingual-indicator';
+        modeIndicator.textContent = 'Monolingual Mode Active';
+        modeIndicator.style.background = '#2a6b8f';
+        modeIndicator.style.color = 'white';
+        modeIndicator.style.padding = '5px 10px';
+        modeIndicator.style.borderRadius = '4px';
+        modeIndicator.style.fontSize = '12px';
+        modeIndicator.style.marginBottom = '10px';
+        modeIndicator.style.display = 'inline-block';
+        
+        // Remove any existing indicator first
+        const existingIndicator = document.getElementById('monolingual-indicator');
+        if (existingIndicator) existingIndicator.remove();
+        
+        // Add the indicator before the target container
+        if (targetContainer && targetContainer.parentNode) {
+          targetContainer.parentNode.insertBefore(modeIndicator, targetContainer);
         }
       } else {
         // BILINGUAL MODE
         console.log('Activating bilingual mode');
         
-        // 1. Show source container
+        // Remove monolingual mode classes
+        document.body.classList.remove('monolingual-mode');
+        textAreasContainer.classList.remove('monolingual-mode');
+        
+        // 1. Show source container with multiple approaches
         if (sourceContainer) {
-          sourceContainer.style.display = 'block';
+          sourceContainer.style.display = '';
+          sourceContainer.style.visibility = '';
+          sourceContainer.style.position = '';
+          sourceContainer.style.left = '';
+          sourceContainer.classList.remove('hidden');
           console.log('Source container shown');
         } else {
           console.error('Source container not found');
@@ -1865,7 +1906,13 @@
         // 2. Reset target container width
         if (targetContainer) {
           targetContainer.style.width = '';
+          targetContainer.style.flex = '';
+          targetContainer.classList.remove('full-width');
         }
+        
+        // Remove the monolingual mode indicator if it exists
+        const modeIndicator = document.getElementById('monolingual-indicator');
+        if (modeIndicator) modeIndicator.remove();
       }
       
       // Force immediate update of the analyze button validation
@@ -1946,12 +1993,11 @@
     <!-- Translation Generator Feature -->
     <div class="translate-section" style="margin-bottom: 20px; background-color: var(--bg-accent); padding: 15px; border-radius: 8px; border: 1px solid var(--border-light);">
       <div style="display: flex; justify-content: space-between; align-items: center;">
-        <h3 class="gothic-title" style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 0;">Generate Translation</h3>
+        <div style="display: flex; align-items: baseline; flex-wrap: wrap; margin-bottom: 5px;">
+          <h3 class="gothic-title" style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 0; margin-right: 8px;">Automated Translations</h3>
+          <span style="font-size: 14px; color: var(--text-muted);">- Need a quick translation? We can automatically generate a translation from your source text. We'll use the best available translation engine based on your selected languages.</span>
+        </div>
       </div>
-      <p style="font-size: 14px; color: var(--text-muted); margin-top: 10px; margin-bottom: 5px;">
-        Need a quick translation? We can automatically generate a translation from your source text.
-        We'll use the best available translation engine based on your selected languages.
-      </p>
       <div id="translation-engine-info" style="font-size: 12px; color: var(--brand-teal); display: none; margin-top: 5px;"></div>
     </div>
     
@@ -2137,14 +2183,16 @@
         <div class="text-area-footer" style="display: flex; justify-content: space-between; align-items: center;">
           <div id="target-lang-detected"></div>
           <div style="display: flex; flex-direction: column; align-items: flex-end;">
-            <button id="translate-btn" class="btn" style="padding: 6px 15px; background-color: #FF8C00; border-color: #FF8C00; color: white;">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style="margin-right: 5px; vertical-align: text-bottom;">
-                <path d="M4.545 6.714 4.11 8H3l1.862-5h1.284L8 8H6.833l-.435-1.286H4.545zm1.634-.736L5.5 3.956h-.049l-.679 2.022H6.18z"/>
-                <path d="M0 2a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v3h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-3H2a2 2 0 0 1-2-2V2zm2-1a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H2zm7.138 9.995c.193.301.402.583.63.846-.748.575-1.673 1.001-2.768 1.292.178.217.451.635.555.867 1.125-.359 2.08-.844 2.886-1.494.777.665 1.739 1.165 2.93 1.472.133-.254.414-.673.629-.89-1.125-.253-2.057-.694-2.82-1.284.681-.747 1.222-1.651 1.621-2.757H14V8h-3v1.059h.5c.412 0 .74.337.74.75v.5h-.739c-.4-1.023-.918-1.805-1.541-2.543-.473.605-.914 1.173-1.284 1.729-.687-.524-1.063-1.109-1.466-1.729H5.5V7.5h2v-1H5.5V6h6V5h-2.5c-.1-.445-.324-1.775-1.5-2.5C7.146 4.013 6.773 5.111 6.5 6H4v1h1.5v.5H4v1h1.5v.5H5c-.177 0-.335.077-.442.235z"/>
-              </svg>
-              Translate
-            </button>
-            <div id="translation-engine-info" style="font-size: 11px; color: var(--text-muted); margin-top: 4px;"></div>
+            <div style="display: flex; flex-direction: column; align-items: center;">
+              <button id="translate-btn" class="btn" style="padding: 6px 15px; background-color: #FF8C00; border-color: #FF8C00; color: white;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style="margin-right: 5px; vertical-align: text-bottom;">
+                  <path d="M4.545 6.714 4.11 8H3l1.862-5h1.284L8 8H6.833l-.435-1.286H4.545zm1.634-.736L5.5 3.956h-.049l-.679 2.022H6.18z"/>
+                  <path d="M0 2a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v3h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-3H2a2 2 0 0 1-2-2V2zm2-1a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H2zm7.138 9.995c.193.301.402.583.63.846-.748.575-1.673 1.001-2.768 1.292.178.217.451.635.555.867 1.125-.359 2.08-.844 2.886-1.494.777.665 1.739 1.165 2.93 1.472.133-.254.414-.673.629-.89-1.125-.253-2.057-.694-2.82-1.284.681-.747 1.222-1.651 1.621-2.757H14V8h-3v1.059h.5c.412 0 .74.337.74.75v.5h-.739c-.4-1.023-.918-1.805-1.541-2.543-.473.605-.914 1.173-1.284 1.729-.687-.524-1.063-1.109-1.466-1.729H5.5V7.5h2v-1H5.5V6h6V5h-2.5c-.1-.445-.324-1.775-1.5-2.5C7.146 4.013 6.773 5.111 6.5 6H4v1h1.5v.5H4v1h1.5v.5H5c-.177 0-.335.077-.442.235z"/>
+                </svg>
+                Translate
+              </button>
+              <div id="translation-engine-info" style="font-size: 11px; color: var(--brand-teal); margin-top: 4px; text-align: center;"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -3270,6 +3318,15 @@
     // Show the error message
     errorMessage.textContent = message;
     errorMessage.style.display = 'block';
+    errorMessage.style.backgroundColor = '#f8d7da';
+    errorMessage.style.color = '#721c24';
+    errorMessage.style.padding = '10px';
+    errorMessage.style.borderRadius = '4px';
+    errorMessage.style.marginBottom = '15px';
+    errorMessage.style.fontWeight = 'bold';
+    
+    // Scroll to error message to ensure it's visible
+    errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
     
     // Hide after 5 seconds
     setTimeout(() => {
