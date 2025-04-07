@@ -908,7 +908,8 @@ app.get('/api/download-report/:id/excel', authMiddleware.optionalAuth, async (re
     }
     
     const workbook = new ExcelJS.Workbook();
-    const isMonolingual = run.mode === 'monolingual';
+    // Check if run.analysisMode exists, if not, fallback to run.mode, and if that doesn't exist, default to 'bilingual'
+    const isMonolingual = (run.analysisMode === 'monolingual' || run.mode === 'monolingual');
     
     // Add summary sheet
     const summarySheet = workbook.addWorksheet('Summary');
@@ -919,15 +920,15 @@ app.get('/api/download-report/:id/excel', authMiddleware.optionalAuth, async (re
     
     // Add summary information
     summarySheet.addRow({ metric: 'Analysis Type', value: isMonolingual ? 'Monolingual' : 'Bilingual' });
-    if (!isMonolingual) {
+    if (!isMonolingual && run.sourceLang) {
       summarySheet.addRow({ metric: 'Source Language', value: run.sourceLang });
     }
-    summarySheet.addRow({ metric: 'Target Language', value: run.targetLang });
-    summarySheet.addRow({ metric: 'Overall Score', value: run.mqmScore });
-    summarySheet.addRow({ metric: 'Word Count', value: run.wordCount });
-    summarySheet.addRow({ metric: 'Total Issues', value: run.issues.length });
+    summarySheet.addRow({ metric: 'Target Language', value: run.targetLang || 'Unknown' });
+    summarySheet.addRow({ metric: 'Overall Score', value: run.mqmScore || 100 });
+    summarySheet.addRow({ metric: 'Word Count', value: run.wordCount || 0 });
+    summarySheet.addRow({ metric: 'Total Issues', value: run.issues ? run.issues.length : 0 });
     summarySheet.addRow({ metric: 'Summary', value: run.summary || 'N/A' });
-    summarySheet.addRow({ metric: 'Assessment Date', value: new Date(run.timestamp).toLocaleString() });
+    summarySheet.addRow({ metric: 'Assessment Date', value: new Date(run.timestamp || Date.now()).toLocaleString() });
     
     // Format the header row
     const headerRow = summarySheet.getRow(1);
@@ -974,28 +975,45 @@ app.get('/api/download-report/:id/excel', authMiddleware.optionalAuth, async (re
       
       // Add segment data
       run.segments.forEach(segment => {
+        if (!segment) return; // Skip null/undefined segments
+        
         const issues = segment.mqmIssues || [];
         
-        if (isMonolingual) {
+        try {
+          if (isMonolingual) {
+            segmentsSheet.addRow({
+              segmentId: segment.segment_id || '',
+              target: segment.target || '',
+              mqmScore: segment.mqmScore || 100,
+              issueCount: issues.length,
+              issues: issues.map(issue => `${issue?.category || 'Unknown'} > ${issue?.subcategory || 'Unknown'} (${issue?.severity || 'MINOR'})`).join('\n'),
+              explanations: issues.map(issue => issue?.explanation || '').join('\n'),
+              fixes: issues.map(issue => issue?.suggestion || '').join('\n')
+            });
+          } else {
+            segmentsSheet.addRow({
+              segmentId: segment.segment_id || '',
+              source: segment.source || '',
+              target: segment.target || '',
+              mqmScore: segment.mqmScore || 100,
+              issueCount: issues.length,
+              issues: issues.map(issue => `${issue?.category || 'Unknown'} > ${issue?.subcategory || 'Unknown'} (${issue?.severity || 'MINOR'})`).join('\n'),
+              explanations: issues.map(issue => issue?.explanation || '').join('\n'),
+              fixes: issues.map(issue => issue?.suggestion || '').join('\n')
+            });
+          }
+        } catch (err) {
+          console.error('Error adding segment row:', err, segment);
+          // Add a placeholder row with error information
           segmentsSheet.addRow({
-            segmentId: segment.segment_id,
-            target: segment.target,
-            mqmScore: segment.mqmScore || 100,
-            issueCount: issues.length,
-            issues: issues.map(issue => `${issue.category} > ${issue.subcategory} (${issue.severity})`).join('\n'),
-            explanations: issues.map(issue => issue.explanation).join('\n'),
-            fixes: issues.map(issue => issue.suggestion).join('\n')
-          });
-        } else {
-          segmentsSheet.addRow({
-            segmentId: segment.segment_id,
-            source: segment.source,
-            target: segment.target,
-            mqmScore: segment.mqmScore || 100,
-            issueCount: issues.length,
-            issues: issues.map(issue => `${issue.category} > ${issue.subcategory} (${issue.severity})`).join('\n'),
-            explanations: issues.map(issue => issue.explanation).join('\n'),
-            fixes: issues.map(issue => issue.suggestion).join('\n')
+            segmentId: segment.segment_id || 'Error',
+            source: isMonolingual ? '' : 'Error processing segment',
+            target: 'Error processing segment',
+            mqmScore: 0,
+            issueCount: 0,
+            issues: 'Error',
+            explanations: err.message,
+            fixes: ''
           });
         }
       });
@@ -1036,17 +1054,46 @@ app.get('/api/download-report/:id/excel', authMiddleware.optionalAuth, async (re
     ];
     
     // Add issues data
-    run.issues.forEach(issue => {
-      issuesSheet.addRow({
-        category: issue.category,
-        subcategory: issue.subcategory,
-        severity: issue.severity,
-        segment: issue.segment,
-        explanation: issue.explanation,
-        suggestion: issue.suggestion,
-        corrected: issue.correctedSegment
+    if (run.issues && Array.isArray(run.issues)) {
+      run.issues.forEach(issue => {
+        if (!issue) return; // Skip null/undefined issues
+        
+        try {
+          issuesSheet.addRow({
+            category: issue.category || 'Unknown',
+            subcategory: issue.subcategory || 'Unknown',
+            severity: issue.severity || 'MINOR',
+            segment: issue.segment || '',
+            explanation: issue.explanation || '',
+            suggestion: issue.suggestion || '',
+            corrected: issue.correctedSegment || ''
+          });
+        } catch (err) {
+          console.error('Error adding issue row:', err, issue);
+          // Add a placeholder row with error information
+          issuesSheet.addRow({
+            category: 'Error',
+            subcategory: 'Processing Error',
+            severity: 'MINOR',
+            segment: 'Error processing issue',
+            explanation: err.message,
+            suggestion: '',
+            corrected: ''
+          });
+        }
       });
-    });
+    } else {
+      // If no issues exist, add a placeholder row
+      issuesSheet.addRow({
+        category: 'Info',
+        subcategory: 'No Issues',
+        severity: 'NONE',
+        segment: 'No issues found',
+        explanation: 'The analysis did not identify any issues with the text.',
+        suggestion: '',
+        corrected: ''
+      });
+    }
     
     // Format the header row
     const issuesHeaderRow = issuesSheet.getRow(1);
