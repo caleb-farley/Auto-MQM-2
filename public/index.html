@@ -170,13 +170,40 @@
       transition: width 0.3s ease;
     }
 
-    /* Translation Mode Styles */
-    body[data-translation-mode='monolingual'] .text-areas > .text-area-container:first-child {
+    /* Translation Mode Styles - Enhanced for reliability */
+    /* Hide source container in monolingual mode with multiple selectors for redundancy */
+    body[data-translation-mode='monolingual'] .text-areas > .text-area-container:first-child,
+    .text-areas.monolingual-mode > .text-area-container:first-child,
+    .hidden-container {
       display: none !important;
+      visibility: hidden !important;
+      height: 0 !important;
+      overflow: hidden !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+      position: absolute !important;
+      z-index: -1 !important;
     }
     
+    /* Show source container in bilingual mode */
     body[data-translation-mode='bilingual'] .text-areas > .text-area-container:first-child {
       display: block !important;
+      visibility: visible !important;
+      height: auto !important;
+      overflow: visible !important;
+      opacity: 1 !important;
+      pointer-events: auto !important;
+      position: relative !important;
+      z-index: auto !important;
+    }
+    
+    /* Make target container full width in monolingual mode */
+    body[data-translation-mode='monolingual'] .text-areas > .text-area-container:last-child,
+    .text-areas.monolingual-mode > .text-area-container:last-child {
+      width: 100% !important;
+      flex: 1 0 100% !important;
     }
 
     /* Modal styles */
@@ -1729,47 +1756,73 @@
     const translationToggle = document.getElementById('translation-mode-toggle');
     const bilingualRadio = document.querySelector('input[name="translation-mode"][value="bilingual"]');
     const monolingualRadio = document.querySelector('input[name="translation-mode"][value="monolingual"]');
-    // Function to toggle source text visibility
+    // Function to toggle source text visibility - completely rewritten for reliability
     function toggleSourceTextVisibility(isMonolingual) {
-      // Get the source text container directly when function is called
-      const sourceTextContainer = document.querySelector('.text-areas > .text-area-container:first-child');
-      const sourceTextLabel = document.querySelector('label[for="source-text"]');
-      const sourceLangLabel = document.querySelector('label[for="source-lang"]');
-      const sourceLangContainer = document.getElementById('source-lang').parentElement;
+      // Direct DOM manipulation with a more reliable approach
+      const sourceContainer = document.querySelector('.text-areas > .text-area-container:first-child');
+      const targetContainer = document.querySelector('.text-areas > .text-area-container:last-child');
+      
+      // Set global state for other functions to reference
+      window.isMonolingualMode = isMonolingual;
       
       console.log('Toggle called with isMonolingual:', isMonolingual);
-      console.log('Source container found:', sourceTextContainer);
       
-      if (sourceTextContainer) {
-        if (isMonolingual) {
-          // Force display none for monolingual mode with !important to override any conflicting styles
-          sourceTextContainer.style.cssText = 'display: none !important';
-          sourceLangContainer.style.cssText = 'display: none !important';
-          if (sourceTextLabel) sourceTextLabel.style.cssText = 'display: none !important';
-          if (sourceLangLabel) sourceLangLabel.style.cssText = 'display: none !important';
-          // Clear source text and language values
-          document.getElementById('source-text').value = '';
-          document.getElementById('source-lang').value = '';
-          // Update global state variable to track monolingual mode
-          window.isMonolingualMode = true;
-        } else {
-          // Force display block for bilingual mode with !important
-          sourceTextContainer.style.cssText = 'display: block !important';
-          sourceLangContainer.style.cssText = 'display: block !important';
-          if (sourceTextLabel) sourceTextLabel.style.cssText = 'display: block !important';
-          if (sourceLangLabel) sourceLangLabel.style.cssText = 'display: block !important';
-          // Update global state variable
-          window.isMonolingualMode = false;
+      if (isMonolingual) {
+        // MONOLINGUAL MODE: Hide source text and related elements
+        // Hide source container with multiple approaches for redundancy
+        if (sourceContainer) {
+          sourceContainer.classList.add('hidden-container');
+          sourceContainer.setAttribute('aria-hidden', 'true');
+          sourceContainer.style.cssText = 'display: none !important; visibility: hidden !important; height: 0 !important; overflow: hidden !important; margin: 0 !important; padding: 0 !important;';
         }
         
-        // Force immediate update of the analyze button validation
-        updateAnalyzeButton();
+        // Clear source inputs
+        const sourceText = document.getElementById('source-text');
+        const sourceLang = document.getElementById('source-lang');
+        if (sourceText) sourceText.value = '';
+        if (sourceLang) sourceLang.value = '';
         
-        // Dispatch a custom event to notify other components of the mode change
-        document.dispatchEvent(new CustomEvent('translationModeChanged', { 
-          detail: { isMonolingual: isMonolingual }
-        }));
+        // Make target container full width
+        if (targetContainer) {
+          targetContainer.style.cssText = 'width: 100% !important; flex: 1 0 100% !important;';
+        }
+        
+        // Set data attribute on body for CSS targeting
+        document.body.setAttribute('data-translation-mode', 'monolingual');
+        
+        // Add a class to the parent container for CSS targeting
+        const textAreasContainer = document.querySelector('.text-areas');
+        if (textAreasContainer) {
+          textAreasContainer.classList.add('monolingual-mode');
+        }
+      } else {
+        // BILINGUAL MODE: Show source text and related elements
+        if (sourceContainer) {
+          sourceContainer.classList.remove('hidden-container');
+          sourceContainer.removeAttribute('aria-hidden');
+          sourceContainer.style.cssText = 'display: block !important; visibility: visible !important; height: auto !important;';
+        }
+        
+        // Reset target container width
+        if (targetContainer) {
+          targetContainer.style.cssText = '';
+        }
+        
+        // Set data attribute on body for CSS targeting
+        document.body.setAttribute('data-translation-mode', 'bilingual');
+        
+        // Remove monolingual class from the parent container
+        const textAreasContainer = document.querySelector('.text-areas');
+        if (textAreasContainer) {
+          textAreasContainer.classList.remove('monolingual-mode');
+        }
       }
+      
+      // Force immediate update of the analyze button validation
+      updateAnalyzeButton();
+      
+      // Log the current state for debugging
+      console.log('Translation mode updated:', isMonolingual ? 'Monolingual' : 'Bilingual');
     }
     
     // Initialize toggle based on radio button state (if it exists)
