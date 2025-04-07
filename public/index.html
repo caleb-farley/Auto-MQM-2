@@ -3529,12 +3529,26 @@
         
         console.log(`Response status: ${response.status}`);
         
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Analysis failed');
+        // Log the raw response for debugging
+        const responseText = await response.text();
+        console.log('Raw response:', responseText);
+        
+        // Check if the response is valid JSON
+        let responseData;
+        try {
+          responseData = JSON.parse(responseText);
+          console.log('Parsed response data:', responseData);
+        } catch (parseError) {
+          console.error('Error parsing response JSON:', parseError);
+          throw new Error('Invalid response format from server');
         }
         
-        const results = await response.json();
+        if (!response.ok) {
+          throw new Error(responseData.error || 'Analysis failed');
+        }
+        
+        // Use the parsed data instead of parsing again
+        const results = responseData;
         
         // Remove the waiting message
         clearTimeout(waitingTimeout);

@@ -782,6 +782,10 @@ app.post('/api/mqm-analysis',
             cached: true
           });
         }
+      } catch (error) {
+        console.error('Error checking for cached assessment:', error);
+        // Continue with the analysis even if cache check fails
+      }
       
       // Initialize arrays to store processed segments and results
       const processedSegments = [];
