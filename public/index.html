@@ -1946,6 +1946,10 @@
         document.body.classList.add('monolingual-mode');
         textAreasContainer.classList.add('monolingual-mode');
         
+        // Hide the translate button in monolingual mode
+        const translateBtn = document.getElementById('translate-btn');
+        if (translateBtn) translateBtn.style.display = 'none';
+        
         // Clear source inputs since they won't be used
         if (sourceText) sourceText.value = '';
         
@@ -1988,10 +1992,12 @@
         document.body.classList.remove('monolingual-mode');
         textAreasContainer.classList.remove('monolingual-mode');
         
-        // Directly show the source container with inline style
-        if (sourceContainer) {
-          sourceContainer.style.display = 'block';
-        }
+        // Show the translate button in bilingual mode
+        const translateBtn = document.getElementById('translate-btn');
+        if (translateBtn) translateBtn.style.display = 'block';
+        
+        // Show source container
+        if (sourceContainer) sourceContainer.style.display = 'block';
         
         // Reset the target container width
         if (targetContainer) {
@@ -2959,7 +2965,11 @@
   let changeHistory = [];
   // Update word count
   function updateWordCountDisplay() {
-    const text = sourceText.value.trim();
+    // Check if we're in monolingual mode
+    const isMonolingual = document.getElementById('translation-mode-toggle').checked;
+    
+    // Get text from the appropriate field based on mode
+    const text = isMonolingual ? targetText.value.trim() : sourceText.value.trim();
     const words = text.length > 0 ? text.split(/\s+/) : [];
     const count = words.length;
     
@@ -2968,10 +2978,16 @@
     
     if (isOverLimit) {
         wordCount.classList.add('word-count-exceeded');
-        sourceText.style.borderColor = '#ff6b6b';
+        // Highlight the appropriate text area based on mode
+        if (isMonolingual) {
+            targetText.style.borderColor = '#ff6b6b';
+        } else {
+            sourceText.style.borderColor = '#ff6b6b';
+        }
     } else {
         wordCount.classList.remove('word-count-exceeded');
         sourceText.style.borderColor = 'rgb(60, 60, 60)';
+        targetText.style.borderColor = 'rgb(60, 60, 60)';
     }
 
     updateAnalyzeButton();
@@ -2993,14 +3009,22 @@
   // Event listeners for targetText
   targetText.addEventListener('input', function() {
     handleTargetLanguageDetection();
+    updateWordCountDisplay(); // Update word count when target text changes
     updateAnalyzeButton();
   });
   
   targetText.addEventListener('paste', function() {
     setTimeout(function() {
       handleTargetLanguageDetection();
+      updateWordCountDisplay(); // Update word count when target text is pasted
       updateAnalyzeButton();
     }, 10);
+  });
+  
+  // Add event listener for translation mode toggle
+  document.getElementById('translation-mode-toggle').addEventListener('change', function() {
+    updateWordCountDisplay();
+    toggleMonolingualMode();
   });
 
   // Language detection API function

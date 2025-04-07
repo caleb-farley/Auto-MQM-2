@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tmx version="1.4">
+  <header srclang="en-US" datatype="plaintext"/>
+  <body>
+    <tu>
+      <tuv xml:lang="en-US">
+        <seg>This is a monolingual test sentence.</seg>
+      </tuv>
+    </tu>
+    <tu>
+      <tuv xml:lang="en-US">
+        <seg>Another monolingual sentence for testing.</seg>
+      </tuv>
+    </tu>
+  </body>
+</tmx>

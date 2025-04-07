@@ -394,8 +394,13 @@ async function parseXLIFF(fileBuffer) {
           
           // Accept segments even if they only have source
           if (unit.source !== undefined) {
-            // If target is missing but source exists, use source as target
+            // If target is missing but source exists, use source as target for monolingual analysis
             const targetText = (unit.target !== undefined) ? unit.target : unit.source;
+            
+            // Log when we're using source as target
+            if (unit.target === undefined) {
+              console.log('Target text missing in XLIFF segment, using source text for monolingual analysis');
+            }
             
             console.log(`XLIFF segment: source length=${(unit.source || '').length}, target length=${(targetText || '').length}`);
             
@@ -425,7 +430,7 @@ async function parseXLIFF(fileBuffer) {
     });
     
     if (segments.length === 0) {
-      throw new Error('No valid segments found in XLIFF file');
+      throw new Error('No valid segments found in XLIFF file. Please check the file format.');
     }
     
     console.log(`Successfully extracted ${segments.length} segments from XLIFF file`);
