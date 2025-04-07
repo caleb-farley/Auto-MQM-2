@@ -1660,15 +1660,23 @@
     const translationToggle = document.getElementById('translation-mode-toggle');
     const bilingualRadio = document.querySelector('input[name="translation-mode"][value="bilingual"]');
     const monolingualRadio = document.querySelector('input[name="translation-mode"][value="monolingual"]');
-    const sourceTextContainer = document.querySelector('.text-area-container:first-of-type');
+    // Get the source text container more reliably
+    const sourceTextContainer = document.querySelector('.text-areas > .text-area-container:first-child');
     
     // Function to toggle source text visibility
     function toggleSourceTextVisibility(isMonolingual) {
+      console.log('Toggle called with isMonolingual:', isMonolingual);
+      console.log('Source container found:', sourceTextContainer);
+      
       if (sourceTextContainer) {
         if (isMonolingual) {
           sourceTextContainer.style.display = 'none';
+          // Also update the analyze button validation
+          document.dispatchEvent(new Event('translation-mode-changed'));
         } else {
           sourceTextContainer.style.display = 'flex';
+          // Also update the analyze button validation
+          document.dispatchEvent(new Event('translation-mode-changed'));
         }
       }
     }
@@ -2521,10 +2529,20 @@
     updateAnalyzeButton();
   });
 
-  // Update analyze button state
+  // Update analyze button state based on form completeness
   function updateAnalyzeButton() {
-    analyzeBtn.disabled = !sourceText.value || !targetText.value || !sourceLang.value || !targetLang.value || isOverLimit;
+    const isMonolingual = document.getElementById('translation-mode-toggle').checked;
+    console.log('Updating analyze button, isMonolingual:', isMonolingual);
+    
+    if (isMonolingual) {
+      analyzeBtn.disabled = !targetText.value || !targetLang.value || isOverLimit;
+    } else {
+      analyzeBtn.disabled = !sourceText.value || !targetText.value || !sourceLang.value || !targetLang.value || isOverLimit;
+    }
   }
+  
+  // Listen for translation mode changes
+  document.addEventListener('translation-mode-changed', updateAnalyzeButton);
 
   // Helper function to escape special characters in regular expressions
   function escapeRegExp(string) {
@@ -2558,8 +2576,14 @@
 
   // Run MQM analysis
   analyzeBtn.addEventListener('click', async () => {
-    if (!sourceText.value || !targetText.value || !sourceLang.value || !targetLang.value) {
+    // Check if in monolingual mode
+    const isMonolingual = document.getElementById('translation-mode-toggle').checked;
+    
+    if (!isMonolingual && (!sourceText.value || !targetText.value || !sourceLang.value || !targetLang.value)) {
       showError('Please enter both source and target text and select languages');
+      return;
+    } else if (isMonolingual && (!targetText.value || !targetLang.value)) {
+      showError('Please enter the text to analyze and select a language');
       return;
     }
     
@@ -2584,7 +2608,7 @@
         setTimeout(() => {
           const words = sourceText.value.trim().split(/\s+/);
           const wordCount = words.length > 0 && words[0] !== '' ? words.length : 0;
-          const mockResults = generateMockResults(wordCount);
+          const mockResults = generateMockResults(wordCount, isMonolingual);
           
           // Store current issues and target text
           currentIssues = mockResults.mqmIssues;
@@ -2610,36 +2634,40 @@
         return;
       }
       
-      // Step 1: Call /api/check-alignment before /api/mqm-analysis
-      const alignmentResponse = await fetch('/api/check-alignment', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          sourceText: sourceText.value,
-          targetText: targetText.value,
-          sourceLang: sourceLang.value,
-          targetLang: targetLang.value
-        })
-      });
-
-      if (!alignmentResponse.ok) {
-        const errorData = await alignmentResponse.json();
-        throw new Error(errorData.error || 'Source/target alignment check failed');
+      // Step 1: Call /api/check-alignment before /api/mqm-analysis (skip for monolingual)
+      // Skip alignment check for monolingual mode
+      if (!isMonolingual) {
+        const alignmentResponse = await fetch('/api/check-alignment', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            sourceText: sourceText.value,
+            targetText: targetText.value,
+            sourceLang: sourceLang.value,
+            targetLang: targetLang.value
+          })
+        });
+        
+        if (!alignmentResponse.ok) {
+          const errorData = await alignmentResponse.json();
+          throw new Error(errorData.error || 'Source/target alignment check failed');
+        }
       }
 
-      // Step 2: If alignment passes, proceed with MQM analysis
+      // Step 2: If alignment passes or in monolingual mode, proceed with MQM analysis
       const mqmResponse = await fetch('/api/mqm-analysis', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          sourceText: sourceText.value,
+          sourceText: isMonolingual ? '' : sourceText.value,
           targetText: targetText.value,
-          sourceLang: sourceLang.value,
-          targetLang: targetLang.value
+          sourceLang: isMonolingual ? '' : sourceLang.value,
+          targetLang: targetLang.value,
+          isMonolingual: isMonolingual
         })
       });
 
@@ -4147,7 +4175,7 @@ correctedText.removeAttribute('readonly');
     });
     
     // Generate mock MQM results for development/testing
-    function generateMockResults(wordCount) {
+  function generateMockResults(wordCount, isMonolingual = false) {
       // Look at the input to make the simulation more realistic
       const hasIssues = Math.random() > 0.3; // 70% chance of having issues
       
