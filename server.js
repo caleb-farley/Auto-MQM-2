@@ -1034,6 +1034,95 @@ app.get('/api/download-report/:id/excel', authMiddleware.optionalAuth, async (re
   }
 });
 
+// Admin route to view runs data - no auth required for development
+app.get('/admin/runs', async (req, res) => {
+  try {
+    // Render the admin page with the runs data
+    res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+  } catch (error) {
+    console.error('Error serving admin page:', error);
+    res.status(500).send('Error serving admin page');
+  }
+});
+
+// API endpoint to get runs data as JSON - no auth required for development
+app.get('/api/admin/runs', async (req, res) => {
+  try {
+    
+    // Get query parameters for filtering
+    const { page = 1, limit = 20, search, startDate, endDate, analysisMode } = req.query;
+    
+    // Build query object
+    const query = {};
+    
+    // Add search filter if provided
+    if (search) {
+      query.$or = [
+        { sourceLang: new RegExp(search, 'i') },
+        { targetLang: new RegExp(search, 'i') },
+        { summary: new RegExp(search, 'i') }
+      ];
+    }
+    
+    // Add date range filter if provided
+    if (startDate || endDate) {
+      query.timestamp = {};
+      if (startDate) query.timestamp.$gte = new Date(startDate);
+      if (endDate) query.timestamp.$lte = new Date(endDate);
+    }
+    
+    // Add analysis mode filter if provided
+    if (analysisMode) {
+      query.analysisMode = analysisMode;
+    }
+    
+    // Count total documents matching the query
+    const total = await Run.countDocuments(query);
+    
+    // Fetch paginated runs data
+    const runs = await Run.find(query)
+      .sort({ timestamp: -1 })
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit))
+      .select('-sourceText -targetText'); // Exclude large text fields
+    
+    // Return JSON response with pagination info
+    res.json({
+      runs,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        pages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching runs data:', error);
+    res.status(500).json({ error: 'Error fetching runs data' });
+  }
+});
+
+// API endpoint to get a specific run by ID - no auth required for development
+app.get('/api/admin/runs/:id', async (req, res) => {
+  try {
+    
+    const runId = req.params.id;
+    
+    // Fetch the run data
+    const run = await Run.findById(runId);
+    
+    if (!run) {
+      return res.status(404).json({ error: 'Run not found' });
+    }
+    
+    // Return the run data
+    res.json(run);
+  } catch (error) {
+    console.error('Error fetching run details:', error);
+    res.status(500).json({ error: 'Error fetching run details' });
+  }
+});
+
 // Serve index.html for all routes
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));

@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Translation Assessment Admin Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #1a1a1a;
+      --bg-secondary: #252525;
+      --bg-card: #2d2d2d;
+      --bg-accent: #333333;
+      --bg-hover: #3a3a3a;
+      --text-primary: #ffffff;
+      --text-secondary: #e0e0e0;
+      --text-muted: #a0a0a0;
+      --border-light: #444444;
+      --border-dark: #222222;
+      --brand-orange: #ff6c36;
+      --brand-orange-hover: #ff8c56;
+      --brand-blue: #3498db;
+      --brand-blue-hover: #2980b9;
+      --success-green: #2ecc71;
+      --warning-yellow: #f1c40f;
+      --danger-red: #e74c3c;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .header h1 {
+      font-family: 'Gothic A1', sans-serif;
+      font-weight: 600;
+      font-size: 24px;
+      color: var(--text-primary);
+    }
+
+    .filters {
+      background-color: var(--bg-card);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      border: 1px solid var(--border-light);
+    }
+
+    .filter-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+
+    .filter-group {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .filter-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    .filter-group input,
+    .filter-group select {
+      width: 100%;
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border-light);
+      background-color: var(--bg-secondary);
+      color: var(--text-primary);
+      font-size: 14px;
+    }
+
+    .filter-group input:focus,
+    .filter-group select:focus {
+      outline: none;
+      border-color: var(--brand-orange);
+    }
+
+    .btn {
+      padding: 8px 16px;
+      border-radius: 6px;
+      border: none;
+      font-weight: 500;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .btn-primary {
+      background-color: var(--brand-orange);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background-color: var(--brand-orange-hover);
+    }
+
+    .btn-secondary {
+      background-color: var(--bg-accent);
+      color: var(--text-primary);
+      border: 1px solid var(--border-light);
+    }
+
+    .btn-secondary:hover {
+      background-color: var(--bg-hover);
+    }
+
+    .table-container {
+      background-color: var(--bg-card);
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border-light);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    th {
+      background-color: var(--bg-accent);
+      color: var(--text-secondary);
+      text-align: left;
+      padding: 12px 15px;
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+    }
+
+    td {
+      padding: 10px 15px;
+      border-top: 1px solid var(--border-dark);
+      color: var(--text-secondary);
+    }
+
+    tr:hover {
+      background-color: var(--bg-hover);
+    }
+
+    .pagination {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 20px;
+      padding: 10px 0;
+    }
+
+    .pagination-info {
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    .pagination-controls {
+      display: flex;
+      gap: 10px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .badge-bilingual {
+      background-color: rgba(52, 152, 219, 0.2);
+      color: #3498db;
+      border: 1px solid rgba(52, 152, 219, 0.3);
+    }
+
+    .badge-monolingual {
+      background-color: rgba(155, 89, 182, 0.2);
+      color: #9b59b6;
+      border: 1px solid rgba(155, 89, 182, 0.3);
+    }
+
+    .score-cell {
+      font-weight: 600;
+    }
+
+    .score-high {
+      color: var(--success-green);
+    }
+
+    .score-medium {
+      color: var(--warning-yellow);
+    }
+
+    .score-low {
+      color: var(--danger-red);
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-muted);
+    }
+
+    .error {
+      background-color: rgba(231, 76, 60, 0.1);
+      border: 1px solid rgba(231, 76, 60, 0.3);
+      color: var(--danger-red);
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+    }
+
+    /* Modal styles */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      z-index: 1000;
+      overflow-y: auto;
+    }
+
+    .modal-content {
+      background-color: var(--bg-card);
+      margin: 50px auto;
+      padding: 20px;
+      border-radius: 8px;
+      max-width: 800px;
+      position: relative;
+      border: 1px solid var(--border-light);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .modal-title {
+      font-family: 'Gothic A1', sans-serif;
+      font-weight: 600;
+      font-size: 20px;
+      color: var(--text-primary);
+    }
+
+    .close-modal {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 24px;
+      cursor: pointer;
+    }
+
+    .close-modal:hover {
+      color: var(--text-primary);
+    }
+
+    .detail-row {
+      margin-bottom: 15px;
+    }
+
+    .detail-label {
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 5px;
+      font-size: 14px;
+    }
+
+    .detail-value {
+      color: var(--text-secondary);
+      background-color: var(--bg-secondary);
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 14px;
+      white-space: pre-wrap;
+      overflow-x: auto;
+    }
+
+    .issues-table {
+      margin-top: 20px;
+    }
+
+    .no-data {
+      text-align: center;
+      padding: 30px;
+      color: var(--text-muted);
+    }
+
+    .action-cell {
+      text-align: right;
+    }
+
+    .action-btn {
+      background: none;
+      border: none;
+      color: var(--brand-blue);
+      cursor: pointer;
+      font-size: 14px;
+      padding: 5px;
+    }
+
+    .action-btn:hover {
+      color: var(--brand-blue-hover);
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Translation Assessment Admin Dashboard</h1>
+      <div>
+        <button id="export-csv-btn" class="btn btn-secondary">Export CSV</button>
+      </div>
+    </div>
+
+    <div class="filters">
+      <div class="filter-row">
+        <div class="filter-group">
+          <label for="search">Search</label>
+          <input type="text" id="search" placeholder="Search by language or summary...">
+        </div>
+        <div class="filter-group">
+          <label for="start-date">Start Date</label>
+          <input type="date" id="start-date">
+        </div>
+        <div class="filter-group">
+          <label for="end-date">End Date</label>
+          <input type="date" id="end-date">
+        </div>
+        <div class="filter-group">
+          <label for="analysis-mode">Analysis Mode</label>
+          <select id="analysis-mode">
+            <option value="">All</option>
+            <option value="bilingual">Bilingual</option>
+            <option value="monolingual">Monolingual</option>
+          </select>
+        </div>
+      </div>
+      <div class="filter-row">
+        <button id="apply-filters-btn" class="btn btn-primary">Apply Filters</button>
+        <button id="reset-filters-btn" class="btn btn-secondary">Reset</button>
+      </div>
+    </div>
+
+    <div id="error-container" class="error" style="display: none;"></div>
+
+    <div class="table-container">
+      <table id="runs-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Date</th>
+            <th>Languages</th>
+            <th>Mode</th>
+            <th>Words</th>
+            <th>Score</th>
+            <th>Issues</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="runs-tbody">
+          <tr>
+            <td colspan="8" class="loading">Loading...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination">
+      <div class="pagination-info" id="pagination-info">Showing 0 of 0 entries</div>
+      <div class="pagination-controls">
+        <button id="prev-page-btn" class="btn btn-secondary" disabled>Previous</button>
+        <button id="next-page-btn" class="btn btn-secondary" disabled>Next</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Run Details Modal -->
+  <div id="run-details-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title">Run Details</h2>
+        <button class="close-modal">&times;</button>
+      </div>
+      <div id="run-details-content">
+        <div class="detail-row">
+          <div class="detail-label">ID</div>
+          <div class="detail-value" id="detail-id"></div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Date</div>
+          <div class="detail-value" id="detail-date"></div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Languages</div>
+          <div class="detail-value" id="detail-languages"></div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Analysis Mode</div>
+          <div class="detail-value" id="detail-mode"></div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Word Count</div>
+          <div class="detail-value" id="detail-wordcount"></div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">MQM Score</div>
+          <div class="detail-value" id="detail-score"></div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Summary</div>
+          <div class="detail-value" id="detail-summary"></div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">LLM Model</div>
+          <div class="detail-value" id="detail-model"></div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Location</div>
+          <div class="detail-value" id="detail-location"></div>
+        </div>
+        
+        <h3 style="margin-top: 30px; margin-bottom: 15px; font-family: 'Gothic A1', sans-serif;">Issues</h3>
+        <div class="table-container issues-table">
+          <table id="issues-table">
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th>Subcategory</th>
+                <th>Severity</th>
+                <th>Segment</th>
+              </tr>
+            </thead>
+            <tbody id="issues-tbody">
+              <tr>
+                <td colspan="4" class="no-data">No issues found</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // DOM Elements
+    const runsTable = document.getElementById('runs-table');
+    const runsTbody = document.getElementById('runs-tbody');
+    const paginationInfo = document.getElementById('pagination-info');
+    const prevPageBtn = document.getElementById('prev-page-btn');
+    const nextPageBtn = document.getElementById('next-page-btn');
+    const searchInput = document.getElementById('search');
+    const startDateInput = document.getElementById('start-date');
+    const endDateInput = document.getElementById('end-date');
+    const analysisModeSelect = document.getElementById('analysis-mode');
+    const applyFiltersBtn = document.getElementById('apply-filters-btn');
+    const resetFiltersBtn = document.getElementById('reset-filters-btn');
+    const exportCsvBtn = document.getElementById('export-csv-btn');
+    const errorContainer = document.getElementById('error-container');
+    const runDetailsModal = document.getElementById('run-details-modal');
+    const closeModalBtn = document.querySelector('.close-modal');
+
+    // State
+    let currentPage = 1;
+    let totalPages = 0;
+    let limit = 20;
+    let filters = {
+      search: '',
+      startDate: '',
+      endDate: '',
+      analysisMode: ''
+    };
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      fetchRunsData();
+      setupEventListeners();
+    });
+
+    // Setup Event Listeners
+    function setupEventListeners() {
+      prevPageBtn.addEventListener('click', () => {
+        if (currentPage > 1) {
+          currentPage--;
+          fetchRunsData();
+        }
+      });
+
+      nextPageBtn.addEventListener('click', () => {
+        if (currentPage < totalPages) {
+          currentPage++;
+          fetchRunsData();
+        }
+      });
+
+      applyFiltersBtn.addEventListener('click', () => {
+        filters.search = searchInput.value.trim();
+        filters.startDate = startDateInput.value;
+        filters.endDate = endDateInput.value;
+        filters.analysisMode = analysisModeSelect.value;
+        currentPage = 1;
+        fetchRunsData();
+      });
+
+      resetFiltersBtn.addEventListener('click', () => {
+        searchInput.value = '';
+        startDateInput.value = '';
+        endDateInput.value = '';
+        analysisModeSelect.value = '';
+        filters = {
+          search: '',
+          startDate: '',
+          endDate: '',
+          analysisMode: ''
+        };
+        currentPage = 1;
+        fetchRunsData();
+      });
+
+      exportCsvBtn.addEventListener('click', exportToCsv);
+
+      closeModalBtn.addEventListener('click', () => {
+        runDetailsModal.style.display = 'none';
+      });
+
+      window.addEventListener('click', (event) => {
+        if (event.target === runDetailsModal) {
+          runDetailsModal.style.display = 'none';
+        }
+      });
+    }
+
+    // Fetch Runs Data
+    async function fetchRunsData() {
+      try {
+        showLoading();
+        hideError();
+
+        const queryParams = new URLSearchParams({
+          page: currentPage,
+          limit: limit
+        });
+
+        if (filters.search) queryParams.append('search', filters.search);
+        if (filters.startDate) queryParams.append('startDate', filters.startDate);
+        if (filters.endDate) queryParams.append('endDate', filters.endDate);
+        if (filters.analysisMode) queryParams.append('analysisMode', filters.analysisMode);
+
+        const response = await fetch(`/api/admin/runs?${queryParams.toString()}`);
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to fetch runs data');
+        }
+
+        const data = await response.json();
+        renderRunsTable(data.runs);
+        updatePagination(data.pagination);
+      } catch (error) {
+        showError(error.message);
+        renderEmptyTable();
+      }
+    }
+
+    // Render Runs Table
+    function renderRunsTable(runs) {
+      if (!runs || runs.length === 0) {
+        renderEmptyTable();
+        return;
+      }
+
+      runsTbody.innerHTML = '';
+
+      runs.forEach(run => {
+        const tr = document.createElement('tr');
+        
+        // Format date
+        const date = new Date(run.timestamp);
+        const formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+        
+        // Format languages
+        const languages = `${run.sourceLang || 'N/A'} → ${run.targetLang || 'N/A'}`;
+        
+        // Format score class
+        let scoreClass = 'score-medium';
+        if (run.mqmScore >= 90) scoreClass = 'score-high';
+        if (run.mqmScore < 70) scoreClass = 'score-low';
+        
+        tr.innerHTML = `
+          <td>${run._id}</td>
+          <td>${formattedDate}</td>
+          <td>${languages}</td>
+          <td><span class="badge badge-${run.analysisMode}">${run.analysisMode}</span></td>
+          <td>${run.wordCount || 0}</td>
+          <td class="score-cell ${scoreClass}">${run.mqmScore ? run.mqmScore.toFixed(1) : 'N/A'}</td>
+          <td>${run.issues ? run.issues.length : 0}</td>
+          <td class="action-cell">
+            <button class="action-btn view-details-btn" data-id="${run._id}">View Details</button>
+          </td>
+        `;
+        
+        runsTbody.appendChild(tr);
+      });
+
+      // Add event listeners to view details buttons
+      document.querySelectorAll('.view-details-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const runId = btn.getAttribute('data-id');
+          fetchRunDetails(runId);
+        });
+      });
+    }
+
+    // Render Empty Table
+    function renderEmptyTable() {
+      runsTbody.innerHTML = `
+        <tr>
+          <td colspan="8" class="no-data">No runs found</td>
+        </tr>
+      `;
+    }
+
+    // Show Loading
+    function showLoading() {
+      runsTbody.innerHTML = `
+        <tr>
+          <td colspan="8" class="loading">Loading...</td>
+        </tr>
+      `;
+    }
+
+    // Update Pagination
+    function updatePagination(pagination) {
+      if (!pagination) return;
+      
+      const { total, page, limit, pages } = pagination;
+      const start = (page - 1) * limit + 1;
+      const end = Math.min(page * limit, total);
+      
+      paginationInfo.textContent = `Showing ${start}-${end} of ${total} entries`;
+      
+      prevPageBtn.disabled = page <= 1;
+      nextPageBtn.disabled = page >= pages;
+      
+      currentPage = page;
+      totalPages = pages;
+    }
+
+    // Show Error
+    function showError(message) {
+      errorContainer.textContent = message;
+      errorContainer.style.display = 'block';
+    }
+
+    // Hide Error
+    function hideError() {
+      errorContainer.style.display = 'none';
+    }
+
+    // Fetch Run Details
+    async function fetchRunDetails(runId) {
+      try {
+        const response = await fetch(`/api/admin/runs/${runId}`);
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to fetch run details');
+        }
+
+        const run = await response.json();
+        showRunDetailsModal(run);
+      } catch (error) {
+        showError(error.message);
+      }
+    }
+
+    // Show Run Details Modal
+    function showRunDetailsModal(run) {
+      // Format date
+      const date = new Date(run.timestamp);
+      const formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+      
+      // Format languages
+      const languages = `${run.sourceLang || 'N/A'} → ${run.targetLang || 'N/A'}`;
+      
+      // Format location
+      const location = run.location ? 
+        `${run.location.city || 'Unknown'}, ${run.location.region || 'Unknown'}, ${run.location.country || 'Unknown'}` : 
+        'Unknown';
+      
+      // Set modal content
+      document.getElementById('detail-id').textContent = run._id;
+      document.getElementById('detail-date').textContent = formattedDate;
+      document.getElementById('detail-languages').textContent = languages;
+      document.getElementById('detail-mode').textContent = run.analysisMode;
+      document.getElementById('detail-wordcount').textContent = run.wordCount || 0;
+      document.getElementById('detail-score').textContent = run.mqmScore ? run.mqmScore.toFixed(1) : 'N/A';
+      document.getElementById('detail-summary').textContent = run.summary || 'No summary available';
+      document.getElementById('detail-model').textContent = run.llmModel || 'Unknown';
+      document.getElementById('detail-location').textContent = location;
+      
+      // Render issues table
+      const issuesTbody = document.getElementById('issues-tbody');
+      
+      if (!run.issues || run.issues.length === 0) {
+        issuesTbody.innerHTML = `
+          <tr>
+            <td colspan="4" class="no-data">No issues found</td>
+          </tr>
+        `;
+      } else {
+        issuesTbody.innerHTML = '';
+        
+        run.issues.forEach(issue => {
+          const tr = document.createElement('tr');
+          
+          tr.innerHTML = `
+            <td>${issue.category || 'N/A'}</td>
+            <td>${issue.subcategory || 'N/A'}</td>
+            <td>${issue.severity || 'N/A'}</td>
+            <td>${issue.segment || 'N/A'}</td>
+          `;
+          
+          issuesTbody.appendChild(tr);
+        });
+      }
+      
+      // Show modal
+      runDetailsModal.style.display = 'block';
+    }
+
+    // Export to CSV
+    async function exportToCsv() {
+      try {
+        // Build query with all current filters but no pagination
+        const queryParams = new URLSearchParams();
+        
+        if (filters.search) queryParams.append('search', filters.search);
+        if (filters.startDate) queryParams.append('startDate', filters.startDate);
+        if (filters.endDate) queryParams.append('endDate', filters.endDate);
+        if (filters.analysisMode) queryParams.append('analysisMode', filters.analysisMode);
+        queryParams.append('limit', 1000); // Get more records for export
+        
+        const response = await fetch(`/api/admin/runs?${queryParams.toString()}`);
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to fetch data for export');
+        }
+
+        const data = await response.json();
+        const runs = data.runs;
+        
+        if (!runs || runs.length === 0) {
+          showError('No data to export');
+          return;
+        }
+        
+        // Create CSV content
+        const headers = ['ID', 'Date', 'Source Lang', 'Target Lang', 'Mode', 'Word Count', 'MQM Score', 'Issues Count', 'Summary'];
+        let csvContent = headers.join(',') + '\n';
+        
+        runs.forEach(run => {
+          const date = new Date(run.timestamp).toISOString();
+          const summary = run.summary ? `"${run.summary.replace(/"/g, '""')}"` : '';
+          
+          const row = [
+            run._id,
+            date,
+            run.sourceLang || '',
+            run.targetLang || '',
+            run.analysisMode,
+            run.wordCount || 0,
+            run.mqmScore ? run.mqmScore.toFixed(1) : '',
+            run.issues ? run.issues.length : 0,
+            summary
+          ];
+          
+          csvContent += row.join(',') + '\n';
+        });
+        
+        // Create download link
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        
+        link.setAttribute('href', url);
+        link.setAttribute('download', `translation-runs-export-${new Date().toISOString().slice(0, 10)}.csv`);
+        link.style.display = 'none';
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } catch (error) {
+        showError(error.message);
+      }
+    }
+  </script>
+</body>
+</html>
