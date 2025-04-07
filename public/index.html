@@ -1928,6 +1928,9 @@
             width: 100% !important;
             flex: 1 0 100% !important;
           }
+          .monolingual-mode #translate-btn {
+            display: none !important;
+          }
           .hidden {
             display: none !important;
           }
@@ -3024,7 +3027,7 @@
   // Add event listener for translation mode toggle
   document.getElementById('translation-mode-toggle').addEventListener('change', function() {
     updateWordCountDisplay();
-    toggleMonolingualMode();
+    // The toggleMonolingualMode function is defined elsewhere and already being called
   });
 
   // Language detection API function
@@ -3608,7 +3611,6 @@
       clearInterval(progressInterval);
     }
   });
-};
 
 // Show admin modal
 window.showAdminModal = function() {
