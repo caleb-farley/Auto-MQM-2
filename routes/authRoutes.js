@@ -10,6 +10,7 @@ router.post('/logout', authController.logout);
 router.post('/social-login', authController.socialLogin);
 router.get('/anonymous-session', authController.getAnonymousSession);
 router.get('/status', authMiddleware.optionalAuth, authController.getAuthStatus);
+router.get('/verify-email', authController.verifyEmail);
 
 // Protected routes (require authentication)
 router.get(

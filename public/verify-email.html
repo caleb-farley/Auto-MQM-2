@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verify Email - Auto-MQM</title>
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      background-color: #f5f7fa;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .verification-container {
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      padding: 30px;
+      width: 450px;
+      text-align: center;
+    }
+    h1 {
+      color: #2d3748;
+      margin-top: 0;
+    }
+    p {
+      color: #4a5568;
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+    .status {
+      padding: 15px;
+      border-radius: 4px;
+      margin: 20px 0;
+    }
+    .success {
+      background-color: #c6f6d5;
+      color: #2f855a;
+    }
+    .error {
+      background-color: #fed7d7;
+      color: #c53030;
+    }
+    .loading {
+      background-color: #e2e8f0;
+      color: #4a5568;
+    }
+    .btn {
+      background-color: #4299e1;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 12px 24px;
+      font-size: 16px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      margin-top: 20px;
+      font-weight: 500;
+    }
+    .btn:hover {
+      background-color: #3182ce;
+    }
+    .icon {
+      font-size: 48px;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="verification-container">
+    <div id="loading-state">
+      <div class="icon">⏳</div>
+      <h1>Verifying Your Email</h1>
+      <p>Please wait while we verify your email address...</p>
+      <div class="status loading">Verifying...</div>
+    </div>
+    
+    <div id="success-state" style="display: none;">
+      <div class="icon">✅</div>
+      <h1>Email Verified!</h1>
+      <p>Your email has been successfully verified. You can now log in to your account.</p>
+      <div class="status success">Your account is now active.</div>
+      <a href="/" class="btn">Go to Login</a>
+    </div>
+    
+    <div id="error-state" style="display: none;">
+      <div class="icon">❌</div>
+      <h1>Verification Failed</h1>
+      <p>We couldn't verify your email address. The verification link may have expired or is invalid.</p>
+      <div id="error-message" class="status error">Invalid verification token.</div>
+      <a href="/" class="btn">Go to Homepage</a>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Get verification token from URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get('token');
+      
+      if (!token) {
+        showError('No verification token provided');
+        return;
+      }
+      
+      try {
+        // Call verification API
+        const response = await fetch(`/api/auth/verify-email?token=${token}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          showSuccess();
+        } else {
+          showError(data.message || 'Verification failed');
+        }
+      } catch (error) {
+        console.error('Verification error:', error);
+        showError('Error connecting to server');
+      }
+    });
+    
+    function showSuccess() {
+      document.getElementById('loading-state').style.display = 'none';
+      document.getElementById('success-state').style.display = 'block';
+      document.getElementById('error-state').style.display = 'none';
+    }
+    
+    function showError(message) {
+      document.getElementById('loading-state').style.display = 'none';
+      document.getElementById('success-state').style.display = 'none';
+      document.getElementById('error-state').style.display = 'block';
+      document.getElementById('error-message').textContent = message;
+    }
+  </script>
+</body>
+</html>

@@ -5672,6 +5672,12 @@ correctedText.removeAttribute('readonly');
       // Clear previous errors
       errorEl.textContent = '';
       
+      // Hide verification message if shown
+      const verificationMsgEl = document.getElementById('verification-message');
+      if (verificationMsgEl) {
+        verificationMsgEl.style.display = 'none';
+      }
+      
       try {
         // Show loading state
         const submitBtn = event.target.querySelector('button[type=\'submit\']');
@@ -5697,6 +5703,39 @@ correctedText.removeAttribute('readonly');
         
         if (!response.ok) {
           const errorData = await response.json();
+          
+          // Check if this is a verification error
+          if (errorData.needsVerification) {
+            // Show verification message
+            const loginForm = document.getElementById('login-form');
+            
+            // Create verification message if it doesn't exist
+            let verificationMsg = document.getElementById('verification-message');
+            if (!verificationMsg) {
+              verificationMsg = document.createElement('div');
+              verificationMsg.id = 'verification-message';
+              verificationMsg.className = 'verification-message';
+              verificationMsg.style.backgroundColor = '#fef3c7';
+              verificationMsg.style.color = '#92400e';
+              verificationMsg.style.padding = '12px';
+              verificationMsg.style.borderRadius = '4px';
+              verificationMsg.style.marginTop = '16px';
+              loginForm.appendChild(verificationMsg);
+            }
+            
+            verificationMsg.textContent = errorData.message;
+            verificationMsg.style.display = 'block';
+            
+            // Clear the error message
+            errorEl.textContent = '';
+            
+            // Reset button state
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalBtnText;
+            
+            return;
+          }
+          
           throw new Error(errorData.message || 'Login failed');
         }
         
@@ -5804,20 +5843,42 @@ correctedText.removeAttribute('readonly');
         // Save auth state to localStorage
         localStorage.setItem('authState', JSON.stringify(authState));
         
+        // Show verification message
+        const registerForm = document.getElementById('register-form');
+        
+        // Create success message
+        const successMsg = document.createElement('div');
+        successMsg.className = 'verification-success-message';
+        successMsg.style.backgroundColor = '#c6f6d5';
+        successMsg.style.color = '#2f855a';
+        successMsg.style.padding = '12px';
+        successMsg.style.borderRadius = '4px';
+        successMsg.style.marginTop = '16px';
+        successMsg.style.textAlign = 'center';
+        
+        // Add message content
+        successMsg.innerHTML = `
+          <p><strong>Account created successfully!</strong></p>
+          <p>A verification email has been sent to ${emailInput.value}.</p>
+          <p>Please check your inbox and click the verification link to activate your account.</p>
+        `;
+        
+        // Clear form and add message
+        registerForm.innerHTML = '';
+        registerForm.appendChild(successMsg);
+        
+        // Add a button to close the modal
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'btn btn-primary';
+        closeBtn.style.marginTop = '16px';
+        closeBtn.textContent = 'Close';
+        closeBtn.onclick = function() {
+          hideModal(document.getElementById('register-modal'));
+        };
+        registerForm.appendChild(closeBtn);
+        
         // Show success notification
-        showNotification('Account created successfully! Welcome to FastFin Translator.', 'success');
-        
-        // Update UI
-        updateAuthUI();
-        
-        // Hide register modal
-        hideModal(document.getElementById('register-modal'));
-        
-        // Reset form
-        event.target.reset();
-        
-        // Show welcome message
-        alert('Registration successful! Welcome to MQM Analysis Tool.');
+        showNotification('Account created successfully. Please check your email to verify your account.', 'success');
       } catch (error) {
         console.error('Registration error:', error);
         errorEl.textContent = error.message || 'Registration failed. Please try again.';
