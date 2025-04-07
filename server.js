@@ -1248,8 +1248,19 @@ app.post('/api/translate', authMiddleware.optionalAuth, async (req, res) => {
     if (useDeepL) {
       try {
         const deeplApiKey = process.env.DEEPL_API_KEY;
+        console.log(`Attempting DeepL translation: ${sourceLang} -> ${targetLang}`);
+        console.log(`Languages base codes: ${sourceBase} -> ${targetBase}`);
+        console.log(`DeepL supported: Source=${deeplSupportedLanguages.includes(sourceBase)}, Target=${deeplSupportedLanguages.includes(targetBase)}`);
+        
+        // Validate API key format before making the request
+        if (!deeplApiKey || deeplApiKey.trim() === '' || deeplApiKey.includes('your_deepl_api_key')) {
+          console.error('Invalid DeepL API key format');
+          throw new Error('Invalid DeepL API key');
+        }
+        
         const url = 'https://api-free.deepl.com/v2/translate';  // Use the paid API URL if using a paid account
         
+        console.log(`Making DeepL API request to ${url}`);
         const response = await axios.post(url, 
           {
             text: [text],
@@ -1293,6 +1304,17 @@ app.post('/api/translate', authMiddleware.optionalAuth, async (req, res) => {
         }
       } catch (deeplError) {
         console.error('DeepL translation error:', deeplError);
+        if (deeplError.response) {
+          console.error('DeepL API response error:', {
+            status: deeplError.response.status,
+            statusText: deeplError.response.statusText,
+            data: deeplError.response.data
+          });
+        } else if (deeplError.request) {
+          console.error('DeepL API request error (no response received)');
+        } else {
+          console.error('DeepL API error message:', deeplError.message);
+        }
         // Continue to fallback options if DeepL fails
       }
     }
