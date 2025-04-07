@@ -605,6 +605,16 @@ app.post('/api/mqm-analysis',
       // Default to Claude-3-Sonnet if no model is specified
       const modelToUse = llmModel || "claude-3-sonnet-20240229";
       
+      // Log the analysis parameters for debugging
+      console.log('Analysis parameters:', {
+        isMonolingual,
+        processedSourceText: processedSourceText ? processedSourceText.substring(0, 50) + '...' : null,
+        processedTargetText: processedTargetText ? processedTargetText.substring(0, 50) + '...' : null,
+        processedSourceLang,
+        processedTargetLang,
+        modelToUse
+      });
+      
       // Check if we have a cached assessment for the same text pair and model
       const cachedRun = await Run.findOne({
         sourceText: isMonolingual ? null : processedSourceText,
