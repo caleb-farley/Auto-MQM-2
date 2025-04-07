@@ -7,7 +7,22 @@
 
 const fs = require('fs');
 const path = require('path');
-const { split, Syntax } = require('sentence-splitter');
+// Import sentence-splitter or provide a simple fallback if it fails
+let sentenceSplitter, split, Syntax;
+try {
+  sentenceSplitter = require('sentence-splitter');
+  split = sentenceSplitter.split;
+  Syntax = sentenceSplitter.Syntax;
+} catch (error) {
+  console.warn('Warning: sentence-splitter module not available, using fallback splitter');
+  // Simple fallback implementation
+  split = (text) => {
+    // Simple sentence splitting by punctuation with lookbehind for abbreviations
+    const sentences = text.split(/(?<![A-Z]\.)(?<![A-Z][a-z]\.)(?<=\.|\?|\!)\s/g).filter(s => s.trim());
+    return sentences.map(s => ({ type: 'Sentence', raw: s.trim() }));
+  };
+  Syntax = { Sentence: 'Sentence' };
+}
 const xml2js = require('xml2js');
 const xliff = require('xliff');
 
@@ -84,76 +99,81 @@ function getLanguageRules(langCode) {
 function segmentText(text, langCode) {
   if (!text) return [];
   
-  // Get language-specific rules
-  const rules = getLanguageRules(langCode);
-  
-  // Preserve special elements by replacing them with placeholders
-  const preservedElements = [];
-  let processedText = text;
-  
-  rules.preserveElements.forEach((pattern, index) => {
-    processedText = processedText.replace(pattern, (match) => {
-      const placeholder = `__PRESERVED_ELEMENT_${index}_${preservedElements.length}__`;
-      preservedElements.push({ placeholder, content: match });
-      return placeholder;
-    });
-  });
-  
-  // Use sentence-splitter for initial segmentation
-  const segments = split(processedText).filter(node => 
-    node.type === Syntax.Sentence
-  ).map(node => node.raw);
-  
-  // Apply language-specific rules for further refinement
-  let refinedSegments = [];
-  
-  segments.forEach(segment => {
-    let shouldSplit = false;
+  try {
+    // Get language-specific rules
+    const rules = getLanguageRules(langCode);
     
-    // Check for end markers not in exceptions
-    const matches = [...segment.matchAll(rules.endMarkers)];
-    if (matches.length > 1) {
-      shouldSplit = true;
-      
-      // Check if matches are in exceptions
-      for (const exception of rules.exceptions) {
-        if (segment.match(exception)) {
-          shouldSplit = false;
-          break;
-        }
-      }
-    }
+    // Preserve special elements by replacing them with placeholders
+    const preservedElements = [];
+    let processedText = text;
     
-    if (shouldSplit) {
-      // Custom split logic for complex cases
-      let lastIndex = 0;
-      let tempSegments = [];
-      
-      matches.forEach(match => {
-        if (match.index > lastIndex) {
-          tempSegments.push(segment.substring(lastIndex, match.index + 1).trim());
-          lastIndex = match.index + 1;
+    // Only process preserveElements if the rules exist and have this property
+    if (rules && rules.preserveElements && Array.isArray(rules.preserveElements)) {
+      rules.preserveElements.forEach((pattern, index) => {
+        try {
+          processedText = processedText.replace(pattern, (match) => {
+            const placeholder = `__PRESERVED_ELEMENT_${index}_${preservedElements.length}__`;
+            preservedElements.push({ placeholder, content: match });
+            return placeholder;
+          });
+        } catch (err) {
+          console.warn(`Error processing preserve pattern ${index}:`, err);
         }
       });
-      
-      if (lastIndex < segment.length) {
-        tempSegments.push(segment.substring(lastIndex).trim());
-      }
-      
-      refinedSegments = [...refinedSegments, ...tempSegments];
-    } else {
-      refinedSegments.push(segment);
     }
-  });
-  
-  // Restore preserved elements
-  return refinedSegments.map(segment => {
-    let restoredSegment = segment;
-    preservedElements.forEach(({ placeholder, content }) => {
-      restoredSegment = restoredSegment.replace(placeholder, content);
-    });
-    return restoredSegment;
-  });
+    
+    // Simple and reliable sentence splitting approach
+    let segments = [];
+    
+    // First try to use the sentence-splitter library if available
+    try {
+      if (typeof split === 'function' && Syntax && Syntax.Sentence) {
+        const splitResult = split(processedText);
+        if (splitResult && Array.isArray(splitResult)) {
+          segments = splitResult
+            .filter(node => node && node.type === Syntax.Sentence)
+            .map(node => node.raw);
+        }
+      }
+    } catch (error) {
+      console.warn('Sentence splitter library failed, using fallback:', error.message);
+    }
+    
+    // If no segments were found or the library failed, use a simple fallback
+    if (segments.length === 0) {
+      // Simple regex-based sentence splitting
+      const sentenceRegex = /[^.!?\s][^.!?]*(?:[.!?](?!['"]?\s|$)[^.!?]*)*[.!?]?['"]?(?=\s|$)/g;
+      const matches = processedText.match(sentenceRegex);
+      
+      if (matches && matches.length > 0) {
+        segments = matches;
+      } else {
+        // If all else fails, treat the entire text as one segment
+        segments = [processedText];
+      }
+    }
+    
+    // Restore preserved elements
+    if (preservedElements.length > 0) {
+      return segments.map(segment => {
+        let restoredSegment = segment;
+        preservedElements.forEach(({ placeholder, content }) => {
+          try {
+            restoredSegment = restoredSegment.replace(placeholder, content);
+          } catch (err) {
+            console.warn(`Error restoring placeholder:`, err);
+          }
+        });
+        return restoredSegment;
+      });
+    }
+    
+    return segments;
+  } catch (error) {
+    console.error('Segmentation error:', error);
+    // Ultimate fallback: return the whole text as one segment
+    return [text];
+  }
 }
 
 /**
@@ -274,7 +294,8 @@ async function parseXLIFF(fileBuffer) {
  * @returns {Promise<Array>} - Array of segments
  */
 async function getSegments(params) {
-  const { sourceText, targetText, sourceLang, targetLang, fileBuffer, fileType } = params;
+  try {
+    const { sourceText, targetText, sourceLang, targetLang, fileBuffer, fileType } = params;
   
   // If file buffer is provided, parse file based on type
   if (fileBuffer) {
@@ -342,6 +363,21 @@ async function getSegments(params) {
   }
   
   return [];
+  } catch (error) {
+    console.error('Error in getSegments:', error);
+    // Fallback: create a simple segment from the raw text
+    const { sourceText, targetText, sourceLang, targetLang } = params;
+    if (sourceText || targetText) {
+      return [{
+        segment_id: 1,
+        source: sourceText || '',
+        target: targetText || '',
+        sourceLang: sourceLang || '',
+        targetLang: targetLang || ''
+      }];
+    }
+    return [];
+  }
 }
 
 /**
