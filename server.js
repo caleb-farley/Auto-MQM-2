@@ -1123,6 +1123,158 @@ app.get('/api/admin/runs/:id', async (req, res) => {
   }
 });
 
+// Machine Translation API endpoint
+app.post('/api/translate', authMiddleware.optionalAuth, async (req, res) => {
+  try {
+    const { text, sourceLang, targetLang } = req.body;
+    
+    if (!text || !sourceLang || !targetLang) {
+      return res.status(400).json({ error: 'Missing required parameters: text, sourceLang, targetLang' });
+    }
+    
+    // Track usage for authenticated users
+    if (req.user) {
+      await authMiddleware.trackUsage(req, res, () => {});
+    }
+    
+    // Get base language codes (e.g., 'en' from 'en-US')
+    const sourceBase = sourceLang.split('-')[0];
+    const targetBase = targetLang.split('-')[0];
+    
+    let translatedText = '';
+    let engineUsed = '';
+    
+    // DeepL supported languages (as of April 2025)
+    // This list should be updated as DeepL adds more languages
+    const deeplSupportedLanguages = [
+      'bg', 'cs', 'da', 'de', 'el', 'en', 'es', 'et', 'fi', 'fr', 'hu', 'id',
+      'it', 'ja', 'ko', 'lt', 'lv', 'nb', 'nl', 'pl', 'pt', 'ro', 'ru', 'sk',
+      'sl', 'sv', 'tr', 'uk', 'zh'
+    ];
+    
+    // Check if both source and target languages are supported by DeepL
+    const useDeepL = deeplSupportedLanguages.includes(sourceBase) && 
+                    deeplSupportedLanguages.includes(targetBase) && 
+                    process.env.DEEPL_API_KEY;
+    
+    // Try DeepL first if supported
+    if (useDeepL) {
+      try {
+        const deeplApiKey = process.env.DEEPL_API_KEY;
+        const url = 'https://api-free.deepl.com/v2/translate';  // Use the paid API URL if using a paid account
+        
+        const response = await axios.post(url, 
+          {
+            text: [text],
+            source_lang: sourceBase.toUpperCase(),
+            target_lang: targetBase.toUpperCase(),
+            formality: 'default'  // Can be 'more', 'less', or 'default'
+          },
+          {
+            headers: {
+              'Authorization': `DeepL-Auth-Key ${deeplApiKey}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        
+        if (response.data && response.data.translations && response.data.translations.length > 0) {
+          translatedText = response.data.translations[0].text;
+          engineUsed = 'DeepL';
+          console.log(`DeepL Translation: ${sourceLang} -> ${targetLang}, ${text.length} chars`);
+          
+          return res.json({
+            translatedText,
+            sourceLang,
+            targetLang,
+            engine: engineUsed
+          });
+        }
+      } catch (deeplError) {
+        console.error('DeepL translation error:', deeplError);
+        // Continue to fallback options if DeepL fails
+      }
+    }
+    
+    // Fallback to Google Translate if DeepL is not supported or failed
+    const googleApiKey = process.env.GOOGLE_TRANSLATE_API_KEY;
+    if (googleApiKey) {
+      try {
+        const url = `https://translation.googleapis.com/language/translate/v2?key=${googleApiKey}`;
+        const response = await axios.post(url, {
+          q: text,
+          source: sourceBase,
+          target: targetBase,
+          format: 'text'
+        });
+        
+        if (response.data && response.data.data && response.data.data.translations && response.data.data.translations.length > 0) {
+          translatedText = response.data.data.translations[0].translatedText;
+          engineUsed = 'Google Translate';
+          console.log(`Google Translation: ${sourceLang} -> ${targetLang}, ${text.length} chars`);
+          
+          return res.json({
+            translatedText,
+            sourceLang,
+            targetLang,
+            engine: engineUsed
+          });
+        }
+      } catch (googleError) {
+        console.error('Google translation error:', googleError);
+        // Continue to final fallback if Google Translate fails
+      }
+    }
+    
+    // Final fallback to Claude for translation if no other engine is available or working
+    const claudeApiKey = process.env.CLAUDE_API_KEY;
+    if (claudeApiKey) {
+      const prompt = `You are a professional translator. Translate the following text from ${sourceLang} to ${targetLang}. Provide ONLY the translated text without any explanations, notes, or original text.
+
+Text to translate:
+${text}`;
+      
+      const response = await axios.post(
+        'https://api.anthropic.com/v1/messages',
+        {
+          model: 'claude-3-haiku-20240307',
+          max_tokens: 4000,
+          messages: [{ role: 'user', content: prompt }]
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': claudeApiKey,
+            'anthropic-version': '2023-06-01'
+          }
+        }
+      );
+      
+      if (response.data && response.data.content && response.data.content.length > 0) {
+        translatedText = response.data.content[0].text;
+        engineUsed = 'Claude AI';
+        console.log(`Claude Translation: ${sourceLang} -> ${targetLang}, ${text.length} chars`);
+        
+        return res.json({
+          translatedText,
+          sourceLang,
+          targetLang,
+          engine: engineUsed
+        });
+      }
+    }
+    
+    // If we get here, all translation engines failed
+    throw new Error('All translation engines failed or are not configured');
+  } catch (error) {
+    console.error('Translation error:', error);
+    return res.status(500).json({ 
+      error: 'Translation failed', 
+      message: error.message 
+    });
+  }
+});
+
 // Serve index.html for all routes
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));

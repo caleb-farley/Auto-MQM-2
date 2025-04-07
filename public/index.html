@@ -1977,8 +1977,17 @@
     <button id="save-run-btn" class="btn btn-secondary" style="display: none;">Save Assessment</button>
       <!-- Target text -->
       <div class="text-area-container" id="target-text-container">
-        <div class="text-area-header">
-          <label class="text-area-label" id="target-text-label">Target Text:</label>
+        <div class="text-area-header" style="display: flex; justify-content: space-between; align-items: center;">
+          <div style="display: flex; align-items: center;">
+            <label class="text-area-label" id="target-text-label" style="margin-right: 10px;">Target Text:</label>
+            <button id="translate-btn" class="btn btn-secondary" style="padding: 5px 10px; font-size: 12px; margin-right: 10px;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style="margin-right: 5px; vertical-align: text-bottom;">
+                <path d="M4.545 6.714 4.11 8H3l1.862-5h1.284L8 8H6.833l-.435-1.286H4.545zm1.634-.736L5.5 3.956h-.049l-.679 2.022H6.18z"/>
+                <path d="M0 2a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v3h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-3H2a2 2 0 0 1-2-2V2zm2-1a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H2zm7.138 9.995c.193.301.402.583.63.846-.748.575-1.673 1.001-2.768 1.292.178.217.451.635.555.867 1.125-.359 2.08-.844 2.886-1.494.777.665 1.739 1.165 2.93 1.472.133-.254.414-.673.629-.89-1.125-.253-2.057-.694-2.82-1.284.681-.747 1.222-1.651 1.621-2.757H14V8h-3v1.059h.5c.412 0 .74.337.74.75v.5h-.739c-.4-1.023-.918-1.805-1.541-2.543-.473.605-.914 1.173-1.284 1.729-.687-.524-1.063-1.109-1.466-1.729H5.5V7.5h2v-1H5.5V6h6V5h-2.5c-.1-.445-.324-1.775-1.5-2.5C7.146 4.013 6.773 5.111 6.5 6H4v1h1.5v.5H4v1h1.5v.5H5c-.177 0-.335.077-.442.235z"/>
+              </svg>
+              Translate
+            </button>
+          </div>
           <select id="target-lang">
             <option value="">-- Select Language --</option>
             <option value="en">🇬🇧 English</option>
@@ -2373,6 +2382,98 @@
   
   <!-- Error message (initially hidden) -->
   <div id="error-message" class="error-message" style="display: none;"></div>
+  
+  <!-- Notification container for success/info messages -->
+  <div id="notification-container" class="notification-container"></div>
+  
+  <style>
+    /* Spinner for loading states */
+    .spinner {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 1s ease-in-out infinite;
+      margin-right: 8px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* Notification system */
+    .notification-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-width: 350px;
+    }
+    
+    .notification {
+      padding: 12px 15px;
+      border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      animation: slide-in 0.3s ease-out forwards;
+      font-size: 14px;
+    }
+    
+    .notification.success {
+      background-color: rgba(46, 204, 113, 0.2);
+      border: 1px solid rgba(46, 204, 113, 0.3);
+      color: var(--success-green);
+    }
+    
+    .notification.info {
+      background-color: rgba(52, 152, 219, 0.2);
+      border: 1px solid rgba(52, 152, 219, 0.3);
+      color: var(--brand-blue);
+    }
+    
+    .notification.warning {
+      background-color: rgba(241, 196, 15, 0.2);
+      border: 1px solid rgba(241, 196, 15, 0.3);
+      color: var(--warning-yellow);
+    }
+    
+    .notification.error {
+      background-color: rgba(231, 76, 60, 0.2);
+      border: 1px solid rgba(231, 76, 60, 0.3);
+      color: var(--danger-red);
+    }
+    
+    .notification-close {
+      background: none;
+      border: none;
+      color: inherit;
+      cursor: pointer;
+      margin-left: 10px;
+      opacity: 0.7;
+      font-size: 16px;
+    }
+    
+    .notification-close:hover {
+      opacity: 1;
+    }
+    
+    @keyframes slide-in {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    
+    @keyframes fade-out {
+      from { transform: translateX(0); opacity: 1; }
+      to { transform: translateX(100%); opacity: 0; }
+    }
+  </style>
 
   <!-- Results (initially hidden) -->
   <div id="results-container" style="display: none;">
@@ -2698,12 +2799,41 @@
     updateAnalyzeButton();
   }
 
+  // Determine which translation engine will be used based on selected languages
+  function getTranslationEngine(sourceLang, targetLang) {
+    if (!sourceLang || !targetLang) return null;
+    
+    // Get base language codes (e.g., 'en' from 'en-US')
+    const sourceBase = sourceLang.split('-')[0];
+    const targetBase = targetLang.split('-')[0];
+    
+    // DeepL supported languages (keep in sync with server.js)
+    const deeplSupportedLanguages = [
+      'bg', 'cs', 'da', 'de', 'el', 'en', 'es', 'et', 'fi', 'fr', 'hu', 'id',
+      'it', 'ja', 'ko', 'lt', 'lv', 'nb', 'nl', 'pl', 'pt', 'ro', 'ru', 'sk',
+      'sl', 'sv', 'tr', 'uk', 'zh'
+    ];
+    
+    // Check if both source and target languages are supported by DeepL
+    if (deeplSupportedLanguages.includes(sourceBase) && deeplSupportedLanguages.includes(targetBase)) {
+      return 'DeepL';
+    }
+    
+    // Google Translate supports most languages
+    return 'Google Translate';
+    
+    // Note: Claude fallback is not shown here since it's only used if both DeepL and Google fail
+  }
+  
   // Update language display when selected manually
   sourceLang.addEventListener('change', function() {
     if (sourceLang.value) {
       const flag = getLanguageFlag(sourceLang.value);
       const name = getLanguageName(sourceLang.value);
       sourceLangDetected.textContent = `Selected: ${flag} ${name}`;
+      
+      // Update translation engine info if both languages are selected
+      updateTranslationEngineInfo();
     } else {
       sourceLangDetected.textContent = '';
     }
@@ -2716,12 +2846,42 @@
       const flag = getLanguageFlag(targetLang.value);
       const name = getLanguageName(targetLang.value);
       targetLangDetected.textContent = `Selected: ${flag} ${name}`;
+      
+      // Update translation engine info if both languages are selected
+      updateTranslationEngineInfo();
     } else {
       targetLangDetected.textContent = '';
     }
-    
+
     updateAnalyzeButton();
   });
+
+  // Create a translation engine info element
+  const translationEngineInfo = document.createElement('div');
+  translationEngineInfo.className = 'translation-engine-info';
+  translationEngineInfo.style.fontSize = '12px';
+  translationEngineInfo.style.color = 'var(--text-secondary)';
+  translationEngineInfo.style.marginTop = '5px';
+  translationEngineInfo.style.fontStyle = 'italic';
+  translationEngineInfo.style.display = 'none';
+  
+  // Add it after the target language detected element
+  targetLangDetected.parentNode.insertBefore(translationEngineInfo, targetLangDetected.nextSibling);
+  
+  // Function to update the translation engine info based on selected languages
+  function updateTranslationEngineInfo() {
+    if (sourceLang.value && targetLang.value) {
+      const engine = getTranslationEngine(sourceLang.value, targetLang.value);
+      if (engine) {
+        translationEngineInfo.textContent = `Translation via: ${engine}`;
+        translationEngineInfo.style.display = 'block';
+      } else {
+        translationEngineInfo.style.display = 'none';
+      }
+    } else {
+      translationEngineInfo.style.display = 'none';
+    }
+  }
 
   // Update analyze button state based on form completeness
   function updateAnalyzeButton() {
@@ -2737,6 +2897,85 @@
   
   // Listen for translation mode changes
   document.addEventListener('translation-mode-changed', updateAnalyzeButton);
+
+  // Machine Translation functionality
+  const translateBtn = document.getElementById('translate-btn');
+  translateBtn.addEventListener('click', async () => {
+    // Check if we have source text and languages selected
+    if (!sourceText.value) {
+      showError('Please enter source text to translate');
+      return;
+    }
+    
+    if (!sourceLang.value) {
+      showError('Please select a source language');
+      return;
+    }
+    
+    if (!targetLang.value) {
+      showError('Please select a target language');
+      return;
+    }
+    
+    // Ensure we're in bilingual mode for translation
+    if (document.getElementById('translation-mode-toggle').checked) {
+      // We're in monolingual mode, switch to bilingual
+      document.getElementById('translation-mode-toggle').checked = false;
+      toggleSourceTextVisibility(false);
+      showNotification('Switched to bilingual mode for translation', 'info');
+    }
+    
+    // Show loading state
+    translateBtn.disabled = true;
+    translateBtn.innerHTML = '<span class="spinner"></span> Translating...';
+    targetText.value = 'Translating...';
+    
+    try {
+      const response = await fetch('/api/translate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          text: sourceText.value,
+          sourceLang: sourceLang.value,
+          targetLang: targetLang.value
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || data.message || 'Translation failed');
+      }
+      
+      // Update target text with translation
+      targetText.value = data.translatedText;
+      
+      // Show success notification
+      showNotification(`Translation completed using ${data.engine} engine`, 'success');
+      
+      // Update translation engine info with the actually used engine
+      translationEngineInfo.textContent = `Translation via: ${data.engine}`;
+      translationEngineInfo.style.display = 'block';
+      
+      // Update analyze button state
+      updateAnalyzeButton();
+      
+    } catch (error) {
+      console.error('Translation error:', error);
+      showError(error.message || 'Translation failed. Please try again.');
+      targetText.value = '';
+    } finally {
+      // Reset button state
+      translateBtn.disabled = false;
+      translateBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style="margin-right: 5px; vertical-align: text-bottom;">
+        <path d="M4.545 6.714 4.11 8H3l1.862-5h1.284L8 8H6.833l-.435-1.286H4.545zm1.634-.736L5.5 3.956h-.049l-.679 2.022H6.18z"/>
+        <path d="M0 2a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v3h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-3H2a2 2 0 0 1-2-2V2zm2-1a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H2zm7.138 9.995c.193.301.402.583.63.846-.748.575-1.673 1.001-2.768 1.292.178.217.451.635.555.867 1.125-.359 2.08-.844 2.886-1.494.777.665 1.739 1.165 2.93 1.472.133-.254.414-.673.629-.89-1.125-.253-2.057-.694-2.82-1.284.681-.747 1.222-1.651 1.621-2.757H14V8h-3v1.059h.5c.412 0 .74.337.74.75v.5h-.739c-.4-1.023-.918-1.805-1.541-2.543-.473.605-.914 1.173-1.284 1.729-.687-.524-1.063-1.109-1.466-1.729H5.5V7.5h2v-1H5.5V6h6V5h-2.5c-.1-.445-.324-1.775-1.5-2.5C7.146 4.013 6.773 5.111 6.5 6H4v1h1.5v.5H4v1h1.5v.5H5c-.177 0-.335.077-.442.235z"/>
+      </svg>
+      Translate`;
+    }
+  });
 
   // Helper function to escape special characters in regular expressions
   function escapeRegExp(string) {
@@ -2919,6 +3158,52 @@
   function showError(message) {
     errorMessage.textContent = message;
     errorMessage.style.display = 'block';
+  }
+  
+  // Show notification message (success, info, warning, error)
+  function showNotification(message, type = 'info', duration = 5000) {
+    const container = document.getElementById('notification-container');
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    
+    // Create notification content
+    const content = document.createElement('div');
+    content.className = 'notification-content';
+    content.textContent = message;
+    
+    // Create close button
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'notification-close';
+    closeBtn.innerHTML = '&times;';
+    closeBtn.addEventListener('click', () => {
+      notification.style.animation = 'fade-out 0.3s forwards';
+      setTimeout(() => {
+        container.removeChild(notification);
+      }, 300);
+    });
+    
+    // Add elements to notification
+    notification.appendChild(content);
+    notification.appendChild(closeBtn);
+    
+    // Add notification to container
+    container.appendChild(notification);
+    
+    // Auto-remove after duration
+    if (duration > 0) {
+      setTimeout(() => {
+        if (notification.parentNode === container) {
+          notification.style.animation = 'fade-out 0.3s forwards';
+          setTimeout(() => {
+            if (notification.parentNode === container) {
+              container.removeChild(notification);
+            }
+          }, 300);
+        }
+      }, duration);
+    }
+    
+    return notification;
   }
 
   // Find segments in text based on issue location
