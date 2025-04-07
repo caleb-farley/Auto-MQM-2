@@ -69,7 +69,16 @@ const runSchema = new mongoose.Schema({
     }
   },
   tags: [String],
-  notes: String
+  notes: String,
+  // S3 storage for Excel reports
+  excelReportUrl: {
+    type: String,
+    required: false
+  },
+  excelReportKey: {
+    type: String,
+    required: false
+  }
 });
 
 // Index for efficient user queries

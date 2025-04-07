@@ -132,4 +132,43 @@ router.get('/stats', authMiddleware.protect, isAdmin, async (req, res) => {
   }
 });
 
+// Get all runs with Excel reports
+router.get('/reports', authMiddleware.protect, isAdmin, async (req, res) => {
+  try {
+    // Find all runs that have Excel reports
+    const runs = await require('../models/Run').find({ excelReportUrl: { $exists: true, $ne: null } })
+      .sort('-timestamp')
+      .select('_id timestamp sourceLang targetLang mqmScore wordCount title excelReportUrl user');
+    
+    res.json({ success: true, runs });
+  } catch (error) {
+    console.error('Error fetching reports:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch reports', error: error.message });
+  }
+});
+
+// Get a specific run's Excel report
+router.get('/reports/:id', authMiddleware.protect, isAdmin, async (req, res) => {
+  try {
+    const run = await require('../models/Run').findById(req.params.id);
+    
+    if (!run) {
+      return res.status(404).json({ success: false, message: 'Report not found' });
+    }
+    
+    if (!run.excelReportUrl || !run.excelReportKey) {
+      return res.status(404).json({ success: false, message: 'Excel report not found for this run' });
+    }
+    
+    // Get a signed URL for the report
+    const s3Service = require('../utils/s3Service');
+    const signedUrl = await s3Service.getSignedUrl(run.excelReportKey);
+    
+    res.json({ success: true, url: signedUrl });
+  } catch (error) {
+    console.error('Error fetching report:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch report', error: error.message });
+  }
+});
+
 module.exports = router;

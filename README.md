@@ -2,10 +2,6 @@
 
 **Auto-MQM** is an advanced, AI-powered translation quality analysis tool designed for professional use in localization and content QA workflows. Built with a sleek UI and powered by LLMs, it provides users with accurate and automated translation quality assessments using the [MQM framework](https://themqm.org/).
 
-## 🌍 Overview
-
-FastFin supports both **bilingual** and **monolingual** modes, allowing you to assess translation accuracy, fluency, and terminology across a wide range of languages. It also integrates with Excel templates for structured QA documentation and supports usage tracking and subscription plans through Stripe.
-
 ## ✨ Features
 
 - 🔍 **Translation Quality Analysis** using Multidimensional Quality Metrics (MQM)
@@ -14,6 +10,7 @@ FastFin supports both **bilingual** and **monolingual** modes, allowing you to a
 - 📊 **Score Calculation** with breakdown by issue type
 - ✅ **Accept/Reject UI** for translation issues
 - 📥 **Excel Upload Support** for batch processing
+- 📊 **S3 Report Storage** for Excel reports with secure access
 - 🔐 **Secure Authentication** with email verification and password reset
 - 💳 **Stripe Integration** for subscriptions and usage-based access
 - 🧪 **Model Selection** and cached result retrieval
@@ -122,3 +119,39 @@ EMAIL_SECURE=false
 EMAIL_USER=your_email@example.com
 EMAIL_PASSWORD=your_email_password
 EMAIL_FROM=noreply@auto-mqm.com
+
+# AWS S3 Configuration for Report Storage
+AWS_ACCESS_KEY_ID=your_aws_access_key_id
+AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
+AWS_REGION=us-east-1
+AWS_S3_BUCKET=your-auto-mqm-bucket
+
+## 📊 Excel Report Storage
+
+Auto-MQM includes an integrated S3 storage system for Excel reports, providing secure access to quality assessment results from both the dashboard and admin panel.
+
+### Features
+
+- **Persistent Storage**: Excel reports are automatically uploaded to S3 when generated
+- **Secure Access**: Reports are accessible only to authorized users via signed URLs
+- **Dashboard Integration**: Users can download their reports directly from the dashboard
+- **Admin Management**: Administrators can access all reports through the admin panel
+- **Regeneration**: Reports can be regenerated if needed
+
+### How It Works
+
+1. When a user requests an Excel report, the system first checks if it already exists in S3
+2. If the report exists, a secure signed URL is generated for temporary access
+3. If the report doesn't exist, it's generated on-the-fly, uploaded to S3, and then served to the user
+4. The S3 URL and key are stored in the database for future reference
+
+### Configuration
+
+To enable S3 storage for Excel reports, configure the following environment variables:
+
+```
+AWS_ACCESS_KEY_ID=your_aws_access_key_id
+AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
+AWS_REGION=us-east-1
+AWS_S3_BUCKET=your-auto-mqm-bucket
+```

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const runController = require('../controllers/runController');
+const reportController = require('../controllers/reportController');
 const authMiddleware = require('../middleware/authMiddleware');
 
 // Routes that require authentication
@@ -46,6 +47,19 @@ router.get(
   '/:runId',
   authMiddleware.optionalAuth,
   runController.getRunById
+);
+
+// Excel report routes
+router.get(
+  '/:runId/excel-report',
+  authMiddleware.optionalAuth,
+  reportController.getExcelReport
+);
+
+router.get(
+  '/:runId/regenerate-excel-report',
+  authMiddleware.optionalAuth,
+  reportController.regenerateExcelReport
 );
 
 module.exports = router;

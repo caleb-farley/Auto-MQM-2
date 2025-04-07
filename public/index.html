@@ -7,7 +7,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <!-- Stripe Elements script (only loaded when needed) -->
   <meta name="stripe-public-key" content="pk_test_your_stripe_public_key_here">
-  <script src="https://js.stripe.com/v3/" async></script>
+  <script src="js/utils.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/excelReports.js"></script>
   <!-- Auth components script -->
   <script src="/auth-components.js" defer></script>
   <style>
@@ -6280,6 +6282,7 @@ correctedText.removeAttribute('readonly');
                 </div>
                 <div class="run-actions">
                   <button class="run-action-btn" onclick="viewRun('${run._id}')">View</button>
+                  <button class="run-action-btn" onclick="downloadExcelReport('${run._id}')">Excel</button>
                   <button class="run-action-btn" onclick="deleteRun('${run._id}')">Delete</button>
                 </div>
               </div>

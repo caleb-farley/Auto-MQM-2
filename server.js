@@ -873,6 +873,9 @@ function segmentText(text) {
   return processedSegments;
 }
 
+// Import S3 service
+const s3Service = require('./utils/s3Service');
+
 // Excel report download endpoint
 app.get('/api/download-report/:id/excel', authMiddleware.optionalAuth, async (req, res) => {
   try {
@@ -890,6 +893,18 @@ app.get('/api/download-report/:id/excel', authMiddleware.optionalAuth, async (re
 
     if (!run.user && run.anonymousSessionId && run.anonymousSessionId !== req.cookies.anonymousSessionId) {
       return res.status(403).json({ error: 'You do not have permission to access this report' });
+    }
+    
+    // Check if report already exists in S3 and redirect to it (unless force=true is specified)
+    if (run.excelReportUrl && req.query.force !== 'true') {
+      // If the report is already in S3, generate a signed URL and redirect
+      try {
+        const signedUrl = await s3Service.getSignedUrl(run.excelReportKey);
+        return res.redirect(signedUrl);
+      } catch (s3Error) {
+        console.error('Error getting signed URL, falling back to generating report:', s3Error);
+        // If there's an error with S3, fall back to generating the report directly
+      }
     }
     
     const workbook = new ExcelJS.Workbook();
@@ -1052,8 +1067,32 @@ app.get('/api/download-report/:id/excel', authMiddleware.optionalAuth, async (re
       row.getCell('corrected').alignment = { wrapText: true };
     }
     
-    // Generate buffer and send response
+    // Generate buffer
     const buffer = await workbook.xlsx.writeBuffer();
+    
+    // Upload to S3 if environment variables are configured
+    if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY && process.env.AWS_S3_BUCKET) {
+      try {
+        // Create a unique key for the file
+        const key = `reports/${run._id}/${Date.now()}_mqm_report.xlsx`;
+        
+        // Upload the buffer to S3
+        const url = await s3Service.uploadBuffer(buffer, key);
+        
+        // Update the run with the S3 URL and key
+        run.excelReportUrl = url;
+        run.excelReportKey = key;
+        await run.save();
+        
+        // Redirect to the S3 URL
+        return res.redirect(url);
+      } catch (s3Error) {
+        console.error('Error uploading to S3, falling back to direct download:', s3Error);
+        // Fall back to direct download if S3 upload fails
+      }
+    }
+    
+    // If S3 upload fails or is not configured, send the file directly
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename=mqm_report_${run._id}.xlsx`);
     res.send(buffer);
