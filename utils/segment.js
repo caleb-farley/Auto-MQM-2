@@ -272,6 +272,13 @@ async function parseTMX(fileBuffer) {
           if (!sourceLangCode) sourceLangCode = langCode;
           if (!targetLangCode) targetLangCode = langCode;
         }
+        
+        // If we have source but no target, use source as target for monolingual analysis
+        if (sourceText && !targetText) {
+          console.log('Target text missing, using source text for monolingual analysis');
+          targetText = sourceText;
+          if (!targetLangCode) targetLangCode = sourceLangCode;
+        }
       });
       
       // Default to English if language codes are missing
@@ -288,7 +295,7 @@ async function parseTMX(fileBuffer) {
     }).filter(segment => segment !== null);
     
     if (segments.length === 0) {
-      throw new Error('No valid segments found in TMX file');
+      throw new Error('No valid segments found in TMX file. Please check the file format.');
     }
     
     console.log(`Successfully extracted ${segments.length} segments from TMX file`);
