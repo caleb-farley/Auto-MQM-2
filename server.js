@@ -624,6 +624,11 @@ const { Readable } = require('stream');
 app.get('/api/download-report/:id/pdf', authMiddleware.optionalAuth, async (req, res) => {
   try {
     const run = await Run.findById(req.params.id);
+    // Check if run exists first
+    if (!run) {
+      return res.status(404).json({ error: 'Report not found' });
+    }
+    
     // Check authorization
     if (run.user && req.user && (run.user.toString() !== req.user.id && req.user.accountType !== 'admin')) {
       return res.status(403).json({ error: 'You do not have permission to access this report' });
@@ -631,9 +636,6 @@ app.get('/api/download-report/:id/pdf', authMiddleware.optionalAuth, async (req,
 
     if (!run.user && run.anonymousSessionId && run.anonymousSessionId !== req.cookies.anonymousSessionId) {
       return res.status(403).json({ error: 'You do not have permission to access this report' });
-    }
-    if (!run) {
-      return res.status(404).json({ error: 'Report not found' });
     }
 
     const doc = new PDFDocument();
@@ -698,7 +700,7 @@ app.post('/api/upload-excel',
   authMiddleware.checkUsageLimit,
   authMiddleware.trackUsage,
   async (req, res) => {
-  try {
+    try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
@@ -898,115 +900,7 @@ app.post('/api/upload-excel',
     }
     
     // Construct prompt for Claude using MQM framework (same as in /api/mqm-analysis)
-    const prompt = `
-You are a localization QA expert using the MQM (Multidimensional Quality Metrics) framework to evaluate translations. Please analyze the following source and target text pair and provide a detailed quality assessment.
-
-IMPORTANT GUIDELINES FOR OBJECTIVE ASSESSMENT:
-1. ONLY analyze the EXACT text provided in the submission. Do NOT invent or hallucinate errors that don't actually exist in the text.
-2. If you don't find any genuine errors, return an empty mqmIssues array. Never fabricate issues.
-3. For each issue identified, provide SPECIFIC EVIDENCE from the text - quote the exact problematic section.
-4. Distinguish between objective errors and subjective stylistic preferences. Focus primarily on clear errors.
-5. Consider language-specific conventions and cultural context when evaluating translations.
-6. For each issue, assign a confidence level (HIGH, MEDIUM, LOW) based on how certain you are about the error.
-7. Compare corresponding sections of source and target to verify actual translation issues.
-8. Respect domain-specific terminology and conventions that may appear non-standard in general language.
-9. When multiple interpretations are possible, select the most charitable interpretation that makes sense in context.
-10. Evaluate the translation based on its communicative purpose, not just literal accuracy.
-
-Source language: ${sourceLang}
-Target language: ${targetLang}
-
-Source text:
-"""
-${sourceText}
-"""
-
-Target text:
-"""
-${targetText}
-"""
-
-Perform a detailed MQM analysis using the following error categories, but only if you find actual errors with concrete evidence:
-1. Accuracy
-   - Mistranslation: Content in target language that misrepresents source content
-   - Omission: Content missing from translation that is present in source
-   - Addition: Content added to translation that is not present in source
-   - Untranslated: Source content not translated that should be
-
-2. Fluency
-   - Grammar: Issues related to grammar, syntax, or morphology
-   - Spelling: Spelling errors or typos
-   - Punctuation: Incorrect or inconsistent punctuation
-   - Typography: Issues with formatting, capitalization, or other typographical elements
-   
-3. Terminology
-   - Inconsistent: Terminology used inconsistently within the text
-   - Inappropriate: Wrong terms used for the context or domain
-
-4. Style
-   - Awkward: Translation sounds unnatural or awkward
-   - Cultural: Cultural references incorrectly adapted
-
-5. Design
-   - Length: Target text is too long or too short relative to space constraints
-   - Markup/Code: Issues with tags, placeholders, or code elements
-
-For each issue found, provide:
-- Category and subcategory
-- Severity (Minor=1, Major=5, Critical=10)
-- Explanation
-- Location (if possible, provide specific information like character positions or word indices)
-- The exact problematic text segment from the target translation
-- A suggested fix (textual description of what needs to be changed)
-- A fully corrected version of the entire segment with the fix applied
-- Provide the exact **start and end character positions** of the segment in the target text.
-
-Also provide an MQM score calculated as:
-MQM Score = 100 - (sum of error points / word count * 100)
-Where:
-- Minor issues = 1 point
-- Major issues = 5 points
-- Critical issues = 10 points
-
-Return ONLY valid JSON without any other text. Use this exact structure:
-{
-  "mqmIssues": [
-    {
-      "category": "Accuracy",
-      "subcategory": "Mistranslation",
-      "severity": "MAJOR",
-      "explanation": "...",
-      "location": "...",
-      "segment": "...",
-      "suggestion": "...",
-      "correctedSegment": "...",
-      "startIndex": 45,
-      "endIndex": 68
-    },
-    ...
-  ],
-  "categories": {
-    "Accuracy": { "count": 0, "points": 0 },
-    "Fluency": { "count": 0, "points": 0 },
-    "Terminology": { "count": 0, "points": 0 },
-    "Style": { "count": 0, "points": 0 },
-    "Design": { "count": 0, "points": 0 }
-  },
-  "wordCount": 120,
-  "overallScore": 95,
-  "summary": "..."
-}
-
-For the location field, try to be as specific as possible. Preferred format is:
-- For specific words: "Word 5-7 in sentence 2" or "Characters 120-135"
-- For sentences: "Sentence 3 in paragraph 2"
-- For paragraphs: "Paragraph 4"
-
-For the segment field, include ONLY the exact problematic text from the target translation.
-For the correctedSegment field, provide the complete fixed version of the segment with all corrections applied.
-
-For example, if the segment is "The internationale women day" and the issue is terminology inconsistency, then correctedSegment might be "La journée internationale des femmes".
-`;
+    const prompt = "You are a localization QA expert using the MQM (Multidimensional Quality Metrics) framework to evaluate translations. Please analyze the following source and target text pair and provide a detailed quality assessment.\n\nIMPORTANT GUIDELINES FOR OBJECTIVE ASSESSMENT:\n1. ONLY analyze the EXACT text provided in the submission. Do NOT invent or hallucinate errors that don't actually exist in the text.\n2. If you don't find any genuine errors, return an empty mqmIssues array. Never fabricate issues.\n3. For each issue identified, provide SPECIFIC EVIDENCE from the text - quote the exact problematic section.\n4. Distinguish between objective errors and subjective stylistic preferences. Focus primarily on clear errors.\n5. Consider language-specific conventions and cultural context when evaluating translations.\n6. For each issue, assign a confidence level (HIGH, MEDIUM, LOW) based on how certain you are about the error.\n7. Compare corresponding sections of source and target to verify actual translation issues.\n8. Respect domain-specific terminology and conventions that may appear non-standard in general language.\n9. When multiple interpretations are possible, select the most charitable interpretation that makes sense in context.\n10. Evaluate the translation based on its communicative purpose, not just literal accuracy.\n\nSource language: " + sourceLang + "\nTarget language: " + targetLang + "\n\nSource text:\n\"\"\"\n" + sourceText + "\n\"\"\"\n\nTarget text:\n\"\"\"\n" + targetText + "\n\"\"\"\n\nPerform a detailed MQM analysis using the following error categories, but only if you find actual errors with concrete evidence:\n1. Accuracy\n   - Mistranslation: Content in target language that misrepresents source content\n   - Omission: Content missing from translation that is present in source\n   - Addition: Content added to translation that is not present in source\n   - Untranslated: Source content not translated that should be\n\n2. Fluency\n   - Grammar: Issues related to grammar, syntax, or morphology\n   - Spelling: Spelling errors or typos\n   - Punctuation: Incorrect or inconsistent punctuation\n   - Typography: Issues with formatting, capitalization, or other typographical elements\n   \n3. Terminology\n   - Inconsistent: Terminology used inconsistently within the text\n   - Inappropriate: Wrong terms used for the context or domain\n\n4. Style\n   - Awkward: Translation sounds unnatural or awkward\n   - Cultural: Cultural references incorrectly adapted\n\n5. Design\n   - Length: Target text is too long or too short relative to space constraints\n   - Markup/Code: Issues with tags, placeholders, or code elements\n\nFor each issue found, provide:\n- Category and subcategory\n- Severity (Minor=1, Major=5, Critical=10)\n- Explanation\n- Location (if possible, provide specific information like character positions or word indices)\n- The exact problematic text segment from the target translation\n- A suggested fix (textual description of what needs to be changed)\n- A fully corrected version of the entire segment with the fix applied (this is critical as it will be displayed to users)\n- Provide the exact **start and end character positions** of the segment in the target text.\n\nAlso provide an MQM score calculated as:\nMQM Score = 100 - (sum of error points / word count * 100)\nWhere:\n- Minor issues = 1 point\n- Major issues = 5 points\n- Critical issues = 10 points\n\nReturn ONLY valid JSON without any other text. Use this exact structure:\n{\n  \"mqmIssues\": [\n    {\n      \"category\": \"Accuracy\",\n      \"subcategory\": \"Mistranslation\",\n      \"severity\": \"MAJOR\",\n      \"explanation\": \"...\",\n      \"location\": \"...\",\n      \"segment\": \"...\",\n      \"suggestion\": \"...\",\n      \"correctedSegment\": \"...\",\n      \"startIndex\": 45,\n      \"endIndex\": 68\n    },\n    ...\n  ],\n  \"categories\": {\n    \"Accuracy\": { \"count\": 0, \"points\": 0 },\n    \"Fluency\": { \"count\": 0, \"points\": 0 },\n    \"Terminology\": { \"count\": 0, \"points\": 0 },\n    \"Style\": { \"count\": 0, \"points\": 0 },\n    \"Design\": { \"count\": 0, \"points\": 0 }\n  },\n  \"wordCount\": 120,\n  \"overallScore\": 95,\n  \"summary\": \"...\"\n}\n\nFor the location field, try to be as specific as possible. Preferred format is:\n- For specific words: \"Word 5-7 in sentence 2\" or \"Characters 120-135\"\n- For sentences: \"Sentence 3 in paragraph 2\"\n- For paragraphs: \"Paragraph 4\"\n\nFor the segment field, include ONLY the exact problematic text from the target translation.\nFor the correctedSegment field, provide the complete fixed version of the segment with all corrections applied. This corrected segment will be displayed directly to users, so ensure it maintains the full context and represents a high-quality correction.";
 
     // Call Claude API
     const response = await axios.post(
@@ -1143,12 +1037,13 @@ For example, if the segment is "The internationale women day" and the issue is t
       return res.status(500).json({ error: 'Could not parse analysis results' });
     }
 
-  } catch (error) {
-    console.error('Excel upload error:', error);
-    return res.status(500).json({ 
-      error: 'Failed to process Excel file',
-      message: error.message
-    });
+    } catch (error) {
+      console.error('Excel upload error:', error);
+      return res.status(500).json({ 
+        error: 'Failed to process Excel file',
+        message: error.message
+      });
+    }
   }
 });
 
