@@ -221,6 +221,13 @@
       margin-top: 5px;
     }
 
+    .translation-toggle {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+  }
+
     /* Stripe Elements */
     .StripeElement {
       background-color: var(--bg-input);
@@ -1535,6 +1542,42 @@
         </p>
       </div>
         
+    <!-- Translation Type Toggle -->
+    <div class="translation-toggle" style="margin-bottom: 12px;">
+      <label class="text-area-label" for="translation-mode">
+        Translation Type
+        <span title="Bilingual: requires source and target text. Monolingual: only target text is required." style="cursor: help; margin-left: 6px;">&#9432;</span>
+      </label>
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <label style="display: flex; align-items: center; gap: 6px;">
+          <input type="radio" name="translation-mode" value="bilingual" checked />
+          Bilingual
+        </label>
+        <label style="display: flex; align-items: center; gap: 6px;">
+          <input type="radio" name="translation-mode" value="monolingual" />
+          Monolingual
+        </label>
+      </div>
+      </div>
+        
+    <!-- Translation Type Toggle -->
+    <div class="translation-toggle" style="margin-bottom: 12px;">
+      <label class="text-area-label" for="translation-mode">
+        Translation Type
+        <span title="Bilingual: requires source and target text. Monolingual: only target text is required." style="cursor: help; margin-left: 6px;">&#9432;</span>
+      </label>
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <label style="display: flex; align-items: center; gap: 6px;">
+          <input type="radio" name="translation-mode" value="bilingual" checked />
+          Bilingual
+        </label>
+        <label style="display: flex; align-items: center; gap: 6px;">
+          <input type="radio" name="translation-mode" value="monolingual" />
+          Monolingual
+        </label>
+      </div>
+    </div>
+    
     <!-- Text areas -->
     <div class="text-areas">
       <!-- Source text -->
@@ -1617,7 +1660,7 @@
             <option value="sl">🇸🇮 Slovenian</option>
             <option value="et">🇪🇪 Estonian</option>
             <option value="lv">🇱🇻 Latvian</option>
-            <option value="lt">🇱🇹 Lithuanian</option>            
+            <option value="lt">🇱🇹 Lithuanian</option>
           </select>
         </div>
         <textarea id="source-text" placeholder="Enter the original text..."></textarea>
@@ -1630,23 +1673,6 @@
     <button id="save-run-btn" class="btn btn-secondary" style="display: none;">Save Assessment</button>
       <!-- Target text -->
       <div class="text-area-container">
-        <!-- Translation Type Toggle -->
-        <div class="text-area-header" style="margin-bottom: 12px;">
-          <label class="text-area-label" for="translation-mode">
-            Translation Type
-            <span title="Bilingual: requires source and target text. Monolingual: only target text is required." style="cursor: help; margin-left: 6px;">&#9432;</span>
-          </label>
-          <div style="display: flex; gap: 10px; align-items: center;">
-            <label style="display: flex; align-items: center; gap: 6px;">
-              <input type="radio" name="translation-mode" value="bilingual" checked />
-              Bilingual
-            </label>
-            <label style="display: flex; align-items: center; gap: 6px;">
-              <input type="radio" name="translation-mode" value="monolingual" />
-              Monolingual
-            </label>
-          </div>
-        </div>
         <div class="text-area-header">
           <label class="text-area-label">Target Text:</label>
           <select id="target-lang">
