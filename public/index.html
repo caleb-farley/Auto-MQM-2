@@ -1639,7 +1639,12 @@
     <div class="translation-toggle" style="display: flex; align-items: center;">
       <label class="text-area-label gothic-title" for="translation-mode" style="font-size: 18px; font-weight: 600;">
         Translation Type
-        <span title="Bilingual: requires source and target text. Monolingual: only target text is required." style="cursor: help; margin-left: 6px;">&#9432;</span>
+        <span class="info-icon" style="cursor: help; margin-left: 6px; position: relative;" onmouseover="this.querySelector('.tooltip-text').style.visibility='visible'" onmouseout="this.querySelector('.tooltip-text').style.visibility='hidden'">&#9432;
+          <span class="tooltip-text" style="visibility: hidden; width: 240px; background-color: #333; color: #fff; text-align: center; border-radius: 6px; padding: 8px; position: absolute; z-index: 1; bottom: 125%; left: 50%; margin-left: -120px; font-size: 12px; font-weight: normal; text-transform: none; letter-spacing: normal; font-family: 'Inter', sans-serif;">
+            Bilingual: requires source and target text.<br>
+            Monolingual: only target text is required.
+          </span>
+        </span>
       </label>
       
       <div class="toggle-switch-container" style="display: flex; align-items: center; gap: 8px; margin-left: 16px;">
@@ -1660,24 +1665,26 @@
     const translationToggle = document.getElementById('translation-mode-toggle');
     const bilingualRadio = document.querySelector('input[name="translation-mode"][value="bilingual"]');
     const monolingualRadio = document.querySelector('input[name="translation-mode"][value="monolingual"]');
-    // Get the source text container more reliably
-    const sourceTextContainer = document.querySelector('.text-areas > .text-area-container:first-child');
-    
     // Function to toggle source text visibility
     function toggleSourceTextVisibility(isMonolingual) {
+      // Get the source text container directly when function is called
+      const sourceTextContainer = document.querySelector('.text-areas > div:first-child');
       console.log('Toggle called with isMonolingual:', isMonolingual);
       console.log('Source container found:', sourceTextContainer);
       
       if (sourceTextContainer) {
         if (isMonolingual) {
+          // Force display none for monolingual mode
           sourceTextContainer.style.display = 'none';
-          // Also update the analyze button validation
-          document.dispatchEvent(new Event('translation-mode-changed'));
         } else {
-          sourceTextContainer.style.display = 'flex';
-          // Also update the analyze button validation
-          document.dispatchEvent(new Event('translation-mode-changed'));
+          // Force display block for bilingual mode
+          sourceTextContainer.style.display = 'block';
         }
+        
+        // Force immediate update of the analyze button validation
+        setTimeout(function() {
+          updateAnalyzeButton();
+        }, 0);
       }
     }
     
@@ -1687,6 +1694,12 @@
       // Set initial visibility based on current toggle state
       toggleSourceTextVisibility(translationToggle.checked);
     }
+    
+    // Call the toggle function on page load to set initial state
+    window.addEventListener('DOMContentLoaded', function() {
+      // Force an initial toggle based on current state
+      toggleSourceTextVisibility(translationToggle.checked);
+    });
     
     // Handle toggle changes
     translationToggle.addEventListener('change', function() {
@@ -1699,8 +1712,11 @@
           monolingualRadio.checked = false;
         }
         
-        // Update UI based on toggle state
+        // Update UI based on toggle state - force immediate update
         toggleSourceTextVisibility(this.checked);
+        
+        // Also update the analyze button state
+        updateAnalyzeButton();
         
         // Trigger change event on radio buttons to ensure any existing handlers work
         const event = new Event('change');
@@ -1710,6 +1726,19 @@
           bilingualRadio.dispatchEvent(event);
         }
       }
+    });
+    
+    // Add a direct click handler to the toggle labels to improve usability
+    document.querySelectorAll('.toggle-switch-container > span').forEach(function(label) {
+      label.addEventListener('click', function() {
+        if (this.textContent.trim() === 'Bilingual') {
+          translationToggle.checked = false;
+        } else if (this.textContent.trim() === 'Monolingual') {
+          translationToggle.checked = true;
+        }
+        // Trigger the change event
+        translationToggle.dispatchEvent(new Event('change'));
+      });
     });
   });
 </script>      
