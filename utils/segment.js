@@ -251,12 +251,26 @@ async function parseTMX(fileBuffer) {
         const langCode = normalizeLanguageCode(rawLangCode || 'en');
         const segText = tuv.seg && (typeof tuv.seg === 'string' ? tuv.seg : tuv.seg._);
         
-        if (langCode === normalizeLanguageCode(sourceLang) || !targetLangCode) {
+        // Check if this is the source language or if we haven't found a source yet
+        if (langCode === normalizeLanguageCode(sourceLang) || !sourceLangCode) {
           sourceText = segText || '';
           sourceLangCode = langCode;
         } else {
+          // If we already have a source language, treat this as target
           targetText = segText || '';
           targetLangCode = langCode;
+        }
+        
+        // Log the segment text for debugging
+        console.log(`Found segment with lang=${langCode}, text length=${segText?.length || 0}`);
+        
+        // If we only have one language variant, use it for both source and target
+        if (tuvArray.length === 1) {
+          console.log('Only one language variant found, using for both source and target');
+          sourceText = segText || '';
+          targetText = segText || '';
+          if (!sourceLangCode) sourceLangCode = langCode;
+          if (!targetLangCode) targetLangCode = langCode;
         }
       });
       
@@ -371,16 +385,33 @@ async function parseXLIFF(fileBuffer) {
             return;
           }
           
-          if (unit.source !== undefined && (unit.target !== undefined || unit.target === '')) {
+          // Accept segments even if they only have source
+          if (unit.source !== undefined) {
+            // If target is missing but source exists, use source as target
+            const targetText = (unit.target !== undefined) ? unit.target : unit.source;
+            
+            console.log(`XLIFF segment: source length=${(unit.source || '').length}, target length=${(targetText || '').length}`);
+            
             segments.push({
               segment_id: segmentId++,
               source: unit.source || '',
+              target: targetText || '',
+              sourceLang,
+              targetLang
+            });
+          } else if (unit.target !== undefined) {
+            // If only target exists, use it for both source and target
+            console.log(`XLIFF segment with only target: length=${(unit.target || '').length}`);
+            
+            segments.push({
+              segment_id: segmentId++,
+              source: unit.target || '',
               target: unit.target || '',
               sourceLang,
               targetLang
             });
           } else {
-            console.warn(`Skipping unit missing source or target: ${unitKey}`);
+            console.warn(`Skipping unit missing both source and target: ${unitKey}`);
           }
         });
       });

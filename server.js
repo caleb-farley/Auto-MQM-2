@@ -464,8 +464,15 @@ app.post('/api/mqm-analysis',
   async (req, res) => {
     try {
       const { sourceText, targetText, sourceLang, targetLang, mode, llmModel, fileBuffer, fileType } = req.body;
-      const isMonolingual = mode === 'monolingual';
       const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress;
+      
+      // Define these variables so they're accessible throughout the function
+      let isMonolingual = mode === 'monolingual';
+      let processedSourceText = sourceText;
+      let processedTargetText = targetText;
+      let processedSourceLang = sourceLang;
+      let processedTargetLang = targetLang;
+      let originalFileName = null;
       
       // Validate file upload parameters
       if (fileBuffer) {
@@ -488,11 +495,6 @@ app.post('/api/mqm-analysis',
         });
       
         // Extract source and target text from segments if file was uploaded
-      let processedSourceText = sourceText;
-      let processedTargetText = targetText;
-      let processedSourceLang = sourceLang;
-      let processedTargetLang = targetLang;
-      let originalFileName = null;
       
       // If segments were obtained from a file, extract the text
       if (fileBuffer && segments && segments.length > 0) {
@@ -502,9 +504,20 @@ app.post('/api/mqm-analysis',
         processedSourceText = segments.map(segment => segment.source || '').join('\n');
         processedTargetText = segments.map(segment => segment.target || '').join('\n');
         
-        // Validate that we have content to analyze
-        if (!processedTargetText || processedTargetText.trim() === '') {
-          return res.status(400).json({ error: 'No target text found in the uploaded file. Please check the file format.' });
+        // Log the processed text for debugging
+        console.log(`Processed source text length: ${processedSourceText?.length || 0}`);
+        console.log(`Processed target text length: ${processedTargetText?.length || 0}`);
+        
+        // If we have no target text but have source text, use source as target for monolingual analysis
+        if ((!processedTargetText || processedTargetText.trim() === '') && processedSourceText && processedSourceText.trim() !== '') {
+          console.log('No target text found, but source text exists. Using source text as target for analysis.');
+          processedTargetText = processedSourceText;
+          isMonolingual = true; // Force monolingual mode
+        }
+        
+        // Only validate if we still have no usable text after the above adjustment
+        if ((!processedSourceText || processedSourceText.trim() === '') && (!processedTargetText || processedTargetText.trim() === '')) {
+          return res.status(400).json({ error: 'No text content found in the uploaded file. Please check the file format.' });
         }
         
         // Use language codes from segments if available
@@ -531,10 +544,15 @@ app.post('/api/mqm-analysis',
           originalFileName = req.body.fileName;
         }
         
-        // Force bilingual mode for file uploads
-        if (isMonolingual && fileBuffer) {
-          console.log('Forcing bilingual mode for file upload');
-          isMonolingual = false;
+        // Only force bilingual mode if we have both source and target text
+        if (isMonolingual && fileBuffer && processedSourceText && processedSourceText.trim() !== '') {
+          // Only force bilingual mode if we have distinct source and target text
+          if (processedSourceText !== processedTargetText) {
+            console.log('Forcing bilingual mode for file upload with distinct source and target');
+            isMonolingual = false;
+          } else {
+            console.log('Keeping monolingual mode for file upload with identical source and target');
+          }
         }
         
         // Store the original file in S3 if configured
