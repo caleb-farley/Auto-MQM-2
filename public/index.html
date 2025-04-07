@@ -1073,6 +1073,35 @@
     color: var(--severity-critical);
     border: 1px solid rgba(255, 107, 107, 0.3);
   }
+  
+  /* Language bubble animation */
+  .language-bubble {
+    position: absolute;
+    top: -40px;
+    right: 20px;
+    background-color: #ffcce0;
+    color: #ff3366;
+    padding: 8px 12px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    z-index: 10;
+    animation: bounce 2s infinite;
+    transform-origin: bottom center;
+  }
+  
+  @keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {
+      transform: translateY(0);
+    }
+    40% {
+      transform: translateY(-10px);
+    }
+    60% {
+      transform: translateY(-5px);
+    }
+  }
 
   .success {
     background-color: var(--bg-success);
@@ -2100,6 +2129,7 @@
           <div style="display: flex; align-items: center;">
             <label class="text-area-label" id="target-text-label" style="margin-right: 10px;">Target Text:</label>
           </div>
+          <div id="target-lang-bubble" class="language-bubble">Please select a target language</div>
           <select id="target-lang">
             <option value="">-- Select Language --</option>
             <option value="en">🇬🇧 English</option>
@@ -2947,6 +2977,14 @@
     // Note: Claude fallback is not shown here since it's only used if both DeepL and Google fail
   }
   
+  // Hide language bubble when target language is selected
+  targetLang.addEventListener('change', function() {
+    const targetLangBubble = document.getElementById('target-lang-bubble');
+    if (targetLang.value && targetLangBubble) {
+      targetLangBubble.style.display = 'none';
+    }
+  });
+
   // Update language display when selected manually
   sourceLang.addEventListener('change', function() {
     if (sourceLang.value) {
