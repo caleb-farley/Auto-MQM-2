@@ -467,17 +467,27 @@ app.post('/api/mqm-analysis',
       const isMonolingual = mode === 'monolingual';
       const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress;
       
-      // Use the segmentation utility to get segments
-      const segments = await getSegments({
-        sourceText,
-        targetText,
-        sourceLang,
-        targetLang,
-        fileBuffer,
-        fileType
-      });
+      // Validate file upload parameters
+      if (fileBuffer) {
+        console.log(`Received file upload request: type=${fileType}, size=${typeof fileBuffer === 'string' ? fileBuffer.length : 'unknown'}`);
+        
+        if (!fileType || (fileType !== 'tmx' && fileType !== 'xliff')) {
+          return res.status(400).json({ error: 'Invalid file type. Only TMX and XLIFF files are supported.' });
+        }
+      }
       
-      // Extract source and target text from segments if file was uploaded
+      // Use the segmentation utility to get segments
+      try {
+        const segments = await getSegments({
+          sourceText,
+          targetText,
+          sourceLang,
+          targetLang,
+          fileBuffer,
+          fileType
+        });
+      
+        // Extract source and target text from segments if file was uploaded
       let processedSourceText = sourceText;
       let processedTargetText = targetText;
       let processedSourceLang = sourceLang;
@@ -489,8 +499,13 @@ app.post('/api/mqm-analysis',
         console.log(`Successfully parsed file with ${segments.length} segments`);
         
         // Combine all segments into a single text
-        processedSourceText = segments.map(segment => segment.source).join('\n');
-        processedTargetText = segments.map(segment => segment.target).join('\n');
+        processedSourceText = segments.map(segment => segment.source || '').join('\n');
+        processedTargetText = segments.map(segment => segment.target || '').join('\n');
+        
+        // Validate that we have content to analyze
+        if (!processedTargetText || processedTargetText.trim() === '') {
+          return res.status(400).json({ error: 'No target text found in the uploaded file. Please check the file format.' });
+        }
         
         // Use language codes from segments if available
         if (segments[0].sourceLang) {
@@ -532,8 +547,25 @@ app.post('/api/mqm-analysis',
             const key = `uploads/${fileName}`;
             
             // Convert base64 string to buffer if needed
-            const buffer = typeof fileBuffer === 'string' ? 
-              Buffer.from(fileBuffer, 'base64') : fileBuffer;
+            let buffer;
+            try {
+              if (typeof fileBuffer === 'string') {
+                // If it's a base64 string, convert to Buffer
+                buffer = Buffer.from(fileBuffer, 'base64');
+                console.log(`Successfully converted base64 string to buffer for S3, size: ${buffer.length} bytes`);
+              } else {
+                // If it's already a Buffer, use it directly
+                buffer = fileBuffer;
+                console.log(`Using provided buffer directly for S3, size: ${buffer.length} bytes`);
+              }
+            } catch (bufferError) {
+              console.error('Error converting file buffer for S3:', bufferError);
+              throw new Error(`Failed to process file buffer for S3: ${bufferError.message}`);
+            }
+            
+            if (!buffer || buffer.length === 0) {
+              throw new Error('Empty or invalid file buffer for S3 upload');
+            }
               
             fileUrl = await s3Service.uploadBuffer(buffer, key);
             console.log(`Uploaded file to S3: ${fileUrl}`);
@@ -544,6 +576,12 @@ app.post('/api/mqm-analysis',
         }
         
         console.log(`Extracted ${segments.length} segments from ${fileType} file`);
+      }
+      
+      // Close the try block that was opened for getSegments
+      } catch (segmentError) {
+        console.error('Error processing file:', segmentError);
+        return res.status(400).json({ error: `Failed to process file: ${segmentError.message}` });
       }
       
       // Default to Claude-3-Sonnet if no model is specified

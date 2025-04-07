@@ -185,26 +185,70 @@ function segmentText(text, langCode) {
  */
 async function parseTMX(fileBuffer) {
   try {
+    console.log('Starting TMX parsing, buffer size:', fileBuffer.length);
+    
+    // Validate input
+    if (!fileBuffer || fileBuffer.length === 0) {
+      throw new Error('Empty TMX file buffer');
+    }
+    
+    // Try to convert buffer to string safely
+    let xmlString;
+    try {
+      xmlString = fileBuffer.toString('utf8');
+      console.log('TMX file converted to string, length:', xmlString.length);
+      
+      // Basic XML validation check
+      if (!xmlString.includes('<tmx') || !xmlString.includes('</tmx>')) {
+        throw new Error('File does not appear to be a valid TMX file');
+      }
+    } catch (strError) {
+      console.error('Error converting TMX buffer to string:', strError);
+      throw new Error(`Invalid TMX file encoding: ${strError.message}`);
+    }
+    
     const parser = new xml2js.Parser({ explicitArray: false });
-    const result = await parser.parseStringPromise(fileBuffer.toString());
+    const result = await parser.parseStringPromise(xmlString);
     
     if (!result.tmx || !result.tmx.body || !result.tmx.body.tu) {
-      throw new Error('Invalid TMX format');
+      throw new Error('Invalid TMX format: missing required elements (tmx, body, or tu)');
     }
     
     const tuArray = Array.isArray(result.tmx.body.tu) ? result.tmx.body.tu : [result.tmx.body.tu];
     const sourceLang = result.tmx.header?.srclang || '';
     
-    return tuArray.map((tu, index) => {
+    // Process translation units
+    console.log(`Processing ${tuArray.length} translation units from TMX file`);
+    
+    const segments = tuArray.map((tu, index) => {
+      if (!tu || !tu.tuv) {
+        console.warn(`Skipping invalid translation unit at index ${index}`);
+        return null;
+      }
+      
       const tuvArray = Array.isArray(tu.tuv) ? tu.tuv : [tu.tuv];
+      if (!tuvArray.length) {
+        console.warn(`Translation unit at index ${index} has no translation unit variants`);
+        return null;
+      }
+      
       let sourceText = '';
       let targetText = '';
       let sourceLangCode = '';
       let targetLangCode = '';
       
       tuvArray.forEach(tuv => {
+        if (!tuv || !tuv.$) {
+          console.warn('Skipping invalid TUV without attributes');
+          return;
+        }
+        
         const rawLangCode = tuv.$.xml_lang || tuv.$.lang;
-        const langCode = normalizeLanguageCode(rawLangCode);
+        if (!rawLangCode) {
+          console.warn('TUV missing language code, using default');
+        }
+        
+        const langCode = normalizeLanguageCode(rawLangCode || 'en');
         const segText = tuv.seg && (typeof tuv.seg === 'string' ? tuv.seg : tuv.seg._);
         
         if (langCode === normalizeLanguageCode(sourceLang) || !targetLangCode) {
@@ -216,9 +260,9 @@ async function parseTMX(fileBuffer) {
         }
       });
       
-      // Normalize language codes
-      const normalizedSourceLang = normalizeLanguageCode(sourceLangCode);
-      const normalizedTargetLang = normalizeLanguageCode(targetLangCode);
+      // Default to English if language codes are missing
+      const normalizedSourceLang = normalizeLanguageCode(sourceLangCode || 'en');
+      const normalizedTargetLang = normalizeLanguageCode(targetLangCode || 'en');
       
       return {
         segment_id: index + 1,
@@ -227,7 +271,14 @@ async function parseTMX(fileBuffer) {
         sourceLang: normalizedSourceLang,
         targetLang: normalizedTargetLang
       };
-    });
+    }).filter(segment => segment !== null);
+    
+    if (segments.length === 0) {
+      throw new Error('No valid segments found in TMX file');
+    }
+    
+    console.log(`Successfully extracted ${segments.length} segments from TMX file`);
+    return segments;
   } catch (error) {
     console.error('TMX parsing error:', error);
     throw new Error(`Failed to parse TMX file: ${error.message}`);
@@ -241,17 +292,44 @@ async function parseTMX(fileBuffer) {
  */
 async function parseXLIFF(fileBuffer) {
   try {
-    const xliffContent = fileBuffer.toString();
+    console.log('Starting XLIFF parsing, buffer size:', fileBuffer.length);
+    
+    // Validate input
+    if (!fileBuffer || fileBuffer.length === 0) {
+      throw new Error('Empty XLIFF file buffer');
+    }
+    
+    // Try to convert buffer to string safely
+    let xliffContent;
+    try {
+      xliffContent = fileBuffer.toString('utf8');
+      console.log('XLIFF file converted to string, length:', xliffContent.length);
+      
+      // Basic XML validation check
+      if (!xliffContent.includes('<xliff') || !xliffContent.includes('</xliff>')) {
+        throw new Error('File does not appear to be a valid XLIFF file');
+      }
+    } catch (strError) {
+      console.error('Error converting XLIFF buffer to string:', strError);
+      throw new Error(`Invalid XLIFF file encoding: ${strError.message}`);
+    }
+    
     const xliffObj = await new Promise((resolve, reject) => {
       xliff.xliff2js(xliffContent, (err, res) => {
-        if (err) reject(err);
-        else resolve(res);
+        if (err) {
+          console.error('XLIFF parsing library error:', err);
+          reject(new Error(`XLIFF parsing failed: ${err.message}`));
+        } else {
+          resolve(res);
+        }
       });
     });
     
     if (!xliffObj || !Object.keys(xliffObj).length) {
-      throw new Error('Invalid XLIFF format');
+      throw new Error('Invalid XLIFF format: empty or missing content');
     }
+    
+    console.log(`XLIFF parsed successfully with ${Object.keys(xliffObj).length} file entries`);
     
     const segments = [];
     let segmentId = 1;
@@ -259,29 +337,60 @@ async function parseXLIFF(fileBuffer) {
     // Process each file in the XLIFF
     Object.keys(xliffObj).forEach(fileKey => {
       const file = xliffObj[fileKey];
-      const sourceLang = normalizeLanguageCode(file.sourceLanguage);
-      const targetLang = normalizeLanguageCode(file.targetLanguage);
+      
+      if (!file) {
+        console.warn(`Skipping invalid file entry: ${fileKey}`);
+        return;
+      }
+      
+      // Default to English if language codes are missing
+      const sourceLang = normalizeLanguageCode(file.sourceLanguage || 'en');
+      const targetLang = normalizeLanguageCode(file.targetLanguage || 'en');
+      
+      console.log(`Processing XLIFF file: ${fileKey}, source: ${sourceLang}, target: ${targetLang}`);
+      
+      if (!file.resources) {
+        console.warn(`No resources found in file: ${fileKey}`);
+        return;
+      }
       
       // Process each translation unit
       Object.keys(file.resources).forEach(resKey => {
         const resource = file.resources[resKey];
         
+        if (!resource) {
+          console.warn(`Skipping invalid resource: ${resKey}`);
+          return;
+        }
+        
         Object.keys(resource).forEach(unitKey => {
           const unit = resource[unitKey];
           
-          if (unit.source && (unit.target || unit.target === '')) {
+          if (!unit) {
+            console.warn(`Skipping invalid translation unit: ${unitKey}`);
+            return;
+          }
+          
+          if (unit.source !== undefined && (unit.target !== undefined || unit.target === '')) {
             segments.push({
               segment_id: segmentId++,
-              source: unit.source,
-              target: unit.target,
+              source: unit.source || '',
+              target: unit.target || '',
               sourceLang,
               targetLang
             });
+          } else {
+            console.warn(`Skipping unit missing source or target: ${unitKey}`);
           }
         });
       });
     });
     
+    if (segments.length === 0) {
+      throw new Error('No valid segments found in XLIFF file');
+    }
+    
+    console.log(`Successfully extracted ${segments.length} segments from XLIFF file`);
     return segments;
   } catch (error) {
     console.error('XLIFF parsing error:', error);
@@ -309,18 +418,31 @@ async function getSegments(params) {
     let buffer;
     
     // Check if fileBuffer is a base64 string and convert it to Buffer if needed
-    if (typeof fileBuffer === 'string') {
-      // If it's a base64 string, convert to Buffer
-      buffer = Buffer.from(fileBuffer, 'base64');
-    } else {
-      // If it's already a Buffer, use it directly
-      buffer = fileBuffer;
+    try {
+      if (typeof fileBuffer === 'string') {
+        // If it's a base64 string, convert to Buffer
+        buffer = Buffer.from(fileBuffer, 'base64');
+        console.log(`Successfully converted base64 string to buffer, size: ${buffer.length} bytes`);
+      } else {
+        // If it's already a Buffer, use it directly
+        buffer = fileBuffer;
+        console.log(`Using provided buffer directly, size: ${buffer.length} bytes`);
+      }
+    } catch (error) {
+      console.error('Error converting file buffer:', error);
+      throw new Error(`Failed to process file buffer: ${error.message}`);
     }
     
+    if (!buffer || buffer.length === 0) {
+      throw new Error('Empty or invalid file buffer');
+    }
+    
+    console.log(`Processing ${fileType} file with buffer size: ${buffer.length} bytes`);
+    
     if (fileType === 'tmx') {
-      return parseTMX(buffer);
+      return await parseTMX(buffer);
     } else if (fileType === 'xliff') {
-      return parseXLIFF(buffer);
+      return await parseXLIFF(buffer);
     } else {
       throw new Error(`Unsupported file type: ${fileType}`);
     }

@@ -4974,21 +4974,24 @@ correctedText.removeAttribute('readonly');
           [''],
           ['Source Language', sourceLang.value ? `${getLanguageFlag(sourceLang.value)} ${getLanguageName(sourceLang.value)}` : 'Not specified'],
           ['Target Language', targetLang.value ? `${getLanguageFlag(targetLang.value)} ${getLanguageName(targetLang.value)}` : 'Not specified'],
-          ['Word Count', document.getElementById('word-count').textContent.split(':')[1].trim()],
-          ['Quality Score', document.getElementById('score').textContent],
+          ['Word Count', document.getElementById('word-count')?.textContent?.split(':')[1]?.trim() || '0'],
+          ['Quality Score', document.getElementById('score')?.textContent || '100'],
           ['Analysis Mode', document.getElementById('translation-mode-toggle').checked ? 'Monolingual' : 'Bilingual'],
           [''],
           ['Issue Summary'],
           ['Category', 'Severity', 'Count', 'Points']
         ];
         
-        // Add issue summary data
+        // Add issue summary data - with null checks
         if (results.categoryCounts) {
-          Object.entries(results.categoryCounts).forEach(([category, severities]) => {
-            Object.entries(severities).forEach(([severity, count]) => {
-              const points = count * (severity === 'minor' ? 1 : severity === 'major' ? 5 : 10);
-              summaryData.push([category, severity, count, points]);
-            });
+          Object.entries(results.categoryCounts || {}).forEach(([category, severities]) => {
+            if (severities && typeof severities === 'object') {
+              Object.entries(severities).forEach(([severity, count]) => {
+                const severityLower = (severity || '').toLowerCase();
+                const points = (count || 0) * (severityLower === 'minor' ? 1 : severityLower === 'major' ? 5 : 10);
+                summaryData.push([category || 'Unknown', severity || 'Unknown', count || 0, points || 0]);
+              });
+            }
           });
         }
         
@@ -5001,18 +5004,21 @@ correctedText.removeAttribute('readonly');
           ['ID', 'Category', 'Severity', 'Issue', 'Suggestion', 'Points']
         ];
         
-        // Add issue details
-        if (results.mqmIssues && results.mqmIssues.length > 0) {
+        // Add issue details - with null checks
+        if (results.mqmIssues && Array.isArray(results.mqmIssues) && results.mqmIssues.length > 0) {
           results.mqmIssues.forEach((issue, index) => {
-            const points = issue.severity === 'minor' ? 1 : issue.severity === 'major' ? 5 : 10;
-            issuesData.push([
-              index + 1,
-              issue.category,
-              issue.severity,
-              issue.issue,
-              issue.suggestion || '',
-              points
-            ]);
+            if (issue) {
+              const severityLower = (issue.severity || 'minor').toLowerCase();
+              const points = severityLower === 'minor' ? 1 : severityLower === 'major' ? 5 : 10;
+              issuesData.push([
+                index + 1,
+                issue.category || 'Unknown',
+                issue.severity || 'minor',
+                issue.explanation || issue.issue || 'No description',
+                issue.suggestion || '',
+                points
+              ]);
+            }
           });
         }
         
@@ -5225,6 +5231,8 @@ correctedText.removeAttribute('readonly');
           // Convert ArrayBuffer to Base64
           const base64String = arrayBufferToBase64(arrayBuffer);
           
+          console.log(`Sending ${fileType} file to ${apiEndpoint}`, file.name);
+          
           // Send the file data to the server
           response = await fetch(apiEndpoint, {
             method: 'POST',
@@ -5236,10 +5244,12 @@ correctedText.removeAttribute('readonly');
               fileType: fileType,
               fileName: file.name, // Include the original filename
               mode: 'bilingual', // Always use bilingual mode for file uploads
-              sourceLang: '', // Include empty source language to avoid validation errors
-              targetLang: '' // Include empty target language to avoid validation errors
+              sourceLang: 'en', // Default source language to English
+              targetLang: 'en' // Default target language to English
             })
           });
+          
+          console.log(`Response status: ${response.status}`);
         }
         
         if (!response.ok) {
