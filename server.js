@@ -513,12 +513,24 @@ app.post('/api/mqm-analysis',
       }
       
       // Check word count limit
-      const words = sourceText.trim().split(/\s+/);
-      const wordCount = words.length > 0 && words[0] !== '' ? words.length : 0;
       const WORD_COUNT_LIMIT = 500;
       
-      if (wordCount > WORD_COUNT_LIMIT) {
-        return res.status(400).json({ error: `Source text exceeds the ${WORD_COUNT_LIMIT} word limit` });
+      if (isMonolingual) {
+        // For monolingual mode, check target text word count
+        const targetWords = targetText.trim().split(/\s+/);
+        const targetWordCount = targetWords.length > 0 && targetWords[0] !== '' ? targetWords.length : 0;
+        
+        if (targetWordCount > WORD_COUNT_LIMIT) {
+          return res.status(400).json({ error: `Target text exceeds the ${WORD_COUNT_LIMIT} word limit` });
+        }
+      } else {
+        // For bilingual mode, check source text word count
+        const sourceWords = sourceText.trim().split(/\s+/);
+        const sourceWordCount = sourceWords.length > 0 && sourceWords[0] !== '' ? sourceWords.length : 0;
+        
+        if (sourceWordCount > WORD_COUNT_LIMIT) {
+          return res.status(400).json({ error: `Source text exceeds the ${WORD_COUNT_LIMIT} word limit` });
+        }
       }
       
       // API key from environment variable

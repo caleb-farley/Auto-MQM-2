@@ -170,6 +170,15 @@
       transition: width 0.3s ease;
     }
 
+    /* Translation Mode Styles */
+    body[data-translation-mode='monolingual'] .text-areas > .text-area-container:first-child {
+      display: none !important;
+    }
+    
+    body[data-translation-mode='bilingual'] .text-areas > .text-area-container:first-child {
+      display: block !important;
+    }
+
     /* Modal styles */
     .modal-overlay {
       display: none;
@@ -1733,23 +1742,33 @@
       
       if (sourceTextContainer) {
         if (isMonolingual) {
-          // Force display none for monolingual mode
-          sourceTextContainer.style.display = 'none';
-          sourceLangContainer.style.display = 'none';
-          if (sourceTextLabel) sourceTextLabel.style.display = 'none';
-          if (sourceLangLabel) sourceLangLabel.style.display = 'none';
+          // Force display none for monolingual mode with !important to override any conflicting styles
+          sourceTextContainer.style.cssText = 'display: none !important';
+          sourceLangContainer.style.cssText = 'display: none !important';
+          if (sourceTextLabel) sourceTextLabel.style.cssText = 'display: none !important';
+          if (sourceLangLabel) sourceLangLabel.style.cssText = 'display: none !important';
+          // Clear source text and language values
           document.getElementById('source-text').value = '';
           document.getElementById('source-lang').value = '';
+          // Update global state variable to track monolingual mode
+          window.isMonolingualMode = true;
         } else {
-          // Force display block for bilingual mode
-          sourceTextContainer.style.display = 'block';
-          sourceLangContainer.style.display = 'block';
-          if (sourceTextLabel) sourceTextLabel.style.display = 'block';
-          if (sourceLangLabel) sourceLangLabel.style.display = 'block';
+          // Force display block for bilingual mode with !important
+          sourceTextContainer.style.cssText = 'display: block !important';
+          sourceLangContainer.style.cssText = 'display: block !important';
+          if (sourceTextLabel) sourceTextLabel.style.cssText = 'display: block !important';
+          if (sourceLangLabel) sourceLangLabel.style.cssText = 'display: block !important';
+          // Update global state variable
+          window.isMonolingualMode = false;
         }
         
         // Force immediate update of the analyze button validation
         updateAnalyzeButton();
+        
+        // Dispatch a custom event to notify other components of the mode change
+        document.dispatchEvent(new CustomEvent('translationModeChanged', { 
+          detail: { isMonolingual: isMonolingual }
+        }));
       }
     }
     
@@ -1764,6 +1783,10 @@
     window.addEventListener('DOMContentLoaded', function() {
       // Force an initial toggle based on current state
       toggleSourceTextVisibility(translationToggle.checked);
+      // Set initial data attribute
+      document.body.setAttribute('data-translation-mode', translationToggle.checked ? 'monolingual' : 'bilingual');
+      // Initialize global state variable
+      window.isMonolingualMode = translationToggle.checked;
     });
     
     // Handle toggle changes
@@ -1772,9 +1795,12 @@
         if (this.checked) {
           monolingualRadio.checked = true;
           bilingualRadio.checked = false;
+          // Set a data attribute on the body to allow for CSS targeting
+          document.body.setAttribute('data-translation-mode', 'monolingual');
         } else {
           bilingualRadio.checked = true;
           monolingualRadio.checked = false;
+          document.body.setAttribute('data-translation-mode', 'bilingual');
         }
         
         // Update UI based on toggle state - force immediate update
@@ -1790,6 +1816,9 @@
         } else {
           bilingualRadio.dispatchEvent(event);
         }
+        
+        // Log the current state for debugging
+        console.log('Translation mode changed:', this.checked ? 'Monolingual' : 'Bilingual');
       }
     });
     
