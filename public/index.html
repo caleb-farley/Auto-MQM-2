@@ -3018,6 +3018,7 @@
   analyzeBtn.addEventListener('click', async () => {
     // Check if in monolingual mode
     const isMonolingual = document.getElementById('translation-mode-toggle').checked;
+    console.log('Running assessment in mode:', isMonolingual ? 'monolingual' : 'bilingual');
     
     if (!isMonolingual && (!sourceText.value || !targetText.value || !sourceLang.value || !targetLang.value)) {
       showError('Please enter both source and target text and select languages');
@@ -3076,7 +3077,7 @@
       
       // Step 1: Call /api/check-alignment before /api/mqm-analysis (skip for monolingual)
       // Skip alignment check for monolingual mode
-      if (!isMonolingual) {
+      if (!isMonolingual && sourceText.value && targetText.value) {
         const alignmentResponse = await fetch('/api/check-alignment', {
           method: 'POST',
           headers: {
