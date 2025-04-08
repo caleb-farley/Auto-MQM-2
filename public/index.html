@@ -178,9 +178,27 @@
       }
     }
     
+    // Function to count words in a text
+    function countWords(text) {
+      if (!text || text.trim() === '') return 0;
+      return text.trim().split(/\s+/).length;
+    }
+
     // Add event listeners for language selection changes
-    document.getElementById('source-lang').addEventListener('change', updateTextDirection);
-    document.getElementById('target-lang').addEventListener('change', updateTextDirection);
+    document.getElementById('source-lang').addEventListener('change', function() {
+      // Clear the auto-detected flag when manually changed
+      this.removeAttribute('data-autodetected');
+      updateTextDirection();
+      updateAnalyzeButton();
+    });
+    
+    document.getElementById('target-lang').addEventListener('change', function() {
+      // Clear the auto-detected flag when manually changed
+      this.removeAttribute('data-autodetected');
+      updateTextDirection();
+      updateAnalyzeButton();
+    });
+    
     const translationToggle = document.getElementById('translation-mode-toggle');
     const bilingualRadio = document.querySelector('input[name="translation-mode"][value="bilingual"]');
     const monolingualRadio = document.querySelector('input[name="translation-mode"][value="monolingual"]');
@@ -1185,7 +1203,7 @@
   
   <!-- Footer -->
   <div class="footer">
-    © 2025 Orca Language Solutions. All rights reserved. | <a href="javascript:void(0)" onclick="showLoginModal();">Log In</a> | <a href="javascript:void(0)" onclick="showRegisterModal();">Register</a>
+    &copy; 2025 Orca Language Solutions. All rights reserved. | <a href="javascript:void(0)" onclick="showLoginModal();">Log In</a> | <a href="javascript:void(0)" onclick="showRegisterModal();">Register</a>
   </div>
 </div>
 
@@ -1246,38 +1264,71 @@
   let changeHistory = [];
   // Update word count
   function updateWordCountDisplay() {
-    // Check if we're in monolingual mode
-    const isMonolingual = document.getElementById('translation-mode-toggle').checked;
+    // Get account's word limit
+    const accountType = document.querySelector('.account-type').textContent.trim();
+    let wordLimit = 500; // Default
     
-    // Get text from the appropriate field based on mode
-    const text = isMonolingual ? targetText.value.trim() : sourceText.value.trim();
-    const words = text.length > 0 ? text.split(/\s+/) : [];
-    const count = words.length;
-    
-    isOverLimit = count > WORD_COUNT_LIMIT;
-    wordCount.textContent = `${count} / ${WORD_COUNT_LIMIT} words${isOverLimit ? ' (limit exceeded)' : ''}`;
-    
-    if (isOverLimit) {
-        wordCount.classList.add('word-count-exceeded');
-        // Highlight the appropriate text area based on mode
-        if (isMonolingual) {
-            targetText.style.borderColor = '#ff6b6b';
-        } else {
-            sourceText.style.borderColor = '#ff6b6b';
-        }
-    } else {
-        wordCount.classList.remove('word-count-exceeded');
-        sourceText.style.borderColor = 'rgb(60, 60, 60)';
-        targetText.style.borderColor = 'rgb(60, 60, 60)';
+    // Set limits based on account type
+    if (accountType.includes('Premium')) {
+      wordLimit = 1000;
+    } else if (accountType.includes('Professional')) {
+      wordLimit = 2000;
+    } else if (accountType.includes('Enterprise')) {
+      wordLimit = 5000;
+    } else if (accountType.includes('Admin')) {
+      wordLimit = 10000;
     }
-
-    updateAnalyzeButton();
+    
+    if (window.isMonolingualMode) {
+      // For monolingual mode, only count target text
+      const targetWords = countWords(targetText.value);
+      const targetWordCount = document.getElementById('target-word-count');
+      if (targetWordCount) {
+        targetWordCount.textContent = `${targetWords} of ${wordLimit} words`;
+        // Highlight if over limit
+        if (targetWords > wordLimit) {
+          targetWordCount.classList.add('word-count-exceeded');
+        } else {
+          targetWordCount.classList.remove('word-count-exceeded');
+        }
+      }
+    } else {
+      // For bilingual mode, count both source and target
+      const sourceWords = countWords(sourceText.value);
+      const targetWords = countWords(targetText.value);
+      
+      const sourceWordCount = document.getElementById('source-word-count');
+      const targetWordCount = document.getElementById('target-word-count');
+      
+      if (sourceWordCount) {
+        sourceWordCount.textContent = `${sourceWords} of ${wordLimit} words`;
+        // Highlight if over limit
+        if (sourceWords > wordLimit) {
+          sourceWordCount.classList.add('word-count-exceeded');
+        } else {
+          sourceWordCount.classList.remove('word-count-exceeded');
+        }
+      }
+      
+      if (targetWordCount) {
+        targetWordCount.textContent = `${targetWords} of ${wordLimit} words`;
+        // Highlight if over limit
+        if (targetWords > wordLimit) {
+          targetWordCount.classList.add('word-count-exceeded');
+        } else {
+          targetWordCount.classList.remove('word-count-exceeded');
+        }
+      }
+    }
   }
 
   // Event listeners for sourceText
   sourceText.addEventListener('input', function() {
     updateWordCountDisplay();
-    handleSourceLanguageDetection();
+    // Improved language detection trigger
+    if (sourceText.value.trim().length > 0) {
+      handleSourceLanguageDetection();
+    }
   });
   
   sourceText.addEventListener('paste', function() {
@@ -1289,7 +1340,10 @@
 
   // Event listeners for targetText
   targetText.addEventListener('input', function() {
-    handleTargetLanguageDetection();
+    // Improved language detection trigger
+    if (targetText.value.trim().length > 0) {
+      handleTargetLanguageDetection();
+    }
     updateWordCountDisplay(); // Update word count when target text changes
     updateAnalyzeButton();
   });
@@ -1341,12 +1395,18 @@
   function simulateLanguageDetection(text) {
     return new Promise((resolve) => {
       setTimeout(() => {
-        // A very simplified detection based on character patterns
-        const sample = text.slice(0, 50).toLowerCase();
+        // Skip detection for very short text
+        if (!text || text.trim().length < 3) {
+          resolve(null);
+          return;
+        }
         
-        // Check for language patterns
+        // A very simplified detection based on character patterns
+        const sample = text.slice(0, 100).toLowerCase();
+        
+        // Check for language patterns (improved patterns)
         if (/[áéíóúüñ¿¡]/.test(sample)) resolve('es');
-        else if (/[àâçéèêëîïôùûüÿ]/.test(sample)) resolve('fr');
+        else if (/[àâçéèêëîïôùûüÿœ]/.test(sample)) resolve('fr');
         else if (/[äöüß]/.test(sample)) resolve('de');
         else if (/[\u4e00-\u9fff]/.test(sample)) resolve('zh');
         else if (/[\u3040-\u30ff]/.test(sample)) resolve('ja');
@@ -1354,21 +1414,28 @@
         else if (/[\u0400-\u04FF]/.test(sample)) resolve('ru');
         else if (/[\u0627-\u064A]/.test(sample)) resolve('ar');
         else if (/[\u0905-\u0939]/.test(sample)) resolve('hi');
-        else resolve('en'); // Default to English
-      }, 500);
+        // More definitive check for English and other Latin-based languages
+        else if (/^[a-zA-Z\s\.,!\?'"\-\(\)\d]+$/.test(sample.substring(0, 30))) resolve('en');
+        else resolve(null); // Don't default to English if uncertain
+      }, 200); // Faster response
     });
   }
 
   // Update source language detection
   function handleSourceLanguageDetection() {
-    if (sourceText.value.length >= 10 && !sourceLang.value) {
+    // Lower the character threshold for detection and detect even if a language is already selected
+    if (sourceText.value.trim().length >= 5) {
       sourceLangDetected.textContent = 'Detecting...';
       detectLanguage(sourceText.value).then(detectedLang => {
         if (detectedLang) {
-          sourceLang.value = detectedLang;
-          const flag = getLanguageFlag(detectedLang);
-          const name = getLanguageName(detectedLang);
-          sourceLangDetected.textContent = `Detected: ${flag} ${name}`;
+          // Only update if not already manually selected or different from detected
+          if (!sourceLang.value || (sourceLang.value && sourceLang.getAttribute('data-autodetected') === 'true')) {
+            sourceLang.value = detectedLang;
+            sourceLang.setAttribute('data-autodetected', 'true');
+            const flag = getLanguageFlag(detectedLang);
+            const name = getLanguageName(detectedLang);
+            sourceLangDetected.textContent = `Detected: ${flag} ${name}`;
+          }
           updateAnalyzeButton();
         }
       });
@@ -1378,14 +1445,19 @@
 
   // Update target language detection
   function handleTargetLanguageDetection() {
-    if (targetText.value.length >= 10 && !targetLang.value) {
+    // Lower the character threshold for detection and detect even if a language is already selected
+    if (targetText.value.trim().length >= 5) {
       targetLangDetected.textContent = 'Detecting...';
       detectLanguage(targetText.value).then(detectedLang => {
         if (detectedLang) {
-          targetLang.value = detectedLang;
-          const flag = getLanguageFlag(detectedLang);
-          const name = getLanguageName(detectedLang);
-          targetLangDetected.textContent = `Detected: ${flag} ${name}`;
+          // Only update if not already manually selected or different from detected
+          if (!targetLang.value || (targetLang.value && targetLang.getAttribute('data-autodetected') === 'true')) {
+            targetLang.value = detectedLang;
+            targetLang.setAttribute('data-autodetected', 'true');
+            const flag = getLanguageFlag(detectedLang);
+            const name = getLanguageName(detectedLang);
+            targetLangDetected.textContent = `Detected: ${flag} ${name}`;
+          }
           updateAnalyzeButton();
         }
       });
