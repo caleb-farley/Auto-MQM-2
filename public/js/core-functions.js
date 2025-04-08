@@ -10,117 +10,192 @@ window.AutoMQM.Core = window.AutoMQM.Core || {};
 (function() {
   // Core functions
   const CoreFunctions = {
+    // Initialize function to set up event listeners
+    init: function() {
+      // Initialize language handlers
+      this.initLanguageHandlers();
+
+      // Add event listeners for text inputs
+      const sourceText = document.getElementById('source-text');
+      const targetText = document.getElementById('target-text');
+      const translationModeToggle = document.getElementById('translation-mode-toggle');
+      const analyzeBtn = document.getElementById('analyze-btn');
+
+      if (sourceText) {
+        sourceText.addEventListener('input', () => {
+          this.updateWordCountDisplay();
+          this.handleSourceLanguageDetection();
+        });
+      }
+
+      if (targetText) {
+        targetText.addEventListener('input', () => {
+          this.updateWordCountDisplay();
+          this.handleTargetLanguageDetection();
+        });
+      }
+
+      if (translationModeToggle) {
+        translationModeToggle.addEventListener('change', () => {
+          const sourceContainer = document.getElementById('source-text-container');
+          const targetContainer = document.getElementById('target-text-container');
+          if (sourceContainer) {
+            sourceContainer.style.display = translationModeToggle.checked ? 'none' : 'block';
+          }
+          if (targetContainer) {
+            targetContainer.classList.toggle('monolingual', translationModeToggle.checked);
+          }
+          // Dispatch event for monolingual mode change
+          document.dispatchEvent(new CustomEvent('monolingual-mode-changed', {
+            detail: { isMonolingual: translationModeToggle.checked }
+          }));
+          this.updateWordCountDisplay();
+          this.updateAnalyzeButton();
+        });
+      }
+
+      if (analyzeBtn) {
+        analyzeBtn.addEventListener('click', this.runAnalysis.bind(this));
+      }
+
+      // Initial updates
+      this.updateWordCountDisplay();
+      this.updateAnalyzeButton();
+    },
     /**
      * Update word count display for source and target text
      */
     updateWordCountDisplay: function() {
-    const sourceText = document.getElementById('source-text');
-    const targetText = document.getElementById('target-text');
-    const sourceWordCount = document.getElementById('source-word-count');
-    const targetWordCount = document.getElementById('target-word-count');
-    
-    // Get user's account type and corresponding limit
-    let accountType = 'Anonymous';
-    let accountTypeElement = document.querySelector('.account-type');
-    if (accountTypeElement && accountTypeElement.textContent) {
-      accountType = accountTypeElement.textContent.trim();
-    }
-    
-    const limits = {
-      'Anonymous': 500,
-      'Premium': 1000,
-      'Professional': 2000,
-      'Enterprise': 5000,
-      'Admin': 10000
-    };
-    const limit = limits[accountType] || 500;
-    
-    // Update source word count if elements exist
-    if (sourceText && sourceWordCount) {
-      const text = sourceText.value || '';
-      const words = text.trim().split(/\s+/);
-      const count = words.length > 0 && words[0] !== '' ? words.length : 0;
-      
-      sourceWordCount.textContent = `${count} / ${limit} words`;
-      sourceWordCount.classList.toggle('text-warning', count > limit);
-      
-      // Disable analyze button if word count exceeds limit
-      const analyzeBtn = document.getElementById('analyze-btn');
-      if (analyzeBtn) {
-        analyzeBtn.disabled = count > limit;
-      }
-    }
-    
-    // Update target word count if elements exist
-    if (targetText && targetWordCount) {
-      const text = targetText.value || '';
-      const words = text.trim().split(/\s+/);
-      const count = words.length > 0 && words[0] !== '' ? words.length : 0;
-      
-      targetWordCount.textContent = `${count} / ${limit} words`;
-      targetWordCount.classList.toggle('text-warning', count > limit);
-      
-      // Disable analyze button if word count exceeds limit
-      const analyzeBtn = document.getElementById('analyze-btn');
-      if (analyzeBtn) {
-        analyzeBtn.disabled = count > limit;
-      }
-    }
-    
-    // Update analyze button state
-    if (window.AutoMQM.Core.updateAnalyzeButton) {
-      window.AutoMQM.Core.updateAnalyzeButton();
-    }
-  },
+      // Update word counts immediately
+        const sourceText = document.getElementById('source-text');
+        const targetText = document.getElementById('target-text');
+        const sourceWordCount = document.getElementById('source-word-count');
+        const targetWordCount = document.getElementById('target-word-count');
+        
+        // Get user's account type and corresponding limit
+        let accountType = 'Anonymous';
+        let accountTypeElement = document.querySelector('.account-type');
+        if (accountTypeElement && accountTypeElement.textContent) {
+          accountType = accountTypeElement.textContent.trim();
+        }
+        
+        const limits = {
+          'Anonymous': 500,
+          'Premium': 1000,
+          'Professional': 2000,
+          'Enterprise': 5000,
+          'Admin': 10000
+        };
+        const limit = limits[accountType] || 500;
+        
+        // Update source word count if elements exist
+        if (sourceText && sourceWordCount) {
+          const text = sourceText.value || '';
+          const words = text.trim().split(/\s+/);
+          const count = words.length > 0 && words[0] !== '' ? words.length : 0;
+          
+          sourceWordCount.textContent = `${count} / ${limit} words`;
+          sourceWordCount.classList.toggle('text-warning', count > limit);
+        }
+        
+        // Update target word count if elements exist
+        if (targetText && targetWordCount) {
+          const text = targetText.value || '';
+          const words = text.trim().split(/\s+/);
+          const count = words.length > 0 && words[0] !== '' ? words.length : 0;
+          
+          targetWordCount.textContent = `${count} / ${limit} words`;
+          targetWordCount.classList.toggle('text-warning', count > limit);
+        }
+        
+        // Update analyze button state
+        this.updateAnalyzeButton();
+    },
 
-  handleSourceLanguageDetection: async function() {
-    const sourceText = document.getElementById('source-text');
-    const sourceLang = document.getElementById('source-lang');
-    
-    if (sourceText && sourceLang && !sourceLang.value) {
+    handleSourceLanguageDetection: async function() {
+      // Debounce language detection
+      clearTimeout(this._sourceDetectionTimeout);
+      this._sourceDetectionTimeout = setTimeout(async () => {
+      const sourceText = document.getElementById('source-text');
+      const sourceLang = document.getElementById('source-lang');
+      const sourceLangBubble = document.getElementById('source-lang-bubble');
+      
+      if (!sourceText || !sourceLang) return;
+      
       const text = sourceText.value.trim();
-      
-      // Only attempt detection if we have enough text (lowered threshold to 5 characters)
       if (text.length >= 5) {
         try {
-          const detectedLang = await window.AutoMQM.Utils.detectLanguage(text);
-          if (detectedLang) {
-            sourceLang.value = detectedLang;
-            sourceLang.setAttribute('data-autodetected', 'true');
-            console.log('Source language auto-detected:', detectedLang);
+          // Call language detection API
+          const response = await fetch('/api/detect-language', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ text })
+          });
+          
+          if (!response.ok) throw new Error('Language detection failed');
+          
+          const data = await response.json();
+          if (data.language && (!sourceLang.value || sourceLang.dataset.autoDetected === 'true')) {
+            sourceLang.value = data.language;
+            sourceLang.dataset.autoDetected = 'true';
+            if (sourceLangBubble) {
+              sourceLangBubble.style.display = 'none';
+            }
+            // Update analyze button state after language detection
+            this.updateAnalyzeButton();
           }
         } catch (error) {
           console.error('Language detection failed:', error);
         }
-      }
-    }
-  },
+      }  
+      }, 100);
+    },
 
-  handleTargetLanguageDetection: async function() {
-    const targetText = document.getElementById('target-text');
-    const targetLang = document.getElementById('target-lang');
-    
-    if (targetText && targetLang && !targetLang.value) {
+    handleTargetLanguageDetection: async function() {
+      // Debounce language detection
+      clearTimeout(this._targetDetectionTimeout);
+      this._targetDetectionTimeout = setTimeout(async () => {
+      const targetText = document.getElementById('target-text');
+      const targetLang = document.getElementById('target-lang');
+      const targetLangBubble = document.getElementById('target-lang-bubble');
+      
+      if (!targetText || !targetLang) return;
+      
       const text = targetText.value.trim();
-      
-      // Only attempt detection if we have enough text (lowered threshold to 5 characters)
       if (text.length >= 5) {
         try {
-          const detectedLang = await window.AutoMQM.Utils.detectLanguage(text);
-          if (detectedLang) {
-            targetLang.value = detectedLang;
-            targetLang.setAttribute('data-autodetected', 'true');
-            console.log('Target language auto-detected:', detectedLang);
+          // Call language detection API
+          const response = await fetch('/api/detect-language', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ text })
+          });
+          
+          if (!response.ok) throw new Error('Language detection failed');
+          
+          const data = await response.json();
+          if (data.language && (!targetLang.value || targetLang.dataset.autoDetected === 'true')) {
+            targetLang.value = data.language;
+            targetLang.dataset.autoDetected = 'true';
+            if (targetLangBubble) {
+              targetLangBubble.style.display = 'none';
+            }
+            // Update analyze button state after language detection
+            this.updateAnalyzeButton();
           }
         } catch (error) {
           console.error('Language detection failed:', error);
         }
-      }
-    }
-  },
+      }  
+      }, 100);
+    },
 
-  // Translation function
-  translateText: async function() {
+    // Translation function
+    translateText: async function() {
     const sourceText = document.getElementById('source-text');
     const targetText = document.getElementById('target-text');
     const sourceLang = document.getElementById('source-lang');
@@ -327,13 +402,9 @@ window.AutoMQM.Core = window.AutoMQM.Core || {};
     if (!analyzeBtn) return;
     
     const isMonolingual = translationModeToggle?.checked || false;
-    const sourceWords = sourceText?.value?.trim().split(/\s+/) || [];
-    const targetWords = targetText?.value?.trim().split(/\s+/) || [];
-    const sourceWordCount = sourceWords.length > 0 && sourceWords[0] !== '' ? sourceWords.length : 0;
-    const targetWordCount = targetWords.length > 0 && targetWords[0] !== '' ? targetWords.length : 0;
     
-    // Get account type limits
-    const accountType = document.querySelector('.account-type')?.textContent || 'Anonymous';
+    // Get account type and word count limits
+    const accountType = document.querySelector('.account-type')?.textContent?.trim() || 'Anonymous';
     const limits = {
       'Anonymous': 500,
       'Premium': 1000,
@@ -343,17 +414,26 @@ window.AutoMQM.Core = window.AutoMQM.Core || {};
     };
     const limit = limits[accountType] || 500;
     
-    // Check conditions for enabling analyze button
-    const hasSourceText = sourceText && sourceText.value.trim().length > 0;
-    const hasSourceLang = sourceLang && sourceLang.value;
-    const hasTargetText = targetText && targetText.value.trim().length > 0;
-    const hasTargetLang = targetLang && targetLang.value;
-    const withinLimit = sourceWordCount <= limit && (!hasTargetText || targetWordCount <= limit);
+    // Check word counts
+    const sourceWords = sourceText?.value?.trim().split(/\s+/) || [];
+    const targetWords = targetText?.value?.trim().split(/\s+/) || [];
+    const sourceWordCount = sourceWords.length > 0 && sourceWords[0] !== '' ? sourceWords.length : 0;
+    const targetWordCount = targetWords.length > 0 && targetWords[0] !== '' ? targetWords.length : 0;
     
-    // In monolingual mode, we only need target text and language
-    const canAnalyze = isMonolingual ?
-      (hasTargetText && hasTargetLang && withinLimit) :
-      (hasSourceText && hasSourceLang && hasTargetText && hasTargetLang && withinLimit);
+    // Check if word counts exceed limits
+    const withinLimits = sourceWordCount <= limit && targetWordCount <= limit;
+    
+    // Check all conditions for enabling analyze button
+    let canAnalyze = true;
+    
+    // In monolingual mode, only check target text
+    if (isMonolingual) {
+      canAnalyze = targetText?.value?.trim() && targetLang?.value && withinLimits;
+    } else {
+      // In bilingual mode, check both source and target
+      canAnalyze = sourceText?.value?.trim() && sourceLang?.value &&
+                   targetText?.value?.trim() && targetLang?.value && withinLimits;
+    }
     
     analyzeBtn.disabled = !canAnalyze;
   },
@@ -489,33 +569,6 @@ window.AutoMQM.Core = window.AutoMQM.Core || {};
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-  // Initialize language handlers
-  window.AutoMQM.Core.initLanguageHandlers();
-  window.AutoMQM.Core.updateWordCountDisplay();
-
-  // Add event listeners for text inputs
-  const sourceText = document.getElementById('source-text');
-  const targetText = document.getElementById('target-text');
-
-  if (sourceText) {
-    sourceText.addEventListener('input', () => {
-      window.AutoMQM.Core.updateWordCountDisplay();
-      window.AutoMQM.Core.handleSourceLanguageDetection();
-    });
-  }
-
-  if (targetText) {
-    targetText.addEventListener('input', () => {
-      window.AutoMQM.Core.updateWordCountDisplay();
-      window.AutoMQM.Core.handleTargetLanguageDetection();
-    });
-  }
-
-  // Add event listener for analyze button
-  const analyzeBtn = document.getElementById('analyze-btn');
-  if (analyzeBtn) {
-    analyzeBtn.addEventListener('click', window.AutoMQM.Core.runAnalysis);
-  }
-
+  window.AutoMQM.Core.init();
   console.log('Core functions initialized');
 });
