@@ -4,8 +4,8 @@
 
 const app = require('./app');
 
-// Get port from environment variable or default to 5001
-const PORT = process.env.PORT || 5001;
+// Get port from environment variable or default to 5000
+const PORT = process.env.PORT || 5000;
 
 // Start the server
 app.listen(PORT, () => {
