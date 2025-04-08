@@ -115,12 +115,7 @@ function updateAnalyzeButton() {
   }
 }
 
-/**
- * Escape special characters in regular expressions
- */
-function escapeRegExp(string) {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
+// Function moved to utils.js
 
 /**
  * Initialize event listeners
@@ -170,6 +165,5 @@ window.AutoMQM.Core = {
   toggleSourceTextVisibility,
   updateWordCountDisplay,
   updateAnalyzeButton,
-  escapeRegExp,
   init
 };

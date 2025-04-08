@@ -26,217 +26,34 @@ let corrections = [];
  * Run MQM analysis
  */
 async function runAnalysis() {
-  // Check if in monolingual mode
-  const isMonolingual = translationModeToggle.checked;
-  console.log('Running assessment in mode:', isMonolingual ? 'monolingual' : 'bilingual');
-  
-  // Validate inputs
-  if (isMonolingual) {
-    if (!targetText.value.trim() || !targetLang.value) {
-      alert('Please enter target text and select target language');
-      return;
-    }
-  } else {
-    if (!sourceText.value.trim() || !targetText.value.trim() || !sourceLang.value || !targetLang.value) {
-      alert('Please enter source and target text and select languages');
-      return;
-    }
-  }
-  
-  // Check word count limit
-  const WORD_COUNT_LIMIT = 500;
-  
-  if (isMonolingual) {
-    // For monolingual mode, check target text word count
-    const targetWords = targetText.value.trim().split(/\s+/);
-    const targetWordCount = targetWords.length > 0 && targetWords[0] !== '' ? targetWords.length : 0;
-    
-    if (targetWordCount > WORD_COUNT_LIMIT) {
-      alert(`Target text exceeds the ${WORD_COUNT_LIMIT} word limit`);
-      return;
-    }
-  } else {
-    // For bilingual mode, check source text word count
-    const sourceWords = sourceText.value.trim().split(/\s+/);
-    const sourceWordCount = sourceWords.length > 0 && sourceWords[0] !== '' ? sourceWords.length : 0;
-    
-    if (sourceWordCount > WORD_COUNT_LIMIT) {
-      alert(`Source text exceeds the ${WORD_COUNT_LIMIT} word limit`);
-      return;
-    }
-  }
-  
-  // Show loading indicator
-  loadingIndicator.style.display = 'flex';
-  
-  try {
-    // For development/testing without backend
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      // Simulate API call with a delay
-      setTimeout(() => {
-        const mockResults = getMockResults();
-        displayResults(mockResults);
-        loadingIndicator.style.display = 'none';
-      }, 2000);
-      return;
-    }
-    
-    // Prepare request data
-    const requestData = {
-      sourceText: isMonolingual ? null : sourceText.value,
-      targetText: targetText.value,
-      sourceLang: isMonolingual ? null : sourceLang.value,
-      targetLang: targetLang.value,
-      mode: isMonolingual ? 'monolingual' : 'bilingual',
-      llmModel: llmModelSelect.value
-    };
-    
-    // Make API request
-    const response = await fetch('/api/mqm-analysis', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(requestData)
-    });
-    
-    // Check if response is ok
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to analyze text');
-    }
-    
-    // Parse response
-    const results = await response.json();
-    
-    // Display results
-    displayResults(results);
-  } catch (error) {
-    console.error('Analysis error:', error);
-    alert(`Error: ${error.message}`);
-  } finally {
-    // Hide loading indicator
-    loadingIndicator.style.display = 'none';
-  }
+  // Use core function for analysis
+  await window.AutoMQM.Core.runAnalysis();
 }
 
 /**
  * Display analysis results
  */
 function displayResults(results) {
-  // Store original text for corrections
   originalText = targetText.value;
   corrections = [];
   
-  // Show results container
-  resultsContainer.style.display = 'block';
-  
-  // Create results HTML
-  let html = `
-    <div class="results-header">
-      <h2 class="results-title gothic-title">MQM Analysis Results</h2>
-      <div class="score-container">
-        <div class="score-label">Overall Score</div>
-        <div class="score-value">${results.overallScore.toFixed(2)}</div>
-      </div>
-    </div>
-    
-    <div class="summary">
-      <p>${results.summary}</p>
-    </div>
-  `;
-  
-  // Add categories section if available
-  if (results.categories && Object.keys(results.categories).length > 0) {
-    html += '<div class="categories">';
-    
-    for (const [category, stats] of Object.entries(results.categories)) {
-      html += `
-        <div class="category">
-          <h3 class="category-title">${category}</h3>
-          <div class="category-stats">
-      `;
-      
-      for (const [subcategory, count] of Object.entries(stats)) {
-        html += `
-          <div class="stat-item">
-            <div class="stat-label">${subcategory}</div>
-            <div class="stat-value">${count}</div>
-          </div>
-        `;
-      }
-      
-      html += '</div></div>';
-    }
-    
-    html += '</div>';
-  }
-  
-  // Add issues section if available
-  if (results.mqmIssues && results.mqmIssues.length > 0) {
-    html += `
-      <div class="issues-header" style="display: flex; justify-content: space-between; align-items: center; margin: 20px 0 15px;">
-        <h3 class="gothic-title" style="margin: 0; font-size: 18px;">Issues Found (${results.mqmIssues.length})</h3>
-        <div class="issues-actions" style="display: flex; gap: 10px;">
-          <button id="apply-all-btn" class="btn btn-primary">Apply All Fixes</button>
-          <button id="undo-btn" class="btn btn-secondary">Undo Changes</button>
-        </div>
-      </div>
-      <div class="issues-list">
-    `;
-    
-    // Add each issue
-    results.mqmIssues.forEach((issue, index) => {
-      html += `
-        <div class="issue" data-issue-id="${index}">
-          <div class="issue-header">
-            <h4 class="issue-title">${issue.category}: ${issue.subcategory}</h4>
-            <span class="issue-severity ${issue.severity.toLowerCase()}">${issue.severity}</span>
-          </div>
-          <div class="issue-content">
-            <div class="issue-segment">${issue.segment}</div>
-            <div class="issue-explanation">${issue.explanation}</div>
-            ${issue.suggestion ? `<div class="issue-suggestion">Suggestion: ${issue.suggestion}</div>` : ''}
-          </div>
-          <div class="issue-actions">
-            ${issue.suggestion ? `<button class="btn btn-primary action-btn apply-fix-btn" data-issue-id="${index}">Apply Fix</button>` : ''}
-            <button class="btn btn-secondary action-btn ignore-btn" data-issue-id="${index}">Ignore</button>
-          </div>
-        </div>
-      `;
-    });
-    
-    html += '</div>';
-    
-    // Show apply all button and undo button if there are issues
-    applyAllBtn.style.display = 'block';
-    undoBtn.style.display = 'block';
-  } else {
-    html += `
-      <div class="no-issues" style="margin-top: 20px; padding: 15px; background-color: var(--bg-success); border-radius: 8px; color: var(--text-primary);">
-        <p style="margin: 0;">No issues found! The text appears to be of good quality.</p>
-      </div>
-    `;
-    
-    // Hide apply all button and undo button if there are no issues
-    applyAllBtn.style.display = 'none';
-    undoBtn.style.display = 'none';
-  }
-  
-  // Set results HTML
-  resultsContainer.innerHTML = html;
+  // Use core function for displaying results
+  window.AutoMQM.Core.displayResults(results);
   
   // Add event listeners for issue actions
-  document.querySelectorAll('.apply-fix-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-      const issueId = parseInt(this.getAttribute('data-issue-id'));
+  const applyFixBtns = document.querySelectorAll('.apply-fix-btn');
+  const ignoreBtns = document.querySelectorAll('.ignore-btn');
+  
+  applyFixBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const issueId = parseInt(btn.dataset.issueId);
       applyFix(results.mqmIssues[issueId]);
     });
   });
   
-  document.querySelectorAll('.ignore-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-      const issueId = parseInt(this.getAttribute('data-issue-id'));
+  ignoreBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const issueId = parseInt(btn.dataset.issueId);
       ignoreIssue(issueId);
     });
   });

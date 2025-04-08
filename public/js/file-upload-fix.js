@@ -156,6 +156,8 @@
    * Show notification
    */
   function showNotification(message, type = 'info') {
+    // Use core function for notifications
+    window.AutoMQM.Utils.showNotification(message, type);
     if (window.AutoMQM && window.AutoMQM.Utils && window.AutoMQM.Utils.showNotification) {
       window.AutoMQM.Utils.showNotification(message, type);
     } else {

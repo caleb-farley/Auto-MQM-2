@@ -161,6 +161,55 @@ function escapeRegExp(string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+/**
+ * Show loading overlay
+ */
+function showLoading() {
+  const loadingOverlay = document.getElementById('loading-overlay');
+  if (loadingOverlay) {
+    loadingOverlay.style.display = 'flex';
+  }
+}
+
+/**
+ * Hide loading overlay
+ */
+function hideLoading() {
+  const loadingOverlay = document.getElementById('loading-overlay');
+  if (loadingOverlay) {
+    loadingOverlay.style.display = 'none';
+  }
+}
+
+/**
+ * Detect the language of a text string
+ * @param {string} text - The text to detect language for
+ * @returns {Promise<string|null>} - The detected language code or null if detection fails
+ */
+async function detectLanguage(text) {
+  if (!text || text.trim().length < 5) return null;
+  
+  try {
+    const response = await fetch('/api/detect-language', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ text: text.trim() })
+    });
+    
+    if (!response.ok) {
+      throw new Error('Language detection failed');
+    }
+    
+    const data = await response.json();
+    return data.language;
+  } catch (error) {
+    console.error('Language detection error:', error);
+    return null;
+  }
+}
+
 // Export utility functions to global namespace
 window.AutoMQM.Utils = {
   showNotification,
@@ -170,5 +219,8 @@ window.AutoMQM.Utils = {
   debounce,
   isEmpty,
   countWords,
-  escapeRegExp
+  escapeRegExp,
+  showLoading,
+  hideLoading,
+  detectLanguage
 };

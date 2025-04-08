@@ -348,6 +348,8 @@
     
     // Escape special characters in regular expressions
     function escapeRegExp(string) {
+      // Use core function for escaping regex
+      return window.AutoMQM.Core.escapeRegExp(string);
       return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
     

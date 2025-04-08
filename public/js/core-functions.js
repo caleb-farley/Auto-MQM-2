@@ -283,6 +283,148 @@ window.AutoMQM.Core = window.AutoMQM.Core || {};
     updateTextDirection();
   };
   
+  // Analysis functions
+  window.AutoMQM.Core.updateAnalyzeButton = function() {
+    const sourceText = document.getElementById('source-text');
+    const targetText = document.getElementById('target-text');
+    const sourceLang = document.getElementById('source-lang');
+    const targetLang = document.getElementById('target-lang');
+    const analyzeBtn = document.getElementById('analyze-btn');
+    const translationModeToggle = document.getElementById('translation-mode-toggle');
+    
+    if (!analyzeBtn) return;
+    
+    const isMonolingual = translationModeToggle?.checked || false;
+    const sourceWords = sourceText?.value?.trim().split(/\s+/) || [];
+    const targetWords = targetText?.value?.trim().split(/\s+/) || [];
+    const sourceWordCount = sourceWords.length > 0 && sourceWords[0] !== '' ? sourceWords.length : 0;
+    const targetWordCount = targetWords.length > 0 && targetWords[0] !== '' ? targetWords.length : 0;
+    
+    // Get account type limits
+    const accountType = document.querySelector('.account-type')?.textContent || 'Anonymous';
+    const limits = {
+      'Anonymous': 500,
+      'Premium': 1000,
+      'Professional': 2000,
+      'Enterprise': 5000,
+      'Admin': 10000
+    };
+    const limit = limits[accountType] || 500;
+    
+    // Check conditions for enabling analyze button
+    const hasSourceText = sourceText && sourceText.value.trim().length > 0;
+    const hasSourceLang = sourceLang && sourceLang.value;
+    const hasTargetText = targetText && targetText.value.trim().length > 0;
+    const hasTargetLang = targetLang && targetLang.value;
+    const withinLimit = sourceWordCount <= limit && (!hasTargetText || targetWordCount <= limit);
+    
+    const canAnalyze = hasSourceText && hasSourceLang && 
+                       (isMonolingual || (hasTargetText && hasTargetLang)) &&
+                       withinLimit;
+    
+    analyzeBtn.disabled = !canAnalyze;
+  };
+
+  window.AutoMQM.Core.displayResults = function(results) {
+    const resultsContainer = document.getElementById('results-container');
+    if (!resultsContainer || !results) return;
+    
+    // Clear previous results
+    resultsContainer.innerHTML = '';
+    
+    // Create results table
+    const table = document.createElement('table');
+    table.className = 'results-table';
+    
+    // Add headers
+    const headers = ['Category', 'Score', 'Details'];
+    const headerRow = document.createElement('tr');
+    headers.forEach(header => {
+      const th = document.createElement('th');
+      th.textContent = header;
+      headerRow.appendChild(th);
+    });
+    table.appendChild(headerRow);
+    
+    // Add results
+    Object.entries(results).forEach(([category, data]) => {
+      const row = document.createElement('tr');
+      
+      // Category
+      const categoryCell = document.createElement('td');
+      categoryCell.textContent = category;
+      row.appendChild(categoryCell);
+      
+      // Score
+      const scoreCell = document.createElement('td');
+      scoreCell.textContent = typeof data.score === 'number' ? data.score.toFixed(2) : data.score;
+      row.appendChild(scoreCell);
+      
+      // Details
+      const detailsCell = document.createElement('td');
+      if (data.details) {
+        detailsCell.innerHTML = Array.isArray(data.details) 
+          ? data.details.join('<br>') 
+          : data.details;
+      }
+      row.appendChild(detailsCell);
+      
+      table.appendChild(row);
+    });
+    
+    resultsContainer.appendChild(table);
+    resultsContainer.style.display = 'block';
+  };
+
+  window.AutoMQM.Core.runAnalysis = async function() {
+    const sourceText = document.getElementById('source-text');
+    const targetText = document.getElementById('target-text');
+    const sourceLang = document.getElementById('source-lang');
+    const targetLang = document.getElementById('target-lang');
+    const analyzeBtn = document.getElementById('analyze-btn');
+    const resultsContainer = document.getElementById('results-container');
+    
+    if (!analyzeBtn || !resultsContainer) {
+      console.error('Required elements not found');
+      return;
+    }
+    
+    try {
+      analyzeBtn.disabled = true;
+      window.AutoMQM.Utils.showLoading();
+      resultsContainer.style.display = 'none';
+      
+      const data = {
+        sourceText: sourceText?.value || '',
+        targetText: targetText?.value || '',
+        sourceLang: sourceLang?.value || '',
+        targetLang: targetLang?.value || '',
+        isMonolingual: document.getElementById('translation-mode-toggle')?.checked || false
+      };
+      
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      });
+      
+      if (!response.ok) {
+        throw new Error('Analysis failed');
+      }
+      
+      const results = await response.json();
+      window.AutoMQM.Core.displayResults(results);
+    } catch (error) {
+      console.error('Analysis failed:', error);
+      window.AutoMQM.Utils.showNotification('Analysis failed: ' + error.message, 'error');
+    } finally {
+      analyzeBtn.disabled = false;
+      window.AutoMQM.Utils.hideLoading();
+    }
+  };
+
   // Initialize all core functionality
   window.addEventListener('DOMContentLoaded', function() {
     window.AutoMQM.Core.initLanguageHandlers();

@@ -45,52 +45,28 @@ function initUI() {
   if (sourceText) {
     sourceText.addEventListener('input', function() {
       window.AutoMQM.Core.updateWordCountDisplay();
-      updateAnalyzeButton();
+      window.AutoMQM.Core.updateAnalyzeButton();
     });
   }
   
   if (targetText) {
     targetText.addEventListener('input', function() {
       window.AutoMQM.Core.updateWordCountDisplay();
-      updateAnalyzeButton();
+      window.AutoMQM.Core.updateAnalyzeButton();
     });
   }
   
   // Listen for translation mode changes
-  document.addEventListener('translation-mode-changed', updateAnalyzeButton);
+  document.addEventListener('translation-mode-changed', window.AutoMQM.Core.updateAnalyzeButton);
   
   // Initialize word count display
-  updateWordCountDisplay();
+  window.AutoMQM.Core.updateWordCountDisplay();
 }
 
 /**
  * Update word count display
  */
-function updateWordCountDisplay() {
-  if (sourceText && sourceWordCount) {
-    const count = AutoMQM.Utils.countWords(sourceText.value);
-    sourceWordCount.textContent = `${count} words`;
-    
-    // Add warning class if over limit
-    if (count > 500) {
-      sourceWordCount.classList.add('word-count-warning');
-    } else {
-      sourceWordCount.classList.remove('word-count-warning');
-    }
-  }
-  
-  if (targetText && targetWordCount) {
-    const count = AutoMQM.Utils.countWords(targetText.value);
-    targetWordCount.textContent = `${count} words`;
-    
-    // Add warning class if over limit
-    if (count > 500) {
-      targetWordCount.classList.add('word-count-warning');
-    } else {
-      targetWordCount.classList.remove('word-count-warning');
-    }
-  }
-}
+// Function moved to core-functions.js
 
 /**
  * Update analyze button state based on form completeness
@@ -191,25 +167,7 @@ function showTargetLangError(message) {
   }
 }
 
-/**
- * Show loading indicator
- */
-function showLoading() {
-  const loadingIndicator = document.getElementById('analysis-loading-indicator');
-  if (loadingIndicator) {
-    loadingIndicator.style.display = 'flex';
-  }
-}
-
-/**
- * Hide loading indicator
- */
-function hideLoading() {
-  const loadingIndicator = document.getElementById('analysis-loading-indicator');
-  if (loadingIndicator) {
-    loadingIndicator.style.display = 'none';
-  }
-}
+// Loading functions moved to utils.js
 
 // Initialize when DOM is fully loaded
 document.addEventListener('DOMContentLoaded', initUI);
