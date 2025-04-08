@@ -14,4 +14,10 @@ router.post('/translate',
   translationController.translateText
 );
 
+// Detect language of text
+router.post('/detect-language',
+  authMiddleware.optionalAuth,
+  translationController.detectLanguage
+);
+
 module.exports = router;

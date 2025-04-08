@@ -4,6 +4,7 @@
  */
 
 const axios = require('axios');
+const franc = require('franc-min');
 
 /**
  * Translate text using configured translation service
@@ -234,3 +235,31 @@ function getLanguageName(langCode) {
   
   return languageNames[code] || `language with code ${langCode}`;
 }
+
+/**
+ * Detect language of text
+ */
+exports.detectLanguage = async (req, res) => {
+  try {
+    const { text } = req.body;
+    
+    if (!text || text.trim().length < 5) {
+      return res.status(400).json({ error: 'Text too short for language detection' });
+    }
+    
+    // Use franc for language detection
+    const detectedLang = franc(text);
+    
+    if (detectedLang === 'und') {
+      return res.status(400).json({ error: 'Unable to detect language' });
+    }
+    
+    return res.json({
+      language: detectedLang,
+      confidence: 0.8 // franc doesn't provide confidence scores
+    });
+  } catch (error) {
+    console.error('Language detection error:', error);
+    return res.status(500).json({ error: 'Language detection failed', message: error.message });
+  }
+};
