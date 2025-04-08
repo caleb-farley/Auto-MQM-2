@@ -97,56 +97,67 @@ describe('Auto-MQM UI Tests', () => {
   test('Word count functionality', async () => {
     // Clear any previous text and ensure we're in bilingual mode
     await page.evaluate(() => {
-      // Reset text areas
-      document.getElementById('source-text').value = '';
-      document.getElementById('target-text').value = '';
-
-      // Ensure bilingual mode
+      // Reset text areas and ensure bilingual mode
+      const sourceText = document.getElementById('source-text');
+      const targetText = document.getElementById('target-text');
       const translationModeToggle = document.getElementById('translation-mode-toggle');
+      
+      // Reset text
+      sourceText.value = '';
+      targetText.value = '';
+      
+      // Ensure bilingual mode
       if (translationModeToggle) {
         translationModeToggle.checked = false;
-        translationModeToggle.dispatchEvent(new Event('change', { bubbles: true }));
+        translationModeToggle.dispatchEvent(new Event('change'));
       }
-
+      
       // Reset containers
       const sourceContainer = document.getElementById('source-text-container');
       const targetContainer = document.getElementById('target-text-container');
       if (sourceContainer) sourceContainer.style.display = 'block';
       if (targetContainer) targetContainer.classList.remove('monolingual');
-    });
-    await new Promise(resolve => setTimeout(resolve, 100));
-
-    // Test source text word count
-    await page.click('#source-text');
-    await page.keyboard.type('This is a test sentence');
-    await page.evaluate(() => {
+      
+      // Force initial word count update
       window.AutoMQM.Core.updateWordCountDisplay();
     });
+
+    // Test source text word count
+    await page.evaluate(() => {
+      const sourceText = document.getElementById('source-text');
+      sourceText.value = 'This is a test sentence';
+      sourceText.dispatchEvent(new Event('input', { bubbles: true }));
+      window.AutoMQM.Core.updateWordCountDisplay();
+    });
+
     await page.waitForFunction(
       () => {
         const el = document.querySelector('#source-word-count');
-        const text = el?.textContent || '';
-        return text.includes('5 / 500');
+        return el && el.textContent === '5 / 500 words';
       },
       { timeout: 5000 }
     );
-    const sourceCount = await page.$eval('#source-word-count', el => el.textContent);
-    expect(sourceCount).toBe('5 / 500 words');
 
     // Test target text word count
-    await page.click('#target-text');
-    await page.keyboard.type('This is another test sentence');
     await page.evaluate(() => {
+      const targetText = document.getElementById('target-text');
+      targetText.value = 'This is another test sentence';
+      targetText.dispatchEvent(new Event('input', { bubbles: true }));
       window.AutoMQM.Core.updateWordCountDisplay();
     });
+
+    // Wait for target word count to update
     await page.waitForFunction(
       () => {
         const el = document.querySelector('#target-word-count');
         const text = el?.textContent || '';
-        return text.includes('6 / 500');
+        const words = text.split(' / ')[0];
+        return words === '6';
       },
       { timeout: 5000 }
     );
+
+    // Verify final word count
     const targetCount = await page.$eval('#target-word-count', el => el.textContent);
     expect(targetCount).toBe('6 / 500 words');
   });

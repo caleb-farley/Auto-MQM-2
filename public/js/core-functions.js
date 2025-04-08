@@ -10,6 +10,14 @@ window.AutoMQM.Core = window.AutoMQM.Core || {};
 (function() {
   // Core functions
   const CoreFunctions = {
+    // State management
+    _state: {
+      isMonolingual: false,
+      sourceWordCount: 0,
+      targetWordCount: 0,
+      accountType: 'Anonymous'
+    },
+
     // Initialize function to set up event listeners
     init: function() {
       // Initialize language handlers
@@ -21,36 +29,33 @@ window.AutoMQM.Core = window.AutoMQM.Core || {};
       const translationModeToggle = document.getElementById('translation-mode-toggle');
       const analyzeBtn = document.getElementById('analyze-btn');
 
+      // Set up input handlers with debounce
       if (sourceText) {
-        sourceText.addEventListener('input', () => {
-          this.updateWordCountDisplay();
+        sourceText.addEventListener('input', this._debounce(() => {
+          this._updateWordCount('source');
           this.handleSourceLanguageDetection();
-        });
+        }, 100));
       }
 
       if (targetText) {
-        targetText.addEventListener('input', () => {
-          this.updateWordCountDisplay();
+        targetText.addEventListener('input', this._debounce(() => {
+          this._updateWordCount('target');
           this.handleTargetLanguageDetection();
-        });
+        }, 100));
       }
 
+      // Set up translation mode toggle
       if (translationModeToggle) {
         translationModeToggle.addEventListener('change', () => {
-          const sourceContainer = document.getElementById('source-text-container');
-          const targetContainer = document.getElementById('target-text-container');
-          if (sourceContainer) {
-            sourceContainer.style.display = translationModeToggle.checked ? 'none' : 'block';
-          }
-          if (targetContainer) {
-            targetContainer.classList.toggle('monolingual', translationModeToggle.checked);
-          }
-          // Dispatch event for monolingual mode change
-          document.dispatchEvent(new CustomEvent('monolingual-mode-changed', {
-            detail: { isMonolingual: translationModeToggle.checked }
-          }));
-          this.updateWordCountDisplay();
+          this._state.isMonolingual = translationModeToggle.checked;
+          this._updateUIVisibility();
+          this._updateWordCounts();
           this.updateAnalyzeButton();
+          
+          // Notify other components
+          document.dispatchEvent(new CustomEvent('monolingual-mode-changed', {
+            detail: { isMonolingual: this._state.isMonolingual }
+          }));
         });
       }
 
@@ -58,58 +63,100 @@ window.AutoMQM.Core = window.AutoMQM.Core || {};
         analyzeBtn.addEventListener('click', this.runAnalysis.bind(this));
       }
 
-      // Initial updates
-      this.updateWordCountDisplay();
+      // Initial setup
+      this._updateAccountType();
+      this._updateWordCounts();
+      this._updateUIVisibility();
       this.updateAnalyzeButton();
     },
-    /**
-     * Update word count display for source and target text
-     */
-    updateWordCountDisplay: function() {
-      // Update word counts immediately
-        const sourceText = document.getElementById('source-text');
-        const targetText = document.getElementById('target-text');
-        const sourceWordCount = document.getElementById('source-word-count');
-        const targetWordCount = document.getElementById('target-word-count');
-        
-        // Get user's account type and corresponding limit
-        let accountType = 'Anonymous';
-        let accountTypeElement = document.querySelector('.account-type');
-        if (accountTypeElement && accountTypeElement.textContent) {
-          accountType = accountTypeElement.textContent.trim();
-        }
-        
-        const limits = {
-          'Anonymous': 500,
-          'Premium': 1000,
-          'Professional': 2000,
-          'Enterprise': 5000,
-          'Admin': 10000
+
+    // Helper function for debouncing
+    _debounce: function(func, wait) {
+      let timeout;
+      return function executedFunction(...args) {
+        const later = () => {
+          clearTimeout(timeout);
+          func(...args);
         };
-        const limit = limits[accountType] || 500;
-        
-        // Update source word count if elements exist
-        if (sourceText && sourceWordCount) {
-          const text = sourceText.value || '';
-          const words = text.trim().split(/\s+/);
-          const count = words.length > 0 && words[0] !== '' ? words.length : 0;
-          
-          sourceWordCount.textContent = `${count} / ${limit} words`;
-          sourceWordCount.classList.toggle('text-warning', count > limit);
-        }
-        
-        // Update target word count if elements exist
-        if (targetText && targetWordCount) {
-          const text = targetText.value || '';
-          const words = text.trim().split(/\s+/);
-          const count = words.length > 0 && words[0] !== '' ? words.length : 0;
-          
-          targetWordCount.textContent = `${count} / ${limit} words`;
-          targetWordCount.classList.toggle('text-warning', count > limit);
-        }
-        
-        // Update analyze button state
-        this.updateAnalyzeButton();
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+      };
+    },
+
+    // Update UI visibility based on monolingual mode
+    _updateUIVisibility: function() {
+      const sourceContainer = document.getElementById('source-text-container');
+      const targetContainer = document.getElementById('target-text-container');
+      
+      if (sourceContainer) {
+        sourceContainer.style.display = this._state.isMonolingual ? 'none' : 'block';
+      }
+      if (targetContainer) {
+        targetContainer.classList.toggle('monolingual', this._state.isMonolingual);
+      }
+    },
+    // Update account type and word limit
+    _updateAccountType: function() {
+      const accountTypeElement = document.querySelector('.account-type');
+      if (accountTypeElement && accountTypeElement.textContent) {
+        this._state.accountType = accountTypeElement.textContent.trim();
+      }
+    },
+
+    // Get word limit based on account type
+    _getWordLimit: function() {
+      const limits = {
+        'Anonymous': 500,
+        'Premium': 1000,
+        'Professional': 2000,
+        'Enterprise': 5000,
+        'Admin': 10000
+      };
+      return limits[this._state.accountType] || 500;
+    },
+
+    // Count words in text
+    _countWords: function(text) {
+      const words = (text || '').trim().split(/\s+/);
+      return words.length > 0 && words[0] !== '' ? words.length : 0;
+    },
+
+    // Update word count for a specific text area
+    _updateWordCount: function(type) {
+      const element = document.getElementById(`${type}-text`);
+      const countElement = document.getElementById(`${type}-word-count`);
+      
+      if (element && countElement) {
+        const count = this._countWords(element.value);
+        this._state[`${type}WordCount`] = count;
+        this._updateWordCountDisplay(type);
+      }
+    },
+
+    // Update all word counts
+    _updateWordCounts: function() {
+      this._updateWordCount('source');
+      this._updateWordCount('target');
+    },
+
+    // Update word count display for a specific type
+    _updateWordCountDisplay: function(type) {
+      const countElement = document.getElementById(`${type}-word-count`);
+      if (!countElement) return;
+
+      const count = this._state[`${type}WordCount`];
+      const limit = this._getWordLimit();
+      
+      countElement.textContent = `${count} / ${limit} words`;
+      countElement.classList.toggle('text-warning', count > limit);
+
+      // Dispatch event for word count change
+      document.dispatchEvent(new CustomEvent('word-count-updated', {
+        detail: { type, count, limit }
+      }));
+
+      // Update analyze button state
+      this.updateAnalyzeButton();
     },
 
     handleSourceLanguageDetection: async function() {
