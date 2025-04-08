@@ -257,17 +257,17 @@ exports.detectLanguage = async (req, res) => {
       { q: text },
       {
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
+          'Authorization': apiKey,
           'Content-Type': 'application/json'
         }
       }
     );
 
-    if (!response.data || !response.data.data || !response.data.data.detections || response.data.data.detections.length === 0) {
+    if (!response.data || !response.data.detections || response.data.detections.length === 0) {
       return res.status(400).json({ error: 'Unable to detect language' });
     }
 
-    const detection = response.data.data.detections[0];
+    const detection = response.data.detections[0];
     return res.json({
       language: detection.language,
       confidence: detection.confidence

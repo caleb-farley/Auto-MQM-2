@@ -118,24 +118,46 @@ window.AutoMQM.Core = window.AutoMQM.Core || {};
     const sourceLang = document.getElementById('source-lang');
     const targetLang = document.getElementById('target-lang');
     const translateBtn = document.getElementById('translate-btn');
+    const translationModeToggle = document.getElementById('translation-mode-toggle');
+    const isMonolingual = translationModeToggle?.checked || false;
     
-    if (!sourceText || !targetText || !sourceLang || !targetLang || !translateBtn) {
+    if (!targetText || !targetLang || !translateBtn) {
       console.error('Required elements not found');
       return;
     }
     
-    const text = sourceText.value.trim();
-    const fromLang = sourceLang.value;
-    const toLang = targetLang.value;
+    let text, fromLang, toLang;
     
-    if (!text) {
-      window.AutoMQM.Utils.showNotification('Please enter text to translate', 'error');
-      return;
-    }
-    
-    if (!fromLang) {
-      window.AutoMQM.Utils.showNotification('Please select source language', 'error');
-      return;
+    if (isMonolingual) {
+      // In monolingual mode, we only need target text and language
+      text = targetText.value.trim();
+      fromLang = await window.AutoMQM.Utils.detectLanguage(text) || '';
+      toLang = targetLang.value;
+      
+      if (!text) {
+        window.AutoMQM.Utils.showNotification('Please enter text to translate', 'error');
+        return;
+      }
+      
+      if (!fromLang) {
+        window.AutoMQM.Utils.showNotification('Could not detect source language', 'error');
+        return;
+      }
+    } else {
+      // In bilingual mode, we need both source and target
+      text = sourceText.value.trim();
+      fromLang = sourceLang.value;
+      toLang = targetLang.value;
+      
+      if (!text) {
+        window.AutoMQM.Utils.showNotification('Please enter text to translate', 'error');
+        return;
+      }
+      
+      if (!fromLang) {
+        window.AutoMQM.Utils.showNotification('Please select source language', 'error');
+        return;
+      }
     }
     
     if (!toLang) {
@@ -149,7 +171,9 @@ window.AutoMQM.Core = window.AutoMQM.Core || {};
       
       const translatedText = await window.AutoMQM.Utils.translate(text, fromLang, toLang);
       if (translatedText) {
-        targetText.value = translatedText;
+        if (!isMonolingual) {
+          targetText.value = translatedText;
+        }
         window.AutoMQM.Core.updateWordCountDisplay();
       }
     } catch (error) {
@@ -318,9 +342,10 @@ window.AutoMQM.Core = window.AutoMQM.Core || {};
     const hasTargetLang = targetLang && targetLang.value;
     const withinLimit = sourceWordCount <= limit && (!hasTargetText || targetWordCount <= limit);
     
-    const canAnalyze = hasSourceText && hasSourceLang && 
-                       (isMonolingual || (hasTargetText && hasTargetLang)) &&
-                       withinLimit;
+    // In monolingual mode, we only need target text and language
+    const canAnalyze = isMonolingual ?
+      (hasTargetText && hasTargetLang && withinLimit) :
+      (hasSourceText && hasSourceLang && hasTargetText && hasTargetLang && withinLimit);
     
     analyzeBtn.disabled = !canAnalyze;
   };
