@@ -8,64 +8,72 @@ window.AutoMQM = window.AutoMQM || {};
 window.AutoMQM.Core = window.AutoMQM.Core || {};
 
 (function() {
-  // Word count display function
-  window.AutoMQM.Core.updateWordCountDisplay = function() {
+  // Core functions
+  const CoreFunctions = {
+    /**
+     * Update word count display for source and target text
+     */
+    updateWordCountDisplay: function() {
     const sourceText = document.getElementById('source-text');
     const targetText = document.getElementById('target-text');
     const sourceWordCount = document.getElementById('source-word-count');
     const targetWordCount = document.getElementById('target-word-count');
     
+    // Get user's account type and corresponding limit
+    let accountType = 'Anonymous';
+    let accountTypeElement = document.querySelector('.account-type');
+    if (accountTypeElement && accountTypeElement.textContent) {
+      accountType = accountTypeElement.textContent.trim();
+    }
+    
+    const limits = {
+      'Anonymous': 500,
+      'Premium': 1000,
+      'Professional': 2000,
+      'Enterprise': 5000,
+      'Admin': 10000
+    };
+    const limit = limits[accountType] || 500;
+    
+    // Update source word count if elements exist
     if (sourceText && sourceWordCount) {
-      const words = sourceText.value.trim().split(/\s+/);
+      const text = sourceText.value || '';
+      const words = text.trim().split(/\s+/);
       const count = words.length > 0 && words[0] !== '' ? words.length : 0;
-      sourceWordCount.textContent = `${count} words`;
-      
-      // Get user's account type and corresponding limit
-      const accountType = document.querySelector('.account-type')?.textContent || 'Anonymous';
-      const limits = {
-        'Anonymous': 500,
-        'Premium': 1000,
-        'Professional': 2000,
-        'Enterprise': 5000,
-        'Admin': 10000
-      };
-      const limit = limits[accountType] || 500;
       
       sourceWordCount.textContent = `${count} / ${limit} words`;
-      if (count > limit) {
-        sourceWordCount.classList.add('text-warning');
-      } else {
-        sourceWordCount.classList.remove('text-warning');
+      sourceWordCount.classList.toggle('text-warning', count > limit);
+      
+      // Disable analyze button if word count exceeds limit
+      const analyzeBtn = document.getElementById('analyze-btn');
+      if (analyzeBtn) {
+        analyzeBtn.disabled = count > limit;
       }
     }
     
+    // Update target word count if elements exist
     if (targetText && targetWordCount) {
-      const words = targetText.value.trim().split(/\s+/);
+      const text = targetText.value || '';
+      const words = text.trim().split(/\s+/);
       const count = words.length > 0 && words[0] !== '' ? words.length : 0;
-      targetWordCount.textContent = `${count} words`;
-      
-      // Get user's account type and corresponding limit
-      const accountType = document.querySelector('.account-type')?.textContent || 'Anonymous';
-      const limits = {
-        'Anonymous': 500,
-        'Premium': 1000,
-        'Professional': 2000,
-        'Enterprise': 5000,
-        'Admin': 10000
-      };
-      const limit = limits[accountType] || 500;
       
       targetWordCount.textContent = `${count} / ${limit} words`;
-      if (count > limit) {
-        targetWordCount.classList.add('text-warning');
-      } else {
-        targetWordCount.classList.remove('text-warning');
+      targetWordCount.classList.toggle('text-warning', count > limit);
+      
+      // Disable analyze button if word count exceeds limit
+      const analyzeBtn = document.getElementById('analyze-btn');
+      if (analyzeBtn) {
+        analyzeBtn.disabled = count > limit;
       }
     }
-  };
+    
+    // Update analyze button state
+    if (window.AutoMQM.Core.updateAnalyzeButton) {
+      window.AutoMQM.Core.updateAnalyzeButton();
+    }
+  },
 
-  // Language detection functions
-  window.AutoMQM.Core.handleSourceLanguageDetection = async function() {
+  handleSourceLanguageDetection: async function() {
     const sourceText = document.getElementById('source-text');
     const sourceLang = document.getElementById('source-lang');
     
@@ -86,9 +94,9 @@ window.AutoMQM.Core = window.AutoMQM.Core || {};
         }
       }
     }
-  };
+  },
 
-  window.AutoMQM.Core.handleTargetLanguageDetection = async function() {
+  handleTargetLanguageDetection: async function() {
     const targetText = document.getElementById('target-text');
     const targetLang = document.getElementById('target-lang');
     
@@ -109,10 +117,10 @@ window.AutoMQM.Core = window.AutoMQM.Core || {};
         }
       }
     }
-  };
+  },
 
   // Translation function
-  window.AutoMQM.Core.translateText = async function() {
+  translateText: async function() {
     const sourceText = document.getElementById('source-text');
     const targetText = document.getElementById('target-text');
     const sourceLang = document.getElementById('source-lang');
@@ -183,10 +191,10 @@ window.AutoMQM.Core = window.AutoMQM.Core || {};
       translateBtn.disabled = false;
       translateBtn.textContent = 'Translate';
     }
-  };
+    },
 
-  // Analysis function
-  window.AutoMQM.Core.runAnalysis = async function() {
+    // Analysis function
+    runAnalysis: async function() {
     const sourceText = document.getElementById('source-text');
     const targetText = document.getElementById('target-text');
     const sourceLang = document.getElementById('source-lang');
@@ -224,10 +232,10 @@ window.AutoMQM.Core = window.AutoMQM.Core || {};
       analyzeBtn.disabled = false;
       loadingIndicator.style.display = 'none';
     }
-  };
+    },
 
-  // Language and translation mode handlers
-  window.AutoMQM.Core.initLanguageHandlers = function() {
+    // Language and translation mode handlers
+    initLanguageHandlers: function() {
     const sourceLang = document.getElementById('source-lang');
     const targetLang = document.getElementById('target-lang');
     const translationModeToggle = document.getElementById('translation-mode-toggle');
@@ -305,10 +313,10 @@ window.AutoMQM.Core = window.AutoMQM.Core || {};
     
     // Initialize text direction
     updateTextDirection();
-  };
+  },
   
   // Analysis functions
-  window.AutoMQM.Core.updateAnalyzeButton = function() {
+  updateAnalyzeButton: function() {
     const sourceText = document.getElementById('source-text');
     const targetText = document.getElementById('target-text');
     const sourceLang = document.getElementById('source-lang');
@@ -348,9 +356,9 @@ window.AutoMQM.Core = window.AutoMQM.Core || {};
       (hasSourceText && hasSourceLang && hasTargetText && hasTargetLang && withinLimit);
     
     analyzeBtn.disabled = !canAnalyze;
-  };
+  },
 
-  window.AutoMQM.Core.displayResults = function(results) {
+  displayResults: function(results) {
     const resultsContainer = document.getElementById('results-container');
     if (!resultsContainer || !results) return;
     
@@ -399,61 +407,137 @@ window.AutoMQM.Core = window.AutoMQM.Core || {};
     
     resultsContainer.appendChild(table);
     resultsContainer.style.display = 'block';
-  };
+    },
 
-  window.AutoMQM.Core.runAnalysis = async function() {
-    const sourceText = document.getElementById('source-text');
-    const targetText = document.getElementById('target-text');
-    const sourceLang = document.getElementById('source-lang');
-    const targetLang = document.getElementById('target-lang');
-    const analyzeBtn = document.getElementById('analyze-btn');
-    const resultsContainer = document.getElementById('results-container');
-    
-    if (!analyzeBtn || !resultsContainer) {
-      console.error('Required elements not found');
-      return;
-    }
-    
-    try {
-      analyzeBtn.disabled = true;
-      window.AutoMQM.Utils.showLoading();
-      resultsContainer.style.display = 'none';
+    runAnalysis: async function() {
+      const sourceText = document.getElementById('source-text');
+      const targetText = document.getElementById('target-text');
+      const sourceLang = document.getElementById('source-lang');
+      const targetLang = document.getElementById('target-lang');
+      const analyzeBtn = document.getElementById('analyze-btn');
+      const resultsContainer = document.getElementById('results-container');
       
-      const data = {
-        sourceText: sourceText?.value || '',
-        targetText: targetText?.value || '',
-        sourceLang: sourceLang?.value || '',
-        targetLang: targetLang?.value || '',
-        isMonolingual: document.getElementById('translation-mode-toggle')?.checked || false
-      };
-      
-      const response = await fetch('/api/analyze', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-      });
-      
-      if (!response.ok) {
-        throw new Error('Analysis failed');
+      if (!analyzeBtn || !resultsContainer) {
+        console.error('Required elements not found');
+        return;
       }
       
-      const results = await response.json();
-      window.AutoMQM.Core.displayResults(results);
-    } catch (error) {
-      console.error('Analysis failed:', error);
-      window.AutoMQM.Utils.showNotification('Analysis failed: ' + error.message, 'error');
-    } finally {
-      analyzeBtn.disabled = false;
-      window.AutoMQM.Utils.hideLoading();
+      try {
+        analyzeBtn.disabled = true;
+        window.AutoMQM.Utils.showLoading();
+        resultsContainer.style.display = 'none';
+        
+        const data = {
+          sourceText: sourceText?.value || '',
+          targetText: targetText?.value || '',
+          sourceLang: sourceLang?.value || '',
+          targetLang: targetLang?.value || '',
+          isMonolingual: document.getElementById('translation-mode-toggle')?.checked || false
+        };
+        
+        const response = await fetch('/api/analyze', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(data)
+        });
+        
+        if (!response.ok) {
+          throw new Error('Analysis failed');
+        }
+        
+        const results = await response.json();
+        window.AutoMQM.Core.displayResults(results);
+      } catch (error) {
+        console.error('Analysis failed:', error);
+        window.AutoMQM.Utils.showNotification('Analysis failed: ' + error.message, 'error');
+      } finally {
+        analyzeBtn.disabled = false;
+        window.AutoMQM.Utils.hideLoading();
+      }
+    },
+
+    updateAnalyzeButton: function() {
+      const sourceText = document.getElementById('source-text');
+      const targetText = document.getElementById('target-text');
+      const sourceLang = document.getElementById('source-lang');
+      const targetLang = document.getElementById('target-lang');
+      const analyzeBtn = document.getElementById('analyze-btn');
+      const translationModeToggle = document.getElementById('translation-mode-toggle');
+      const isMonolingual = translationModeToggle?.checked || false;
+
+      if (!analyzeBtn) return;
+
+      let canAnalyze = true;
+
+      if (!isMonolingual && (!sourceText?.value || !sourceLang?.value)) {
+        canAnalyze = false;
+      }
+
+      if (!targetText?.value || !targetLang?.value) {
+        canAnalyze = false;
+      }
+
+      analyzeBtn.disabled = !canAnalyze;
+    },
+
+    displayResults: function(results) {
+      const resultsContainer = document.getElementById('results-container');
+      if (!resultsContainer || !results) return;
+
+      resultsContainer.innerHTML = '';
+
+      const table = document.createElement('table');
+      table.classList.add('table', 'table-bordered', 'table-hover');
+
+      const header = document.createElement('thead');
+      const headerRow = document.createElement('tr');
+      ['Category', 'Severity', 'Details'].forEach(text => {
+        const th = document.createElement('th');
+        th.textContent = text;
+        headerRow.appendChild(th);
+      });
+      header.appendChild(headerRow);
+      table.appendChild(header);
+
+      const tbody = document.createElement('tbody');
+      results.forEach(data => {
+        const row = document.createElement('tr');
+
+        const categoryCell = document.createElement('td');
+        categoryCell.textContent = data.category || '';
+        row.appendChild(categoryCell);
+
+        const severityCell = document.createElement('td');
+        severityCell.textContent = data.severity || '';
+        row.appendChild(severityCell);
+
+        const detailsCell = document.createElement('td');
+        if (data.details) {
+          detailsCell.innerHTML = Array.isArray(data.details)
+            ? data.details.join('<br>')
+            : data.details;
+        }
+        row.appendChild(detailsCell);
+
+        tbody.appendChild(row);
+      });
+      table.appendChild(tbody);
+
+      resultsContainer.appendChild(table);
+      resultsContainer.style.display = 'block';
     }
   };
 
-  // Initialize all core functionality
-  window.addEventListener('DOMContentLoaded', function() {
+  // Export core functions to global namespace
+  Object.assign(window.AutoMQM.Core, CoreFunctions);
+
+  // Initialize when DOM is ready
+  window.addEventListener('DOMContentLoaded', () => {
     window.AutoMQM.Core.initLanguageHandlers();
+    window.AutoMQM.Core.updateWordCountDisplay();
   });
-  
+
   console.log('Core functions initialized');
 })();

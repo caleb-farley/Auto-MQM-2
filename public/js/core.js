@@ -121,19 +121,34 @@ function updateAnalyzeButton() {
  * Initialize event listeners
  */
 function initEventListeners() {
-  // Text input changes
-  sourceText.addEventListener('input', function() {
-    window.AutoMQM.Core.updateWordCountDisplay();
-  });
+  // Wait for DOM elements to be ready
+  const sourceText = document.getElementById('source-text');
+  const targetText = document.getElementById('target-text');
+  const translationModeToggle = document.getElementById('translation-mode-toggle');
+
+  if (sourceText) {
+    sourceText.addEventListener('input', function() {
+      window.AutoMQM.Core.updateWordCountDisplay();
+    });
+  }
   
-  targetText.addEventListener('input', function() {
-    window.AutoMQM.Core.updateWordCountDisplay();
-  });
+  if (targetText) {
+    targetText.addEventListener('input', function() {
+      window.AutoMQM.Core.updateWordCountDisplay();
+    });
+  }
   
   // Initial word count update
   window.AutoMQM.Core.updateWordCountDisplay();
   
   // Listen for translation mode changes
+  if (translationModeToggle) {
+    translationModeToggle.addEventListener('change', function() {
+      toggleSourceTextVisibility(this.checked);
+      updateAnalyzeButton();
+    });
+  }
+  
   document.addEventListener('translation-mode-changed', updateAnalyzeButton);
 }
 

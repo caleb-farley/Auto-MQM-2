@@ -210,10 +210,89 @@ async function detectLanguage(text) {
   }
 }
 
+/**
+ * Analyze text using the MQM framework
+ * @param {Object} data - The data to analyze
+ * @returns {Promise<Object>} - The analysis results
+ */
+async function analyze(data) {
+  try {
+    const response = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Analysis failed:', error);
+    throw error;
+  }
+}
+
+/**
+ * Display analysis results in the UI
+ * @param {Object} results - The analysis results to display
+ */
+function displayResults(results) {
+  const resultsContainer = document.getElementById('results-container');
+  if (!resultsContainer) return;
+  
+  resultsContainer.innerHTML = '';
+  resultsContainer.style.display = 'block';
+  
+  // Create results header
+  const header = document.createElement('div');
+  header.className = 'results-header';
+  header.innerHTML = `
+    <h3>Analysis Results</h3>
+    <p>Found ${results.mqmIssues?.length || 0} issues</p>
+  `;
+  resultsContainer.appendChild(header);
+  
+  // Display each issue
+  if (results.mqmIssues && results.mqmIssues.length > 0) {
+    const issuesList = document.createElement('div');
+    issuesList.className = 'issues-list';
+    
+    results.mqmIssues.forEach((issue, index) => {
+      const issueElement = document.createElement('div');
+      issueElement.className = 'issue-item';
+      issueElement.innerHTML = `
+        <div class="issue-header">
+          <span class="issue-type">${issue.type}</span>
+          <span class="issue-severity">${issue.severity}</span>
+        </div>
+        <div class="issue-content">
+          <p>${issue.description}</p>
+          ${issue.suggestion ? `<p class="suggestion">Suggestion: ${issue.suggestion}</p>` : ''}
+        </div>
+      `;
+      issuesList.appendChild(issueElement);
+    });
+    
+    resultsContainer.appendChild(issuesList);
+  } else {
+    // No issues found
+    const noIssues = document.createElement('div');
+    noIssues.className = 'no-issues';
+    noIssues.textContent = 'No quality issues found.';
+    resultsContainer.appendChild(noIssues);
+  }
+}
+
 // Export utility functions to global namespace
 window.AutoMQM.Utils = {
   showNotification,
   copyToClipboard,
+  analyze,
+  displayResults,
   formatDate,
   escapeHtml,
   debounce,
