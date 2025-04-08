@@ -18,6 +18,7 @@
   <script src="js/toggle.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/modals.js"></script>
+  <script src="js/fix.js"></script>
 
 </head>
 <body>
@@ -113,7 +114,7 @@
       <div class="toggle-switch-container">
         <span class="toggle-label">Bilingual</span>
         <label class="switch">
-          <input type="checkbox" id="translation-mode">
+          <input type="checkbox" id="translation-mode-toggle">
           <span class="slider round"></span>
         </label>
         <span class="toggle-label">Monolingual</span>
@@ -121,15 +122,15 @@
       <div class="model-selector-container">
         <label for="llm-model" class="model-selector-label">Model:</label>
         <select id="llm-model" class="form-control model-selector">
-          <option value="gpt-4o">GPT-4o</option>
-          <option value="gpt-4">GPT-4</option>
-          <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+          <option value="claude-3-opus-20240229">Claude 3 Opus</option>
+          <option value="claude-3-sonnet-20240229" selected>Claude 3 Sonnet</option>
+          <option value="claude-3-haiku-20240307">Claude 3 Haiku</option>
         </select>
         <span class="info-icon" onmouseover="this.querySelector('.tooltip-text').style.visibility='visible'" onmouseout="this.querySelector('.tooltip-text').style.visibility='hidden'">&#9432;
           <span class="tooltip-text">
-            <strong>GPT-4o:</strong> Most advanced model with best quality.<br><br>
-            <strong>GPT-4:</strong> High quality but slower than GPT-4o.<br><br>
-            <strong>GPT-3.5 Turbo:</strong> Faster but less accurate than GPT-4 models.
+            <strong>Claude 3 Opus:</strong> Most powerful model with highest quality and accuracy.<br><br>
+            <strong>Claude 3 Sonnet:</strong> Balanced performance with good quality and speed.<br><br>
+            <strong>Claude 3 Haiku:</strong> Fastest model, ideal for quick analyses.
           </span>
         </span>
       </div>
@@ -853,7 +854,7 @@
       </div>
       
       <div class="dashboard-content">
-        <div id="admin-user-list">
+        <div id="admin-users-list">
           <!-- User list will be loaded here -->
           <p class="text-center mt-4">Loading users...</p>
         </div>

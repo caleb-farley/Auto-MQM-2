@@ -1810,7 +1810,7 @@ input:checked + .slider:before {
 .header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 20px;
   flex-wrap: wrap;
   gap: 15px;
@@ -1819,6 +1819,13 @@ input:checked + .slider:before {
 .logo-container {
   display: flex;
   align-items: center;
+  gap: 10px;
+}
+
+.flex.items-center {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
   gap: 10px;
 }
 
@@ -1839,6 +1846,24 @@ input:checked + .slider:before {
 .subtitle {
   font-size: 14px;
   color: var(--text-muted);
+  align-self: flex-end;
+  margin-top: 5px;
+}
+
+.auth-container {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 5px;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.usage-info {
+  text-align: right;
 }
 
 /* Info box styles */
@@ -2747,5 +2772,50 @@ input:checked + .slider:before {
     right: auto;
     max-width: 300px;
   }
+}
+
+/* Additional header styles */
+.user-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-name {
+  font-weight: 500;
+  margin-bottom: 3px;
+}
+
+.user-actions {
+  display: flex;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.user-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: var(--brand-blue);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+}
+
+.usage-progress-container {
+  width: 100%;
+  height: 6px;
+  background-color: var(--bg-secondary);
+  border-radius: 3px;
+  margin-top: 5px;
+  overflow: hidden;
+}
+
+.usage-progress {
+  height: 100%;
+  background-color: var(--brand-teal);
+  border-radius: 3px;
+  transition: width 0.3s ease;
 }
 
