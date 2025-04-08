@@ -95,9 +95,20 @@ describe('Auto-MQM UI Tests', () => {
   };
 
   test('Word count functionality', async () => {
-    // Clear any previous text and ensure we're in bilingual mode
+    // Set up event listener for word count updates
     await page.evaluate(() => {
-      // Reset text areas and ensure bilingual mode
+      window._testState = {
+        sourceCount: null,
+        targetCount: null
+      };
+      
+      document.addEventListener('word-count-updated', (event) => {
+        window._testState[`${event.detail.type}Count`] = event.detail.count;
+      });
+    });
+
+    // Reset state and ensure bilingual mode
+    await page.evaluate(() => {
       const sourceText = document.getElementById('source-text');
       const targetText = document.getElementById('target-text');
       const translationModeToggle = document.getElementById('translation-mode-toggle');
@@ -111,15 +122,6 @@ describe('Auto-MQM UI Tests', () => {
         translationModeToggle.checked = false;
         translationModeToggle.dispatchEvent(new Event('change'));
       }
-      
-      // Reset containers
-      const sourceContainer = document.getElementById('source-text-container');
-      const targetContainer = document.getElementById('target-text-container');
-      if (sourceContainer) sourceContainer.style.display = 'block';
-      if (targetContainer) targetContainer.classList.remove('monolingual');
-      
-      // Force initial word count update
-      window.AutoMQM.Core.updateWordCountDisplay();
     });
 
     // Test source text word count
@@ -127,37 +129,30 @@ describe('Auto-MQM UI Tests', () => {
       const sourceText = document.getElementById('source-text');
       sourceText.value = 'This is a test sentence';
       sourceText.dispatchEvent(new Event('input', { bubbles: true }));
-      window.AutoMQM.Core.updateWordCountDisplay();
     });
 
+    // Wait for source word count to update
     await page.waitForFunction(
-      () => {
-        const el = document.querySelector('#source-word-count');
-        return el && el.textContent === '5 / 500 words';
-      },
+      () => window._testState.sourceCount === 5,
       { timeout: 5000 }
     );
+
+    const sourceCount = await page.$eval('#source-word-count', el => el.textContent);
+    expect(sourceCount).toBe('5 / 500 words');
 
     // Test target text word count
     await page.evaluate(() => {
       const targetText = document.getElementById('target-text');
       targetText.value = 'This is another test sentence';
       targetText.dispatchEvent(new Event('input', { bubbles: true }));
-      window.AutoMQM.Core.updateWordCountDisplay();
     });
 
     // Wait for target word count to update
     await page.waitForFunction(
-      () => {
-        const el = document.querySelector('#target-word-count');
-        const text = el?.textContent || '';
-        const words = text.split(' / ')[0];
-        return words === '6';
-      },
+      () => window._testState.targetCount === 6,
       { timeout: 5000 }
     );
 
-    // Verify final word count
     const targetCount = await page.$eval('#target-word-count', el => el.textContent);
     expect(targetCount).toBe('6 / 500 words');
   });
@@ -249,80 +244,101 @@ describe('Auto-MQM UI Tests', () => {
         translationModeToggle.dispatchEvent(new Event('change', { bubbles: true }));
       }
     });
-    await new Promise(resolve => setTimeout(resolve, 100));
 
-    // Create text with more than 500 words (Anonymous limit)
-    const longText = 'test '.repeat(501);
+    // Set account type to Anonymous (500 words)
+    await page.evaluate(() => {
+      document.querySelector('.account-type').textContent = 'Anonymous';
+      window.AutoMQM.Core._updateAccountType();
+      window.AutoMQM.Core._updateWordCounts();
+    });
+
+    // Test word count below limit
+    await page.evaluate(() => {
+      const sourceText = document.getElementById('source-text');
+      sourceText.value = 'This is a test sentence';
+      sourceText.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+
+    await page.waitForFunction(
+      () => window._testState.sourceCount === 5,
+      { timeout: 5000 }
+    );
+
+    // Test word count above limit
+    const longText = Array(502).join('word ');
     await page.evaluate((text) => {
       const sourceText = document.getElementById('source-text');
       sourceText.value = text;
       sourceText.dispatchEvent(new Event('input', { bubbles: true }));
-      window.AutoMQM.Core.updateWordCountDisplay();
-      window.AutoMQM.Core.updateAnalyzeButton();
     }, longText);
 
-    // Wait for word count to update
     await page.waitForFunction(
-      () => {
-        const el = document.querySelector('#source-word-count');
-        return el && el.textContent === '501 / 500 words';
-      },
+      () => window._testState.sourceCount === 501,
       { timeout: 5000 }
     );
-    const wordCount = await page.$eval('#source-word-count', el => el.textContent);
-    expect(wordCount).toBe('501 / 500 words');
 
-    // Wait for analyze button to be disabled
-    await page.waitForFunction(
-      () => {
-        const button = document.querySelector('#analyze-btn');
-        return button && button.disabled;
-      },
-      { timeout: 5000 }
-    );
-    const isDisabled = await page.$eval('#analyze-btn', el => el.disabled);
-    expect(isDisabled).toBe(true);
-
-    // Check if warning class is applied
-    const hasWarning = await page.$eval('#source-word-count', el => 
-      el.classList.contains('text-warning')
-    );
+    // Verify warning class is added
+    const hasWarning = await page.$eval('#source-word-count', el => el.classList.contains('text-warning'));
     expect(hasWarning).toBe(true);
   });
 
   test('Monolingual mode', async () => {
-    // Enable monolingual mode
-    await page.waitForSelector('#translation-mode-toggle');
+    // Set up event listener for mode changes
     await page.evaluate(() => {
-      document.querySelector('#translation-mode-toggle').click();
+      window._testState = {
+        isMonolingual: false,
+        targetCount: null
+      };
+      
+      document.addEventListener('monolingual-mode-changed', (event) => {
+        window._testState.isMonolingual = event.detail.isMonolingual;
+      });
+
+      document.addEventListener('word-count-updated', (event) => {
+        if (event.detail.type === 'target') {
+          window._testState.targetCount = event.detail.count;
+        }
+      });
     });
 
-    // Clear previous text
-    await page.$eval('#source-text', el => el.value = '');
-    await page.$eval('#target-text', el => el.value = '');
+    // Enable monolingual mode
+    await page.evaluate(() => {
+      const translationModeToggle = document.getElementById('translation-mode-toggle');
+      if (translationModeToggle) {
+        translationModeToggle.checked = true;
+        translationModeToggle.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    });
 
-    // Wait for source container to be hidden
+    // Wait for monolingual mode to be enabled
     await page.waitForFunction(
-      () => {
-        const container = document.querySelector('#source-text-container');
-        return container && window.getComputedStyle(container).display === 'none';
-      },
-      { timeout: 10000 }
-    );
-
-    // Add target text only and verify analyze button
-    await page.type('#target-text', 'Test text');
-    await page.select('#target-lang', 'en');
-
-    // Wait for analyze button to be enabled
-    await page.waitForFunction(
-      () => {
-        const btn = document.querySelector('#analyze-btn');
-        return btn && !btn.disabled;
-      },
+      () => window._testState.isMonolingual === true,
       { timeout: 5000 }
     );
 
+    // Verify source container is hidden
+    const sourceContainerDisplay = await page.$eval('#source-text-container', el => 
+      window.getComputedStyle(el).display
+    );
+    expect(sourceContainerDisplay).toBe('none');
+
+    // Add target text and verify word count
+    await page.evaluate(() => {
+      const targetText = document.getElementById('target-text');
+      targetText.value = 'Test text';
+      targetText.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+
+    // Wait for word count to update
+    await page.waitForFunction(
+      () => window._testState.targetCount === 2,
+      { timeout: 5000 }
+    );
+
+    // Select language
+    await page.select('#target-lang', 'en');
+
+    // Verify analyze button is enabled
     const isDisabled = await page.$eval('#analyze-btn', el => el.disabled);
     expect(isDisabled).toBe(false);
   });

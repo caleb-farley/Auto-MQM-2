@@ -411,11 +411,13 @@
     
     <!-- Text areas -->
     <div class="text-areas" id="text-areas-container">
-      <!-- Source text -->
-      <div class="text-area-container" id="source-text-container">
-        <div class="text-area-header">
-          <label class="text-area-label" id="source-text-label">Source Text:</label>
-          <select id="source-lang">
+      <!-- Bilingual Mode Container -->
+      <div id="bilingual-container" class="mode-container">
+        <!-- Source text -->
+        <div class="text-area-container">
+          <div class="text-area-header">
+            <label class="text-area-label">Source Text:</label>
+            <select id="bilingual-source-lang" class="language-select">
             <option value="">-- Select Language --</option>
             <option value="en">🇬🇧 English</option>
             <option value="en-US">🇺🇸 English (US)</option>
@@ -502,14 +504,14 @@
       </div>
     
     <button id="save-run-btn" class="btn btn-secondary save-run-btn">Save Assessment</button>
-      <!-- Target text -->
-      <div class="text-area-container" id="target-text-container">
+      <!-- Target text for bilingual mode -->
+      <div class="text-area-container">
         <div class="text-area-header">
-          <div id="target-lang-bubble" class="language-bubble">Please select a target language</div>
+          <div id="bilingual-target-lang-bubble" class="language-bubble">Please select a target language</div>
           <div style="display: flex; align-items: center;">
-            <label class="text-area-label" id="target-text-label">Target Text:</label>
+            <label class="text-area-label">Target Text:</label>
           </div>
-          <select id="target-lang">
+          <select id="bilingual-target-lang" class="language-select">
             <option value="">-- Select Language --</option>
             <option value="en">🇬🇧 English</option>
             <option value="en-US">🇺🇸 English (US)</option>
@@ -588,24 +590,54 @@
             <option value="lt">🇱🇹 Lithuanian</option>            
           </select>
         </div>
-        <textarea id="target-text" placeholder="Enter the translated text..." dir="auto"></textarea>
+        <textarea id="bilingual-target-text" class="text-area" placeholder="Enter the translated text..." dir="auto"></textarea>
         <div class="text-area-footer">
           <div></div>
           <div style="display: flex; flex-direction: column; align-items: flex-end;">
-            <div id="target-word-count" class="word-count">0 words</div>
-            <button id="translate-btn" class="btn translate-btn">
+            <button id="bilingual-translate-btn" class="btn translate-btn">
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" class="translate-btn-icon">
                 <path d="M4.545 6.714 4.11 8H3l1.862-5h1.284L8 8H6.833l-.435-1.286H4.545zm1.634-.736L5.5 3.956h-.049l-.679 2.022H6.18z"/>
                 <path d="M0 2a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v3h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-3H2a2 2 0 0 1-2-2V2zm2-1a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H2zm7.138 9.995c.193.301.402.583.63.846-.748.575-1.673 1.001-2.768 1.292.178.217.451.635.555.867 1.125-.359 2.08-.844 2.886-1.494.777.665 1.739 1.165 2.93 1.472.133-.254.414-.673.629-.89-1.125-.253-2.057-.694-2.82-1.284.681-.747 1.222-1.651 1.621-2.757H14V8h-3v1.059h.5c.412 0 .743.337.743.75 0 .413-.331.75-.743.75h-1.5a.75.75 0 0 1-.75-.75V9.5a.75.75 0 0 1 .75-.75h.5V8h-1.5a.75.75 0 0 1-.75-.75V7.5a.75.75 0 0 1 .75-.75h3.5c.409 0 .74.336.74.75 0 .413-.331.75-.74.75h-1.5v.056c-.319.975-.71 1.769-1.225 2.425.556.665 1.257 1.197 2.121 1.596.22-.208.498-.634.704-.889-.914-.344-1.632-.788-2.202-1.37a.75.75 0 0 1-.174-.144c.002-.002.005-.006.007-.008Z"/>
               </svg>
               Translate
             </button>
-            <div id="translation-engine-info" class="translation-engine-info" style="font-size: 11px; margin-top: 4px; text-align: center; width: 100%;"></div>
           </div>
         </div>
       </div>
     </div>
-  <!-- Authentication and Account Management Modals -->
+
+    <!-- Monolingual Mode Container -->
+    <div id="monolingual-container" class="mode-container" style="display: none;">
+      <div class="text-area-container">
+        <div class="text-area-header">
+          <label class="text-area-label">Text:</label>
+          <select id="monolingual-lang" class="language-select">
+            <option value="">-- Select Language --</option>
+            <option value="en">🇬🇧 English</option>
+            <option value="fr">🇫🇷 French</option>
+            <option value="de">🇩🇪 German</option>
+            <option value="es">🇪🇸 Spanish</option>
+            <option value="it">🇮🇹 Italian</option>
+            <option value="pt">🇵🇹 Portuguese</option>
+            <option value="ru">🇷🇺 Russian</option>
+            <option value="ja">🇯🇵 Japanese</option>
+            <option value="ko">🇰🇷 Korean</option>
+            <option value="zh">🇨🇳 Chinese</option>
+            <option value="ar">🇸🇦 Arabic</option>
+            <option value="hi">🇮🇳 Hindi</option>
+          </select>
+        </div>
+        <textarea id="monolingual-text" class="text-area" placeholder="Enter text here..." dir="auto"></textarea>
+      </div>
+    </div>
+
+    <!-- Common Controls -->
+    <div class="controls-container">
+      <div id="word-count" class="word-count">0 / 500 words</div>
+      <button id="analyze-btn" class="btn btn-primary">Analyze</button>
+      <button id="save-run-btn" class="btn btn-secondary save-run-btn">Save Assessment</button>
+    </div>
+    <!-- Authentication and Account Management Modals -->
   
   <!-- Login Modal -->
   <div id="login-modal" class="modal-overlay">
@@ -613,6 +645,16 @@
       <div class="modal-header">
         <h2 class="modal-title">Log In</h2>
         <button class="close">&times;</button>
+      </div>
+      <div class="header">
+        <div class="title-container">
+          <h1 class="title">Auto-MQM</h1>
+          <div class="version">v2.0.0</div>
+        </div>
+        <div class="mode-toggle">
+          <button id="bilingual-mode-btn" class="mode-btn active">Bilingual</button>
+          <button id="monolingual-mode-btn" class="mode-btn">Monolingual</button>
+        </div>
       </div>
       <form id="login-form">
         <div class="form-group">

@@ -13,8 +13,7 @@ window.AutoMQM.Core = window.AutoMQM.Core || {};
     // State management
     _state: {
       isMonolingual: false,
-      sourceWordCount: 0,
-      targetWordCount: 0,
+      wordCount: 0,
       accountType: 'Anonymous'
     },
 
@@ -23,38 +22,51 @@ window.AutoMQM.Core = window.AutoMQM.Core || {};
       // Initialize language handlers
       this.initLanguageHandlers();
 
-      // Add event listeners for text inputs
-      const sourceText = document.getElementById('source-text');
-      const targetText = document.getElementById('target-text');
+      // Get all text inputs and UI elements
+      const bilingualSourceText = document.getElementById('bilingual-source-text');
+      const bilingualTargetText = document.getElementById('bilingual-target-text');
+      const monolingualText = document.getElementById('monolingual-text');
       const translationModeToggle = document.getElementById('translation-mode-toggle');
       const analyzeBtn = document.getElementById('analyze-btn');
 
-      // Set up input handlers with debounce
-      if (sourceText) {
-        sourceText.addEventListener('input', this._debounce(() => {
-          this._updateWordCount('source');
-          this.handleSourceLanguageDetection();
-        }, 100));
-      }
+      // Set up input handlers
+      const handleInput = (element, type) => {
+        if (!element) return;
+        element.addEventListener('input', () => {
+          const count = this._countWords(element.value);
+          this._state.wordCount = count;
+          this._updateWordCountDisplay();
+          
+          // Handle language detection
+          if (type === 'source' || type === 'monolingual') {
+            this.handleSourceLanguageDetection(element);
+          }
+          if (type === 'target') {
+            this.handleTargetLanguageDetection(element);
+          }
+        });
+      };
 
-      if (targetText) {
-        targetText.addEventListener('input', this._debounce(() => {
-          this._updateWordCount('target');
-          this.handleTargetLanguageDetection();
-        }, 100));
-      }
+      // Set up handlers for all text areas
+      handleInput(bilingualSourceText, 'source');
+      handleInput(bilingualTargetText, 'target');
+      handleInput(monolingualText, 'monolingual');
 
       // Set up translation mode toggle
       if (translationModeToggle) {
         translationModeToggle.addEventListener('change', () => {
           this._state.isMonolingual = translationModeToggle.checked;
           this._updateUIVisibility();
-          this._updateWordCounts();
+          this._updateWordCount();
           this.updateAnalyzeButton();
           
           // Notify other components
-          document.dispatchEvent(new CustomEvent('monolingual-mode-changed', {
-            detail: { isMonolingual: this._state.isMonolingual }
+          document.dispatchEvent(new CustomEvent('mode-changed', {
+            bubbles: true,
+            detail: { 
+              isMonolingual: this._state.isMonolingual,
+              wordCount: this._state.wordCount
+            }
           }));
         });
       }
@@ -65,7 +77,7 @@ window.AutoMQM.Core = window.AutoMQM.Core || {};
 
       // Initial setup
       this._updateAccountType();
-      this._updateWordCounts();
+      this._updateWordCount();
       this._updateUIVisibility();
       this.updateAnalyzeButton();
     },
@@ -85,14 +97,14 @@ window.AutoMQM.Core = window.AutoMQM.Core || {};
 
     // Update UI visibility based on monolingual mode
     _updateUIVisibility: function() {
-      const sourceContainer = document.getElementById('source-text-container');
-      const targetContainer = document.getElementById('target-text-container');
+      const bilingualContainer = document.getElementById('bilingual-container');
+      const monolingualContainer = document.getElementById('monolingual-container');
       
-      if (sourceContainer) {
-        sourceContainer.style.display = this._state.isMonolingual ? 'none' : 'block';
+      if (bilingualContainer) {
+        bilingualContainer.style.display = this._state.isMonolingual ? 'none' : 'block';
       }
-      if (targetContainer) {
-        targetContainer.classList.toggle('monolingual', this._state.isMonolingual);
+      if (monolingualContainer) {
+        monolingualContainer.style.display = this._state.isMonolingual ? 'block' : 'none';
       }
     },
     // Update account type and word limit
@@ -121,39 +133,39 @@ window.AutoMQM.Core = window.AutoMQM.Core || {};
       return words.length > 0 && words[0] !== '' ? words.length : 0;
     },
 
-    // Update word count for a specific text area
-    _updateWordCount: function(type) {
-      const element = document.getElementById(`${type}-text`);
-      const countElement = document.getElementById(`${type}-word-count`);
+    // Update word count based on current mode
+    _updateWordCount: function() {
+      const activeTextArea = this._state.isMonolingual ? 
+        document.getElementById('monolingual-text') : 
+        document.getElementById('bilingual-target-text');
       
-      if (element && countElement) {
-        const count = this._countWords(element.value);
-        this._state[`${type}WordCount`] = count;
-        this._updateWordCountDisplay(type);
+      if (activeTextArea) {
+        const count = this._countWords(activeTextArea.value);
+        this._state.wordCount = count;
+        this._updateWordCountDisplay();
+
+        // Dispatch event for word count change
+        document.dispatchEvent(new CustomEvent('word-count-updated', {
+          bubbles: true,
+          detail: { 
+            count,
+            limit: this._getWordLimit(),
+            isMonolingual: this._state.isMonolingual
+          }
+        }));
       }
     },
 
-    // Update all word counts
-    _updateWordCounts: function() {
-      this._updateWordCount('source');
-      this._updateWordCount('target');
-    },
-
-    // Update word count display for a specific type
-    _updateWordCountDisplay: function(type) {
-      const countElement = document.getElementById(`${type}-word-count`);
+    // Update word count display
+    _updateWordCountDisplay: function() {
+      const countElement = document.getElementById('word-count');
       if (!countElement) return;
 
-      const count = this._state[`${type}WordCount`];
+      const count = this._state.wordCount;
       const limit = this._getWordLimit();
       
       countElement.textContent = `${count} / ${limit} words`;
       countElement.classList.toggle('text-warning', count > limit);
-
-      // Dispatch event for word count change
-      document.dispatchEvent(new CustomEvent('word-count-updated', {
-        detail: { type, count, limit }
-      }));
 
       // Update analyze button state
       this.updateAnalyzeButton();
@@ -613,6 +625,29 @@ window.AutoMQM.Core = window.AutoMQM.Core || {};
   // Export core functions to global namespace
   Object.assign(window.AutoMQM.Core, CoreFunctions);
 })();
+
+// Mode switching functionality
+const bilingualModeBtn = document.getElementById('bilingual-mode-btn');
+const monolingualModeBtn = document.getElementById('monolingual-mode-btn');
+const bilingualContainer = document.getElementById('bilingual-container');
+const monolingualContainer = document.getElementById('monolingual-container');
+
+function switchMode(mode) {
+  if (mode === 'bilingual') {
+    bilingualContainer.style.display = 'flex';
+    monolingualContainer.style.display = 'none';
+    bilingualModeBtn.classList.add('active');
+    monolingualModeBtn.classList.remove('active');
+  } else {
+    bilingualContainer.style.display = 'none';
+    monolingualContainer.style.display = 'flex';
+    bilingualModeBtn.classList.remove('active');
+    monolingualModeBtn.classList.add('active');
+  }
+}
+
+bilingualModeBtn.addEventListener('click', () => switchMode('bilingual'));
+monolingualModeBtn.addEventListener('click', () => switchMode('monolingual'));
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
