@@ -26,7 +26,8 @@
         "stripe": "^14.12.0",
         "uuid": "^9.0.1",
         "xliff": "^6.2.2",
-        "xml2js": "^0.6.2"
+        "xml2js": "^0.6.2",
+        "xmldom": "^0.6.0"
     },
     "devDependencies": {
         "nodemon": "^3.0.1"
