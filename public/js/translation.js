@@ -15,8 +15,8 @@ const translationEngineInfo = document.getElementById('translation-engine-info')
  * Detect language using browser API or fallback
  */
 async function detectLanguage(text) {
-  // Use core function for language detection
-  return await window.AutoMQM.Core.detectLanguage(text);
+  // Use utils function for language detection
+  return await window.AutoMQM.Utils.detectLanguage(text);
   // Check if browser supports language detection API
   if (navigator.language && window.Intl && window.Intl.Locale) {
     try {

@@ -28,7 +28,7 @@
     // Language detection function
     async function detectLanguage(text) {
       // Use core function for language detection
-      return await window.AutoMQM.Core.detectLanguage(text);
+      return await window.AutoMQM.Utils.detectLanguage(text);
       // Simple language detection based on character patterns
       // In a real app, you would use a proper language detection API
       

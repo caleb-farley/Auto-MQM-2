@@ -4,7 +4,6 @@
  */
 
 const axios = require('axios');
-const franc = require('franc-min');
 
 /**
  * Translate text using configured translation service
@@ -247,16 +246,31 @@ exports.detectLanguage = async (req, res) => {
       return res.status(400).json({ error: 'Text too short for language detection' });
     }
     
-    // Use franc for language detection
-    const detectedLang = franc(text);
-    
-    if (detectedLang === 'und') {
+    // Use Detect Language API
+    const apiKey = process.env.DETECT_LANGUAGE_API_KEY;
+    if (!apiKey) {
+      return res.status(500).json({ error: 'Detect Language API key not configured' });
+    }
+
+    const response = await axios.post(
+      'https://ws.detectlanguage.com/0.2/detect',
+      { q: text },
+      {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (!response.data || !response.data.data || !response.data.data.detections || response.data.data.detections.length === 0) {
       return res.status(400).json({ error: 'Unable to detect language' });
     }
-    
+
+    const detection = response.data.data.detections[0];
     return res.json({
-      language: detectedLang,
-      confidence: 0.8 // franc doesn't provide confidence scores
+      language: detection.language,
+      confidence: detection.confidence
     });
   } catch (error) {
     console.error('Language detection error:', error);
