@@ -480,64 +480,42 @@ window.AutoMQM.Core = window.AutoMQM.Core || {};
       }
 
       analyzeBtn.disabled = !canAnalyze;
-    },
-
-    displayResults: function(results) {
-      const resultsContainer = document.getElementById('results-container');
-      if (!resultsContainer || !results) return;
-
-      resultsContainer.innerHTML = '';
-
-      const table = document.createElement('table');
-      table.classList.add('table', 'table-bordered', 'table-hover');
-
-      const header = document.createElement('thead');
-      const headerRow = document.createElement('tr');
-      ['Category', 'Severity', 'Details'].forEach(text => {
-        const th = document.createElement('th');
-        th.textContent = text;
-        headerRow.appendChild(th);
-      });
-      header.appendChild(headerRow);
-      table.appendChild(header);
-
-      const tbody = document.createElement('tbody');
-      results.forEach(data => {
-        const row = document.createElement('tr');
-
-        const categoryCell = document.createElement('td');
-        categoryCell.textContent = data.category || '';
-        row.appendChild(categoryCell);
-
-        const severityCell = document.createElement('td');
-        severityCell.textContent = data.severity || '';
-        row.appendChild(severityCell);
-
-        const detailsCell = document.createElement('td');
-        if (data.details) {
-          detailsCell.innerHTML = Array.isArray(data.details)
-            ? data.details.join('<br>')
-            : data.details;
-        }
-        row.appendChild(detailsCell);
-
-        tbody.appendChild(row);
-      });
-      table.appendChild(tbody);
-
-      resultsContainer.appendChild(table);
-      resultsContainer.style.display = 'block';
     }
   };
 
   // Export core functions to global namespace
   Object.assign(window.AutoMQM.Core, CoreFunctions);
+})();
 
-  // Initialize when DOM is ready
-  window.addEventListener('DOMContentLoaded', () => {
-    window.AutoMQM.Core.initLanguageHandlers();
-    window.AutoMQM.Core.updateWordCountDisplay();
-  });
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+  // Initialize language handlers
+  window.AutoMQM.Core.initLanguageHandlers();
+  window.AutoMQM.Core.updateWordCountDisplay();
+
+  // Add event listeners for text inputs
+  const sourceText = document.getElementById('source-text');
+  const targetText = document.getElementById('target-text');
+
+  if (sourceText) {
+    sourceText.addEventListener('input', () => {
+      window.AutoMQM.Core.updateWordCountDisplay();
+      window.AutoMQM.Core.handleSourceLanguageDetection();
+    });
+  }
+
+  if (targetText) {
+    targetText.addEventListener('input', () => {
+      window.AutoMQM.Core.updateWordCountDisplay();
+      window.AutoMQM.Core.handleTargetLanguageDetection();
+    });
+  }
+
+  // Add event listener for analyze button
+  const analyzeBtn = document.getElementById('analyze-btn');
+  if (analyzeBtn) {
+    analyzeBtn.addEventListener('click', window.AutoMQM.Core.runAnalysis);
+  }
 
   console.log('Core functions initialized');
-})();
+});
