@@ -240,10 +240,7 @@
     });
     
     // 2. Translate button
-    translateBtn.addEventListener('click', function() {
-      console.log('Translate button clicked');
-      translateText();
-    });
+    // Now handled by button-fix.js
     
     // 3. Language selection changes
     sourceLang.addEventListener('change', function() {

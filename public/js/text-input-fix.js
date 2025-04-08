@@ -20,35 +20,40 @@
       sourceText.disabled = false;
       sourceText.readOnly = false;
       
-      // Remove any existing event listeners (might be causing conflicts)
-      sourceText.replaceWith(sourceText.cloneNode(true));
+      // Clear existing event listeners by cloning
+      const newSourceText = sourceText.cloneNode(true);
+      sourceText.parentNode.replaceChild(newSourceText, sourceText);
       
-      // Get the fresh element reference
-      const newSourceText = document.getElementById('source-text');
-      
-      // Add direct event listener
+      // Add direct event listener with debounce
+      let sourceTimeout;
       newSourceText.addEventListener('input', function(e) {
-        console.log('Direct source text input detected:', e.target.value.length, 'characters');
-        
-        // Update word count manually
-        const sourceWordCount = document.getElementById('source-word-count');
-        if (sourceWordCount) {
-          const words = e.target.value.trim().split(/\s+/);
-          const wordCount = words.length > 0 && words[0] !== '' ? words.length : 0;
-          sourceWordCount.textContent = `${wordCount} words`;
+        clearTimeout(sourceTimeout);
+        sourceTimeout = setTimeout(() => {
+          console.log('Source text input processed:', e.target.value.length, 'characters');
           
-          if (wordCount > 500) {
-            sourceWordCount.classList.add('text-warning');
-          } else {
-            sourceWordCount.classList.remove('text-warning');
+          // Update word count manually
+          const sourceWordCount = document.getElementById('source-word-count');
+          if (sourceWordCount) {
+            const words = e.target.value.trim().split(/\s+/);
+            const wordCount = words.length > 0 && words[0] !== '' ? words.length : 0;
+            sourceWordCount.textContent = `${wordCount} words`;
+            
+            if (wordCount > 500) {
+              sourceWordCount.classList.add('text-warning');
+            } else {
+              sourceWordCount.classList.remove('text-warning');
+            }
           }
-        }
-        
-        // Update button states
-        updateButtonStates();
+          
+          // Update button states and trigger language detection
+          updateButtonStates();
+          if (typeof handleSourceLanguageDetection === 'function') {
+            handleSourceLanguageDetection();
+          }
+        }, 300);
       });
       
-      console.log('Source text area fixed with direct handler');
+      console.log('Source text area initialized with debounced handler');
     }
     
     if (targetText) {
@@ -56,35 +61,40 @@
       targetText.disabled = false;
       targetText.readOnly = false;
       
-      // Remove any existing event listeners (might be causing conflicts)
-      targetText.replaceWith(targetText.cloneNode(true));
+      // Clear existing event listeners by cloning
+      const newTargetText = targetText.cloneNode(true);
+      targetText.parentNode.replaceChild(newTargetText, targetText);
       
-      // Get the fresh element reference
-      const newTargetText = document.getElementById('target-text');
-      
-      // Add direct event listener
+      // Add direct event listener with debounce
+      let targetTimeout;
       newTargetText.addEventListener('input', function(e) {
-        console.log('Direct target text input detected:', e.target.value.length, 'characters');
-        
-        // Update word count manually
-        const targetWordCount = document.getElementById('target-word-count');
-        if (targetWordCount) {
-          const words = e.target.value.trim().split(/\s+/);
-          const wordCount = words.length > 0 && words[0] !== '' ? words.length : 0;
-          targetWordCount.textContent = `${wordCount} words`;
+        clearTimeout(targetTimeout);
+        targetTimeout = setTimeout(() => {
+          console.log('Target text input processed:', e.target.value.length, 'characters');
           
-          if (wordCount > 500) {
-            targetWordCount.classList.add('text-warning');
-          } else {
-            targetWordCount.classList.remove('text-warning');
+          // Update word count manually
+          const targetWordCount = document.getElementById('target-word-count');
+          if (targetWordCount) {
+            const words = e.target.value.trim().split(/\s+/);
+            const wordCount = words.length > 0 && words[0] !== '' ? words.length : 0;
+            targetWordCount.textContent = `${wordCount} words`;
+            
+            if (wordCount > 500) {
+              targetWordCount.classList.add('text-warning');
+            } else {
+              targetWordCount.classList.remove('text-warning');
+            }
           }
-        }
-        
-        // Update button states
-        updateButtonStates();
+          
+          // Update button states and trigger language detection
+          updateButtonStates();
+          if (typeof handleTargetLanguageDetection === 'function') {
+            handleTargetLanguageDetection();
+          }
+        }, 300);
       });
       
-      console.log('Target text area fixed with direct handler');
+      console.log('Target text area initialized with debounced handler');
     }
   }
   

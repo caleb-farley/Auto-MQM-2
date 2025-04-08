@@ -185,17 +185,11 @@
         // Add event listener for apply all button
         const applyAllButton = document.getElementById('apply-all-btn');
         if (applyAllButton) {
-          applyAllButton.addEventListener('click', function() {
-            applyAllFixes(results.mqmIssues);
-          });
         }
         
         // Add event listener for undo button
         const undoButton = document.getElementById('undo-btn');
         if (undoButton) {
-          undoButton.addEventListener('click', function() {
-            undoChanges();
-          });
         }
         
         // Scroll to results
@@ -359,12 +353,6 @@
     
     // Add event listener for analyze button
     if (analyzeBtn) {
-      analyzeBtn.addEventListener('click', function() {
-        console.log('Analyze button clicked');
-        if (window.AutoMQM && window.AutoMQM.Analysis && window.AutoMQM.Analysis.runAnalysis) {
-          window.AutoMQM.Analysis.runAnalysis();
-        }
-      });
     }
     
     console.log('Analysis fix initialized successfully');

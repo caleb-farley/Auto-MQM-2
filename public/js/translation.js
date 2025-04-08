@@ -246,7 +246,6 @@ async function translateText() {
 function init() {
   // Add event listener for translate button
   if (translateBtn) {
-    translateBtn.addEventListener('click', translateText);
   }
   
   // Add event listeners for text inputs

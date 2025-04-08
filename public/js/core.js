@@ -99,40 +99,6 @@ function toggleSourceTextVisibility(isMonolingual) {
 }
 
 /**
- * Update word count display
- */
-function updateWordCountDisplay() {
-  if (sourceText && sourceWordCount) {
-    const sourceWords = sourceText.value.trim().split(/\s+/);
-    const sourceWordCountValue = sourceWords.length > 0 && sourceWords[0] !== '' ? sourceWords.length : 0;
-    sourceWordCount.textContent = `${sourceWordCountValue} words`;
-    
-    // Add warning class if over the limit
-    if (sourceWordCountValue > 500) {
-      sourceWordCount.classList.add('text-warning');
-    } else {
-      sourceWordCount.classList.remove('text-warning');
-    }
-  }
-  
-  if (targetText && targetWordCount) {
-    const targetWords = targetText.value.trim().split(/\s+/);
-    const targetWordCountValue = targetWords.length > 0 && targetWords[0] !== '' ? targetWords.length : 0;
-    targetWordCount.textContent = `${targetWordCountValue} words`;
-    
-    // Add warning class if over the limit
-    if (targetWordCountValue > 500) {
-      targetWordCount.classList.add('text-warning');
-    } else {
-      targetWordCount.classList.remove('text-warning');
-    }
-  }
-  
-  // Update analyze button state based on word counts
-  updateAnalyzeButton();
-}
-
-/**
  * Update analyze button state based on form completeness
  */
 function updateAnalyzeButton() {
@@ -171,20 +137,15 @@ function initEventListeners() {
   
   // Text input changes
   sourceText.addEventListener('input', function() {
-    updateWordCountDisplay();
+    window.AutoMQM.Core.updateWordCountDisplay();
   });
   
   targetText.addEventListener('input', function() {
-    updateWordCountDisplay();
+    window.AutoMQM.Core.updateWordCountDisplay();
   });
   
-  // Reset button
-  resetBtn.addEventListener('click', () => {
-    sourceText.value = '';
-    targetText.value = '';
-    resultsContainer.style.display = 'none';
-    updateWordCountDisplay();
-  });
+  // Initial word count update
+  window.AutoMQM.Core.updateWordCountDisplay();
   
   // Listen for translation mode changes
   document.addEventListener('translation-mode-changed', updateAnalyzeButton);

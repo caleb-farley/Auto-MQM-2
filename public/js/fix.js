@@ -87,17 +87,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Ensure button is not disabled
     analyzeBtn.disabled = false;
-    
-    // Re-attach click event listener
-    analyzeBtn.addEventListener('click', function() {
-      console.log('Analyze button clicked');
-      // Call runAnalysis function if it exists
-      if (typeof runAnalysis === 'function') {
-        runAnalysis();
-      } else {
-        console.error('runAnalysis function not found');
-      }
-    });
   } else {
     console.error('Analyze button not found');
   }
@@ -109,17 +98,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Ensure button is not disabled
     translateBtn.disabled = false;
-    
-    // Re-attach click event listener
-    translateBtn.addEventListener('click', function() {
-      console.log('Translate button clicked');
-      // Call translateText function if it exists
-      if (typeof translateText === 'function') {
-        translateText();
-      } else {
-        console.error('translateText function not found');
-      }
-    });
   } else {
     console.error('Translate button not found');
   }

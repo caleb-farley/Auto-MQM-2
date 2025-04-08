@@ -43,6 +43,7 @@ function initUI() {
   // Add event listeners
   if (sourceText) {
     sourceText.addEventListener('input', function() {
+      console.log('UI script source text input event triggered:', sourceText.value);
       updateWordCountDisplay();
       if (typeof handleSourceLanguageDetection === 'function') {
         handleSourceLanguageDetection();
@@ -84,23 +85,11 @@ function initUI() {
   }
   
   if (resetBtn) {
-    resetBtn.addEventListener('click', resetForm);
+    // Reset button now handled by button-fix.js
   }
   
   if (copyBtn) {
-    copyBtn.addEventListener('click', function() {
-      const correctedText = document.getElementById('corrected-text');
-      if (correctedText) {
-        AutoMQM.Utils.copyToClipboard(correctedText.value)
-          .then(success => {
-            if (success) {
-              AutoMQM.Utils.showNotification('Copied to clipboard!', 'success');
-            } else {
-              AutoMQM.Utils.showNotification('Failed to copy text', 'error');
-            }
-          });
-      }
-    });
+    // Copy button functionality moved to button-fix.js
   }
   
   // Listen for translation mode changes
