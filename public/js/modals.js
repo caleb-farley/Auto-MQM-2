@@ -308,12 +308,17 @@ function hideAllModals() {
 document.addEventListener('DOMContentLoaded', initModals);
 
 // Export functions for use in other modules
+window.AutoMQM = window.AutoMQM || {};
 window.AutoMQM.Modals = {
   showDashboardModal,
   loadDashboardData,
   viewRun,
   showModal,
   hideModal,
-  hideAllModals,
-  initModals
+  hideAllModals
 };
+
+// Also expose functions globally for inline event handlers
+window.showDashboardModal = showDashboardModal;
+window.hideModal = hideModal;
+window.hideAllModals = hideAllModals;

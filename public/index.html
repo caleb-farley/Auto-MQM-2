@@ -1565,7 +1565,40 @@
 
   // Machine Translation functionality
   const translateBtn = document.getElementById('translate-btn');
-  // Create a function to show target language error specifically under the dropdown
+  // Show error message in the UI
+  function showError(message) {
+    // Create error element if it doesn't exist
+    let errorMsg = document.getElementById('error-message');
+    if (!errorMsg) {
+      errorMsg = document.createElement('div');
+      errorMsg.id = 'error-message';
+      errorMsg.className = 'error-message';
+      // Insert at the top of the text areas container
+      const container = document.getElementById('text-areas-container');
+      if (container) {
+        container.insertBefore(errorMsg, container.firstChild);
+      } else {
+        // Fallback - add to body
+        document.body.appendChild(errorMsg);
+      }
+    }
+    
+    // Show error message
+    errorMsg.textContent = message;
+    errorMsg.style.display = 'block';
+    
+    // Hide after 5 seconds
+    setTimeout(() => {
+      errorMsg.style.display = 'none';
+    }, 5000);
+    
+    // Also show as notification if available
+    if (typeof showNotification === 'function') {
+      showNotification(message, 'error');
+    }
+  }
+
+  // Function to show target language error specifically under the dropdown
   function showTargetLangError(message) {
     // Create error element if it doesn't exist
     let targetLangError = document.getElementById('target-lang-error');
@@ -1606,7 +1639,7 @@
     if (targetLangBubble) targetLangBubble.style.display = 'none';
     
     // Check if we have source text and languages selected
-    if (!sourceText.value) {
+    if (!sourceText || !sourceText.value || sourceText.value.trim() === '') {
       showError('Please enter source text to translate');
       return;
     }

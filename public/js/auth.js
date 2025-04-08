@@ -543,7 +543,14 @@ window.AutoMQM.Auth = {
   login,
   register,
   logout,
+  updateAuthUI,
   getToken,
-  checkAuth,
-  init
+  checkAuth
 };
+
+// Also expose the functions globally for inline event handlers
+window.showLoginModal = showLoginModal;
+window.showRegisterModal = showRegisterModal;
+window.showAccountModal = showAccountModal;
+window.showAdminModal = showAdminModal;
+window.logout = logout;
