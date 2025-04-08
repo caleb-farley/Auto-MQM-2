@@ -6,7 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const translationController = require('../controllers/translationController');
-const authMiddleware = require('../middleware/auth');
+const authMiddleware = require('../middleware/authMiddleware');
 
 // Translate text using configured translation service
 router.post('/translate', 

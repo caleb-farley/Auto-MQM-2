@@ -6,6 +6,7 @@
 const User = require('../models/User');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 
 /**
  * Register a new user
@@ -84,7 +85,8 @@ exports.login = async (req, res) => {
     }
     
     // Check for user
-    const user = await User.findOne({ email }).select('+password');
+    const user = await User.findOne({ email }).select('+password').exec();
+    console.log('Found user:', user);
     
     if (!user) {
       return res.status(401).json({
@@ -94,7 +96,10 @@ exports.login = async (req, res) => {
     }
     
     // Check if password matches
-    const isMatch = await user.matchPassword(password);
+    console.log('Checking password:', password);
+    console.log('User password hash:', user.password);
+    const isMatch = await bcrypt.compare(password, user.password);
+    console.log('Password match result:', isMatch);
     
     if (!isMatch) {
       return res.status(401).json({

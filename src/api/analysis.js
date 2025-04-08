@@ -4,15 +4,36 @@
  */
 
 const express = require('express');
+const multer = require('multer');
 const router = express.Router();
+
+// Configure multer for file uploads
+const upload = multer({
+  storage: multer.memoryStorage(),
+  fileFilter: (req, file, cb) => {
+    const ext = file.originalname.split('.').pop().toLowerCase();
+    console.log('File upload:', {
+      originalname: file.originalname,
+      extension: ext,
+      mimetype: file.mimetype
+    });
+    // Accept files based on extension only since mimetype can be unreliable
+    if (ext === 'tmx' || ext === 'xlf' || ext === 'xliff') {
+      cb(null, true);
+    } else {
+      cb(new Error('Only TMX and XLIFF files are allowed'));
+    }
+  }
+});
 const analysisController = require('../controllers/analysisController');
-const authMiddleware = require('../middleware/auth');
+const authMiddleware = require('../middleware/authMiddleware');
 
 // Run MQM analysis on text or uploaded file
 router.post('/mqm-analysis', 
   authMiddleware.optionalAuth, 
   authMiddleware.checkUsageLimit,
   authMiddleware.trackUsage,
+  upload.single('file'),
   analysisController.runMqmAnalysis
 );
 

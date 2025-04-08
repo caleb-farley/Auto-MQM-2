@@ -18,7 +18,12 @@ exports.translateText = async (req, res) => {
     }
     
     // Get the preferred translation engine from environment variables
-    const translationEngine = process.env.DEFAULT_TRANSLATION_ENGINE || 'claude';
+    console.log('Available API Keys:', {
+      deepl: process.env.DEEPL_API_KEY ? 'set' : 'not set',
+      google: process.env.GOOGLE_TRANSLATE_API_KEY ? 'set' : 'not set',
+      claude: process.env.CLAUDE_API_KEY ? 'set' : 'not set'
+    });
+    const translationEngine = process.env.DEFAULT_TRANSLATION_ENGINE || 'google';
     
     let translatedText = '';
     
@@ -82,11 +87,19 @@ async function translateWithDeepL(text, sourceLang, targetLang) {
  * Translate text using Google Translate API
  */
 async function translateWithGoogle(text, sourceLang, targetLang) {
+  console.log('Environment variables:', {
+    GOOGLE_TRANSLATE_API_KEY: process.env.GOOGLE_TRANSLATE_API_KEY ? 'present' : 'missing',
+    DEEPL_API_KEY: process.env.DEEPL_API_KEY ? 'present' : 'missing',
+    NODE_ENV: process.env.NODE_ENV
+  });
+
   const googleApiKey = process.env.GOOGLE_TRANSLATE_API_KEY;
   
   if (!googleApiKey) {
     throw new Error('Google Translate API key not configured');
   }
+  
+  console.log('Using Google API key:', googleApiKey.substring(0, 5) + '...');
   
   // Map language codes to Google format if needed
   const googleSourceLang = mapToGoogleCode(sourceLang);
@@ -136,12 +149,12 @@ ${text}`;
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': claudeApiKey,
-        'anthropic-version': '2023-06-01'
+        'anthropic-version': '2024-01-01'
       }
     }
   );
   
-  return response.data.content[0].text.trim();
+  return response.data.content.trim();
 }
 
 /**
@@ -252,26 +265,36 @@ exports.detectLanguage = async (req, res) => {
       return res.status(500).json({ error: 'Detect Language API key not configured' });
     }
 
-    const response = await axios.post(
-      'https://ws.detectlanguage.com/0.2/detect',
-      { q: text },
-      {
-        headers: {
-          'Authorization': apiKey,
-          'Content-Type': 'application/json'
+    console.log('API Key:', apiKey);
+    try {
+      const response = await axios.post(
+        'https://ws.detectlanguage.com/0.2/detect',
+        { q: text },
+        {
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
         }
+      );
+      console.log('API Response:', response.data);
+
+      console.log('Full API Response:', JSON.stringify(response.data, null, 2));
+      
+      if (!response.data || !response.data.data || !response.data.data.detections || response.data.data.detections.length === 0) {
+        return res.status(400).json({ error: 'Unable to detect language' });
       }
-    );
 
-    if (!response.data || !response.data.detections || response.data.detections.length === 0) {
-      return res.status(400).json({ error: 'Unable to detect language' });
+      const detection = response.data.data.detections[0];
+      return res.json({
+        language: detection.language,
+        confidence: detection.confidence
+      });
+    } catch (apiError) {
+      console.error('API error:', apiError);
+      return res.status(500).json({ error: 'Language detection API error', message: apiError.message });
     }
-
-    const detection = response.data.detections[0];
-    return res.json({
-      language: detection.language,
-      confidence: detection.confidence
-    });
   } catch (error) {
     console.error('Language detection error:', error);
     return res.status(500).json({ error: 'Language detection failed', message: error.message });

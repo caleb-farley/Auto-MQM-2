@@ -20,6 +20,7 @@ const stripeRoutes = require('./routes/stripeRoutes');
 const runRoutes = require('./routes/runRoutes');
 const adminLoginRoute = require('./routes/adminLoginRoute');
 const adminRoutes = require('./routes/adminRoutes');
+const translationRoutes = require('./src/api/translation');
 
 // Import middleware
 const authMiddleware = require('./middleware/authMiddleware');
@@ -53,8 +54,25 @@ app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
     ? process.env.FRONTEND_URL || true
     : true,
-  credentials: true // Allow cookies to be sent with requests
+  credentials: true
 }));
+
+// Body parser middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Cookie parser middleware
+app.use(cookieParser());
+
+// Serve static files
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Mount routes
+app.use('/api/auth', authRoutes);
+app.use('/api/stripe', stripeRoutes);
+app.use('/api/runs', runRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api', translationRoutes);
 
 // Special middleware for Stripe webhook (must be before express.json())
 app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));
@@ -963,14 +981,8 @@ app.post('/api/mqm-analysis',
         sourceLang: processedSourceLang,
         targetLang: processedTargetLang
       });
-    } catch (error) {
-      console.error('Error parsing JSON or processing Claude response:', error);
-      return res.status(500).json({ error: 'Could not parse analysis results' });
-    }
   } catch (error) {
-    console.error('MQM analysis error:', error);
-    
-    // Provide more specific error messages based on the context
+    console.error('Error processing request:', error);
     if (fileBuffer && error.message.includes('file')) {
       return res.status(500).json({ 
         error: 'Failed to process Excel file',

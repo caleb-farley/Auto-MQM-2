@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE tmx SYSTEM "tmx11.dtd">
+<tmx version="1.1">
+  <header
+    creationtool="XYZ" creationtoolversion="1.01"
+    segtype="sentence" o-tmf="tmx" adminlang="en-us"
+    srclang="en" datatype="plaintext"
+    creationdate="20240408T003813Z" creationid="example"
+    changedate="20240408T003813Z" changeid="example">
+  </header>
+  <body>
+    <tu>
+      <tuv xml:lang="en">
+        <seg>Welcome to our website!</seg>
+      </tuv>
+      <tuv xml:lang="es">
+        <seg>¡Bienvenido a nuestro sitio web!</seg>
+      </tuv>
+    </tu>
+    <tu>
+      <tuv xml:lang="en">
+        <seg>This is a test translation.</seg>
+      </tuv>
+      <tuv xml:lang="es">
+        <seg>Esta es una traducción de prueba.</seg>
+      </tuv>
+    </tu>
+    <tu>
+      <tuv xml:lang="en">
+        <seg>Please click the button below to continue.</seg>
+      </tuv>
+      <tuv xml:lang="es">
+        <seg>Por favor, haga clic en el botón de abajo para continuar.</seg>
+      </tuv>
+    </tu>
+  </body>
+</tmx>

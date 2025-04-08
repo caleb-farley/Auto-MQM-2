@@ -1,117 +1,134 @@
-/**
- * User Model
- * Defines the schema for user accounts
- */
-
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-const UserSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: [true, 'Please add a name'],
-    trim: true,
-    maxlength: [50, 'Name cannot be more than 50 characters']
-  },
+const userSchema = new mongoose.Schema({
   email: {
     type: String,
-    required: [true, 'Please add an email'],
+    required: true,
     unique: true,
-    match: [
-      /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
-      'Please add a valid email'
-    ]
+    trim: true,
+    lowercase: true,
   },
   password: {
     type: String,
-    required: [true, 'Please add a password'],
-    minlength: [6, 'Password must be at least 6 characters'],
+    required: function() {
+      // Password is required unless using social login
+      return !this.socialLogins || this.socialLogins.length === 0;
+    },
     select: false
+  },
+  name: {
+    type: String,
+    trim: true,
   },
   accountType: {
     type: String,
-    enum: ['user', 'admin'],
-    default: 'user'
+    enum: ['free', 'paid', 'admin'],
+    default: 'free',
   },
-  subscription: {
-    tier: {
-      type: String,
-      enum: ['free', 'pro', 'enterprise'],
-      default: 'free'
-    },
-    startDate: {
-      type: Date
-    },
-    endDate: {
-      type: Date
-    },
-    status: {
-      type: String,
-      enum: ['active', 'expired', 'cancelled'],
-      default: 'active'
-    }
-  },
-  apiKey: {
-    type: String,
-    unique: true,
-    sparse: true
-  },
+  isVerified: { type: Boolean, default: false },
+  verificationToken: String,
+  verificationTokenExpires: Date,
   resetPasswordToken: String,
-  resetPasswordExpire: Date,
+  resetPasswordExpires: Date,
+  socialLogins: [{
+    provider: {
+      type: String,
+      enum: ['google', 'facebook', 'github'],
+    },
+    providerId: String,
+    email: String,
+    name: String,
+    lastLogin: Date,
+  }],
+  usageCount: {
+    type: Number,
+    default: 0,
+  },
+  stripeCustomerId: String,
+  stripeSubscriptionId: String,
+  subscriptionStatus: {
+    type: String,
+    enum: ['active', 'past_due', 'canceled', 'unpaid', null],
+    default: null,
+  },
+  lastLogin: Date,
   createdAt: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
+  savedRuns: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Run',
+  }],
 });
 
-// Encrypt password using bcrypt
-UserSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) {
+// Hash password before saving
+userSchema.pre('save', async function(next) {
+  // Only hash the password if it's modified or new
+  if (!this.isModified('password') || !this.password) return next();
+  
+  try {
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
     next();
+  } catch (error) {
+    next(error);
   }
-
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
-  next();
 });
 
-// Sign JWT and return
-UserSchema.methods.getSignedJwtToken = function() {
-  return jwt.sign(
-    { id: this._id },
-    process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRE || '30d' }
-  );
+// Method to validate password
+userSchema.methods.matchPassword = async function(candidatePassword) {
+  try {
+    return await bcrypt.compare(candidatePassword, this.password);
+  } catch (error) {
+    console.error('Password comparison error:', error);
+    return false;
+  }
+}
+
+// Generate JWT token
+userSchema.methods.getSignedJwtToken = function() {
+  return jwt.sign({ id: this._id }, process.env.JWT_SECRET, {
+    expiresIn: process.env.JWT_EXPIRE || '30d'
+  });
 };
 
-// Match user entered password to hashed password in database
-UserSchema.methods.matchPassword = async function(enteredPassword) {
-  return await bcrypt.compare(enteredPassword, this.password);
+// Hash password before saving
+userSchema.pre('save', async function(next) {
+  try {
+    if (!this.isModified('password')) {
+      return next();
+    }
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    return next();
+  } catch (error) {
+    console.error('Password hashing error:', error);
+    return next(error);
+  }
+});
+
+// Return usage limit based on account type
+userSchema.methods.getUsageLimit = function() {
+  if (this.accountType === 'admin' || this.accountType === 'paid') {
+    return Infinity; // No limit for admin and paid users
+  } else if (this.accountType === 'free') {
+    return 25; // Free account limit
+  }
+  return 0; // Default case (should not happen)
 };
 
-// Generate and hash password token
-UserSchema.methods.getResetPasswordToken = function() {
-  // Generate token
-  const resetToken = crypto.randomBytes(20).toString('hex');
-
-  // Hash token and set to resetPasswordToken field
-  this.resetPasswordToken = crypto
-    .createHash('sha256')
-    .update(resetToken)
-    .digest('hex');
-
-  // Set expire
-  this.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
-
-  return resetToken;
+// Check if user has remaining usage
+userSchema.methods.hasRemainingUsage = function() {
+  const limit = this.getUsageLimit();
+  return limit === Infinity || this.usageCount < limit;
 };
 
-// Generate API key
-UserSchema.methods.generateApiKey = function() {
-  const apiKey = crypto.randomBytes(32).toString('hex');
-  this.apiKey = apiKey;
-  return apiKey;
+// Static method to get anonymous user limit
+userSchema.statics.getAnonymousLimit = function() {
+  return 5; // Anonymous user limit
 };
 
-module.exports = mongoose.model('User', UserSchema);
+module.exports = mongoose.model('User', userSchema);

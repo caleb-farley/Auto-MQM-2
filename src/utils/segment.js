@@ -28,6 +28,7 @@ exports.getSegments = async ({ sourceText, targetText, sourceLang, targetLang, f
     case 'tmx':
       return parseTMX(fileBuffer);
     case 'xliff':
+    case 'xlf':
       return parseXLIFF(fileBuffer);
     default:
       throw new Error(`Unsupported file type: ${fileType}`);

@@ -1,36 +1,66 @@
-/**
- * ActionLog Model
- * Tracks user actions and API usage
- */
-
 const mongoose = require('mongoose');
 
-const ActionLogSchema = new mongoose.Schema({
+const actionLogSchema = new mongoose.Schema({
+  timestamp: { type: Date, default: Date.now },
+  actionType: {
+    type: String,
+    enum: ['qa', 'translate'],
+    required: true
+  },
+  // User information
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    default: null
+    required: false // Not required for anonymous users
   },
-  ip: {
+  anonymousSessionId: {
     type: String,
-    required: true
+    required: false
   },
-  action: {
+  ip: String,
+  // Action details
+  sourceLang: String,
+  targetLang: String,
+  sourceTextLength: Number,
+  targetTextLength: Number,
+  // For translation actions
+  engineUsed: String,
+  llmModel: String,
+  // For QA actions
+  analysisMode: {
     type: String,
-    required: true
+    enum: ['monolingual', 'bilingual'],
+    default: 'bilingual'
   },
-  method: {
+  // Reference to the run if this was a QA action
+  run: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Run',
+    required: false
+  },
+  // Additional metadata
+  location: {
+    city: String,
+    region: String,
+    country: String,
+    org: String
+  },
+  // File information for uploads
+  fileType: {
     type: String,
-    required: true
+    enum: ['tmx', 'xliff', 'excel', null],
+    required: false
   },
-  userAgent: {
+  fileUrl: {
     type: String,
-    default: null
-  },
-  timestamp: {
-    type: Date,
-    default: Date.now
+    required: false
   }
 });
 
-module.exports = mongoose.model('ActionLog', ActionLogSchema);
+// Indexes for efficient querying
+actionLogSchema.index({ actionType: 1, timestamp: -1 });
+actionLogSchema.index({ user: 1, timestamp: -1 });
+actionLogSchema.index({ anonymousSessionId: 1, timestamp: -1 });
+actionLogSchema.index({ ip: 1, timestamp: -1 });
+
+module.exports = mongoose.model('ActionLog', actionLogSchema);

@@ -17,7 +17,20 @@ const { normalizeLanguageCode, isValidLanguageCode } = require('../utils/languag
  */
 exports.runMqmAnalysis = async (req, res) => {
   try {
-    const { sourceText, targetText, sourceLang, targetLang, mode, llmModel, fileBuffer, fileType } = req.body;
+    const { sourceText, targetText, sourceLang, targetLang, mode, llmModel } = req.body;
+    const fileBuffer = req.file ? req.file.buffer : null;
+    let fileType = req.file ? req.file.originalname.split('.').pop().toLowerCase() : null;
+    
+    // Normalize file type for MongoDB
+    if (fileType === 'xlf') {
+      fileType = 'xliff';
+    }
+    
+    console.log('Processing file:', {
+      hasFile: !!req.file,
+      fileType,
+      bufferSize: fileBuffer ? fileBuffer.length : 0
+    });
     const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress;
     
     // Define these variables so they're accessible throughout the function
@@ -32,7 +45,7 @@ exports.runMqmAnalysis = async (req, res) => {
     if (fileBuffer) {
       console.log(`Received file upload request: type=${fileType}, size=${typeof fileBuffer === 'string' ? fileBuffer.length : 'unknown'}`);
       
-      if (!fileType || (fileType !== 'tmx' && fileType !== 'xliff')) {
+      if (!fileType || (fileType !== 'tmx' && fileType !== 'xliff' && fileType !== 'xlf')) {
         return res.status(400).json({ error: 'Invalid file type. Only TMX and XLIFF files are supported.' });
       }
     }

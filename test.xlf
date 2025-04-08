@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff version="1.2" xmlns="urn:oasis:names:tc:xliff:document:1.2">
+  <file source-language="en" target-language="es" datatype="plaintext" original="test">
+    <header>
+      <skl>
+        <external-file href="test.skl"/>
+      </skl>
+    </header>
+    <body>
+      <trans-unit id="1">
+        <source>Welcome to our application!</source>
+        <target>¡Bienvenido a nuestra aplicación!</target>
+      </trans-unit>
+      <trans-unit id="2">
+        <source>This is a sample XLIFF file.</source>
+        <target>Este es un archivo XLIFF de ejemplo.</target>
+      </trans-unit>
+      <trans-unit id="3">
+        <source>Please configure your settings below.</source>
+        <target>Por favor, configure sus ajustes a continuación.</target>
+      </trans-unit>
+    </body>
+  </file>
+</xliff>
