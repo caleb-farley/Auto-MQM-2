@@ -112,19 +112,7 @@ function initToggle() {
   const bilingualRadio = document.querySelector('input[name="translation-mode"][value="bilingual"]');
   const monolingualRadio = document.querySelector('input[name="translation-mode"][value="monolingual"]');
   
-  // Add event listeners for language selection changes
-  const sourceLangSelect = document.getElementById('source-lang');
-  const targetLangSelect = document.getElementById('target-lang');
-  
-  if (sourceLangSelect) {
-    sourceLangSelect.addEventListener('change', updateTextDirection);
-  }
-  
-  if (targetLangSelect) {
-    targetLangSelect.addEventListener('change', updateTextDirection);
-  }
-  
-  // Handle toggle switch change
+  // Language handlers moved to core-functions.js
   if (translationToggle) {
     translationToggle.addEventListener('change', function() {
       toggleSourceTextVisibility(this.checked);

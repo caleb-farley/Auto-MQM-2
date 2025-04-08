@@ -126,15 +126,6 @@ function escapeRegExp(string) {
  * Initialize event listeners
  */
 function initEventListeners() {
-  // Language selection changes
-  sourceLang.addEventListener('change', updateTextDirection);
-  targetLang.addEventListener('change', updateTextDirection);
-  
-  // Translation mode toggle
-  translationModeToggle.addEventListener('change', function() {
-    toggleSourceTextVisibility(this.checked);
-  });
-  
   // Text input changes
   sourceText.addEventListener('input', function() {
     window.AutoMQM.Core.updateWordCountDisplay();

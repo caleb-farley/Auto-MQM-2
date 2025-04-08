@@ -41,55 +41,19 @@ function initUI() {
   excelUploadForm = document.getElementById('excel-upload-form');
   
   // Add event listeners
+  // Initialize text input handlers
   if (sourceText) {
     sourceText.addEventListener('input', function() {
-      console.log('UI script source text input event triggered:', sourceText.value);
-      updateWordCountDisplay();
-      if (typeof handleSourceLanguageDetection === 'function') {
-        handleSourceLanguageDetection();
-      }
+      window.AutoMQM.Core.updateWordCountDisplay();
       updateAnalyzeButton();
     });
   }
   
   if (targetText) {
     targetText.addEventListener('input', function() {
-      updateWordCountDisplay();
-      if (typeof handleTargetLanguageDetection === 'function') {
-        handleTargetLanguageDetection();
-      }
+      window.AutoMQM.Core.updateWordCountDisplay();
       updateAnalyzeButton();
     });
-  }
-  
-  if (targetLang) {
-    targetLang.addEventListener('change', function() {
-      const targetLangBubble = document.getElementById('target-lang-bubble');
-      if (targetLang.value && targetLangBubble) {
-        targetLangBubble.style.display = 'none';
-      }
-      if (typeof updateTranslationEngineInfo === 'function') {
-        updateTranslationEngineInfo();
-      }
-      updateAnalyzeButton();
-    });
-  }
-  
-  if (sourceLang) {
-    sourceLang.addEventListener('change', function() {
-      if (typeof updateTranslationEngineInfo === 'function') {
-        updateTranslationEngineInfo();
-      }
-      updateAnalyzeButton();
-    });
-  }
-  
-  if (resetBtn) {
-    // Reset button now handled by button-fix.js
-  }
-  
-  if (copyBtn) {
-    // Copy button functionality moved to button-fix.js
   }
   
   // Listen for translation mode changes

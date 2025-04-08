@@ -202,5 +202,91 @@ window.AutoMQM.Core = window.AutoMQM.Core || {};
     }
   };
 
+  // Language and translation mode handlers
+  window.AutoMQM.Core.initLanguageHandlers = function() {
+    const sourceLang = document.getElementById('source-lang');
+    const targetLang = document.getElementById('target-lang');
+    const translationModeToggle = document.getElementById('translation-mode-toggle');
+    const sourceText = document.getElementById('source-text');
+    const targetText = document.getElementById('target-text');
+    
+    // RTL language codes
+    const rtlLanguages = ['ar', 'he', 'fa', 'ur'];
+    
+    function isRTL(langCode) {
+      if (!langCode) return false;
+      return rtlLanguages.some(rtlCode => langCode.startsWith(rtlCode));
+    }
+    
+    function updateTextDirection() {
+      if (sourceText && sourceLang) {
+        sourceText.style.textAlign = isRTL(sourceLang.value) ? 'right' : 'left';
+      }
+      if (targetText && targetLang) {
+        targetText.style.textAlign = isRTL(targetLang.value) ? 'right' : 'left';
+      }
+    }
+    
+    function toggleSourceTextVisibility(isMonolingual) {
+      const sourceTextContainer = document.getElementById('source-text-container');
+      const targetTextContainer = document.getElementById('target-text-container');
+      const textAreasContainer = document.getElementById('text-areas-container');
+      const translateBtn = document.getElementById('translate-btn');
+      
+      if (isMonolingual) {
+        textAreasContainer?.classList.add('monolingual-mode');
+        if (translateBtn) translateBtn.style.display = 'none';
+      } else {
+        textAreasContainer?.classList.remove('monolingual-mode');
+        if (translateBtn) translateBtn.style.display = 'block';
+      }
+      
+      // Update button states
+      window.AutoMQM.Core.updateButtonStates?.();
+      
+      // Notify other components
+      document.dispatchEvent(new CustomEvent('translation-mode-changed', { 
+        detail: { mode: isMonolingual ? 'monolingual' : 'bilingual' } 
+      }));
+    }
+    
+    // Source language change handler
+    if (sourceLang) {
+      sourceLang.addEventListener('change', function() {
+        this.removeAttribute('data-autodetected');
+        updateTextDirection();
+      });
+    }
+    
+    // Target language change handler
+    if (targetLang) {
+      targetLang.addEventListener('change', function() {
+        this.removeAttribute('data-autodetected');
+        updateTextDirection();
+        
+        // Update language bubble
+        const targetLangBubble = document.getElementById('target-lang-bubble');
+        if (targetLangBubble) {
+          targetLangBubble.style.display = this.value ? 'none' : 'block';
+        }
+      });
+    }
+    
+    // Translation mode toggle handler
+    if (translationModeToggle) {
+      translationModeToggle.addEventListener('change', function() {
+        toggleSourceTextVisibility(this.checked);
+      });
+    }
+    
+    // Initialize text direction
+    updateTextDirection();
+  };
+  
+  // Initialize all core functionality
+  window.addEventListener('DOMContentLoaded', function() {
+    window.AutoMQM.Core.initLanguageHandlers();
+  });
+  
   console.log('Core functions initialized');
 })();
